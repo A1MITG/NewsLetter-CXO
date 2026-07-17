@@ -1,0 +1,23 @@
+# Ignore Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.env
+.venv
+venv/
+
+# Ignore instance folder
+instance/
+
+# Ignore database files
+*.db
+*.sqlite3
+
+# Ignore test reports
+.coverage
+htmlcov/
+
+# Ignore scraped data
+scraped_articles.json

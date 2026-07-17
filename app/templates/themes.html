@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Intelligence Brief - Themes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Daily Intelligence Brief - Themes</h1>
+        <p class="date" id="brief-date"></p>
+        <p class="last-updated" id="last-updated"></p>
+    </header>
+
+    <main id="newsletter-content">
+        <p class="loading">Loading latest intelligence...</p>
+    </main>
+
+    <footer>
+        <p>Confidential | For Executive Leadership Only</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/newsletter')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Fetched data:', data);
+                    const content = document.getElementById('newsletter-content');
+                    content.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    let html = '';
+
+                    document.getElementById('brief-date').textContent = data.date || new Date().toLocaleDateString();
+                    const now = new Date();
+                    const dd = String(now.getDate()).padStart(2, '0');
+                    const mm = String(now.getMonth() + 1).padStart(2, '0');
+                    const yyyy = now.getFullYear();
+                    const hh = String(now.getHours()).padStart(2, '0');
+                    const min = String(now.getMinutes()).padStart(2, '0');
+                    const ss = String(now.getSeconds()).padStart(2, '0');
+                    const tz = now.toLocaleTimeString('en-US', {timeZoneName: 'short'}).split(' ')[2] || 'UTC';
+                    document.getElementById('last-updated').textContent = 'Last Updated: ' + dd + ' ' + mm + ' ' + yyyy + ' ' + hh + ' ' + min + ' ' + ss + ' ' + tz;
+
+                    // Thematically group articles with direct hyperlinks
+                    const sections = ['Macro & Geo-Political', 'Regulatory & Compliance', 'Economic & Market', 'Digital, AI & Automation', 'Operating Model & Talent'];
+                    sections.forEach(section => {
+                        if (data[section] && data[section].length > 0) {
+                            html += `<h2>${section}</h2><ul>`;
+                            data[section].forEach(article => {
+                                if (article.url) {
+                                    html += `<li><a href="${article.url}" target="_blank">${article.signal}</a></li>`;
+                                }
+                            });
+                            html += '</ul>';
+                        }
+                    });
+
+                    content.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error fetching newsletter:', error);
+                    document.getElementById('newsletter-content').innerHTML = '<p>Error loading intelligence.</p>';
+                });
+        });
+    </script>
+</body>
+</html></content>
+<parameter name="filePath">c:\Projects\AI_Factory\New folder\app\templates\themes.html

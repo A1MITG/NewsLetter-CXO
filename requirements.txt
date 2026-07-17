@@ -1,0 +1,13 @@
+# Web Framework
+Flask
+Flask-SQLAlchemy
+
+# HTTP Requests
+aiohttp
+requests
+
+# HTML Parsing
+beautifulsoup4
+
+# For async support in Flask
+asgiref
