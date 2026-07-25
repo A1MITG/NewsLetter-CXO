@@ -1,9 +1,12 @@
 name: Build Signals (static)
 
-# Regenerates public/ — the static Signals page Vercel serves — once a day,
-# or on demand via the "Run workflow" button. Pushing the result to the
-# connected branch is what triggers Vercel's automatic redeploy; no Vercel
-# token or deploy hook is needed here.
+# Regenerates public/ once a day, or on demand via "Run workflow". Commits
+# it to the working branch for history, and also force-pushes just those
+# three static files to the orphan `signals-deploy` branch — that branch is
+# what Vercel actually watches, since it never contains requirements.txt or
+# .python-version and so can never trigger Vercel's Python auto-detection
+# (see README's Vercel section for why that matters). No Vercel token or
+# deploy hook is needed; the push itself triggers Vercel's redeploy.
 
 on:
   schedule:
@@ -35,10 +38,24 @@ jobs:
         env:
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
 
-      - name: Commit and push if changed
+      - name: Commit build to working branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/
           git diff --staged --quiet || git commit -m "Daily Signals rebuild: $(date -u +'%Y-%m-%d')"
           git push
+
+      - name: Publish to signals-deploy branch (Vercel source)
+        run: |
+          rm -rf /tmp/signals-deploy
+          mkdir /tmp/signals-deploy
+          cp public/index.html public/signal.css public/signals.json /tmp/signals-deploy/
+          cd /tmp/signals-deploy
+          git init -q
+          git checkout -q -b signals-deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html signal.css signals.json
+          git commit -q -m "Signals rebuild: $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" signals-deploy

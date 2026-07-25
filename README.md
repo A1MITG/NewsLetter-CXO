@@ -123,16 +123,21 @@ never runs Python for it; it only serves pre-built files.
   `signals.html` template once, and writes `public/index.html`,
   `public/signals.json`, and `public/signal.css`.
 - `.github/workflows/build-signals.yml` runs that script daily at 08:00 IST
-  (and on-demand via its "Run workflow" button), then commits `public/` back
-  to the repo if it changed. Pushing to the connected branch is what
-  triggers Vercel's redeploy — no Vercel token needed in GitHub.
-To connect it: import the repo in the Vercel dashboard, then set **Root
-Directory** to `public` in the project's Build & Output settings. This
-matters — the repo root also has `requirements.txt` and `.python-version`,
-which makes Vercel auto-detect a Python project and try to build one if the
-Root Directory is left at `.`. Pointing Root Directory at `public/` hides
-those files from Vercel entirely, so it sees only static HTML/CSS/JSON and
-deploys with zero build step, no `vercel.json` required.
+  (and on-demand via its "Run workflow" button). It commits `public/` to the
+  working branch for history, then force-pushes just those three files to a
+  dedicated **`signals-deploy`** branch — that branch's root *only* ever
+  contains those three static files.
+
+That dedicated branch exists because Vercel auto-detects a Python project
+from `requirements.txt` and `.python-version` anywhere it can see them and
+tries to build one — even with Root Directory pointed at `public/`, in
+practice this kept triggering. A branch that structurally cannot contain
+those files sidesteps the detection entirely rather than fighting it.
+
+To connect it: import the repo in the Vercel dashboard, choose **Branch:
+signals-deploy** during import (not `Main`), leave Root Directory as the
+default. Vercel will see only static HTML/CSS/JSON and deploy with zero
+build step.
 
 The page updates once a day on the schedule above; there is no live
 `?refresh=1` for this static build — use the workflow's manual "Run
