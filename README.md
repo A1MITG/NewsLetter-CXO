@@ -126,11 +126,14 @@ never runs Python for it; it only serves pre-built files.
   (and on-demand via its "Run workflow" button), then commits `public/` back
   to the repo if it changed. Pushing to the connected branch is what
   triggers Vercel's redeploy — no Vercel token needed in GitHub.
-- `vercel.json` sets `outputDirectory: public` and disables any build step,
-  since the static files already arrive pre-built.
+To connect it: import the repo in the Vercel dashboard, then set **Root
+Directory** to `public` in the project's Build & Output settings. This
+matters — the repo root also has `requirements.txt` and `.python-version`,
+which makes Vercel auto-detect a Python project and try to build one if the
+Root Directory is left at `.`. Pointing Root Directory at `public/` hides
+those files from Vercel entirely, so it sees only static HTML/CSS/JSON and
+deploys with zero build step, no `vercel.json` required.
 
-To connect it: import the repo in the Vercel dashboard, leave the framework
-preset as "Other" (it will pick up `vercel.json` automatically), and deploy.
 The page updates once a day on the schedule above; there is no live
 `?refresh=1` for this static build — use the workflow's manual "Run
 workflow" button to force an early rebuild.
