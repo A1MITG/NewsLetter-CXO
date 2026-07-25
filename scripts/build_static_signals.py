@@ -35,10 +35,13 @@ logger = logging.getLogger(__name__)
 
 PUBLIC_DIR = ROOT / 'public'
 
-# The live page fetches its data from the Flask API and links back to the
-# Daily Brief. Neither exists in this standalone static deploy.
+# The live page fetches its data from the Flask API, links its stylesheet
+# through Flask's /static/ route, and links back to the Daily Brief. None
+# of those exist in this standalone static deploy.
 LIVE_API_FETCH = "fetch('/api/signals')"
 STATIC_JSON_FETCH = "fetch('./signals.json')"
+FLASK_STATIC_CSS = '<link rel="stylesheet" href="/static/signal.css">'
+FLAT_STATIC_CSS = '<link rel="stylesheet" href="./signal.css">'
 DAILY_BRIEF_LINK = '<div class="utility">\n        <span id="last-updated"></span>\n        <a href="/">&larr; DAILY BRIEF</a>\n    </div>'
 STATIC_UTILITY = '<div class="utility">\n        <span id="last-updated"></span>\n    </div>'
 
@@ -62,12 +65,14 @@ def main():
     with app.test_request_context():
         html = render_template('signals.html')
 
-    if LIVE_API_FETCH not in html or DAILY_BRIEF_LINK not in html:
+    if (LIVE_API_FETCH not in html or DAILY_BRIEF_LINK not in html
+            or FLASK_STATIC_CSS not in html):
         raise RuntimeError(
             "signals.html no longer matches the expected markup — update "
             "the substitutions in this script to match the new template."
         )
     html = html.replace(LIVE_API_FETCH, STATIC_JSON_FETCH)
+    html = html.replace(FLASK_STATIC_CSS, FLAT_STATIC_CSS)
     html = html.replace(DAILY_BRIEF_LINK, STATIC_UTILITY)
 
     (PUBLIC_DIR / 'index.html').write_text(html, encoding='utf-8')
