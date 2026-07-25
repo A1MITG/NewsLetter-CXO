@@ -89,8 +89,14 @@ KEYWORDS = {
         'gcc': 3, 'gccs': 3,
         'outsourcing': 2, 'bengaluru': 2, 'bangalore': 2, 'hyderabad': 2,
         'gurugram': 2, 'gurgaon': 2, 'noida': 2, 'pune': 2,
-        'tcs': 2, 'infosys': 2, 'wipro': 2, 'cognizant': 2, 'capgemini': 2,
-        'accenture': 2, 'it services': 2,
+        'it services': 2,
+        # Company names alone are weak evidence — large conglomerates like
+        # Wipro run unrelated businesses (e.g. Wipro Consumer's FMCG arm)
+        # under the same name, so a bare name match must not, by itself,
+        # clear the classification threshold (see the Air India/GCC bug
+        # this mirrors: a single weak keyword should never force a fit).
+        'tcs': 1, 'infosys': 1, 'wipro': 1, 'cognizant': 1, 'capgemini': 1,
+        'accenture': 1,
         'india': 1, 'indian': 1,
     },
     'Signal Executive': {
