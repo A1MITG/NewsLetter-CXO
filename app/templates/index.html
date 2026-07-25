@@ -4,10 +4,73 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIGNAL — The Daily Brief</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='hero.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <header class="masthead">
+    <div class="hero-topbar">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+            <path d="M 82 42 A 22 22 0 1 0 60 64" fill="none" stroke="#0a0a0a" stroke-width="13"/>
+            <path d="M 60 56 A 22 22 0 1 1 38 78" fill="none" stroke="#0a0a0a" stroke-width="13"/>
+            <rect x="54" y="54" width="12" height="12" fill="#2f6fed"/>
+        </svg>
+        <span class="word">SIGNAL</span>
+        <nav><a href="#brief">The Brief</a><a href="/signals">Signals</a></nav>
+    </div>
+
+    <section class="hero">
+        <div class="hero-bg-field">
+            <svg class="hero-bg-wave" viewBox="0 0 1200 260" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M0,130 C150,60 300,200 450,130 C600,60 750,200 900,130 C1050,60 1150,120 1200,130"/>
+            </svg>
+            <div class="hero-node" style="left:8%;top:20%"></div>
+            <div class="hero-node n2" style="left:22%;top:65%"></div>
+            <div class="hero-node n3" style="left:48%;top:15%"></div>
+            <div class="hero-node n4" style="left:70%;top:55%"></div>
+            <div class="hero-node" style="left:88%;top:30%"></div>
+        </div>
+
+        <div class="hero-left">
+            <div class="hero-kicker"><span class="hero-dot"></span>AI-Native Executive Intelligence Platform</div>
+            <div class="hero-headline-stage">
+                <h1 class="hero-headline active" data-i="0"><em>Signal</em>, not noise.</h1>
+                <h1 class="hero-headline" data-i="1">What matters, <em>before</em> it's news.</h1>
+                <h1 class="hero-headline" data-i="2">Executive Intelligence. <em>Not information overload.</em></h1>
+            </div>
+            <p class="hero-sub">SIGNAL scores hundreds of sources every day against a weighted evidence framework, then distills it into six daily signals built for the decisions your leadership team actually has to make.</p>
+            <div class="hero-cta">
+                <a class="hero-btn primary" href="#brief">View Today's Brief</a>
+                <a class="hero-btn secondary" href="/signals">Explore Signals</a>
+            </div>
+        </div>
+
+        <div class="hero-panel">
+            <div class="hero-panel-head">
+                <span class="hero-live-dot"></span>
+                <span class="hero-label">Live Intelligence</span>
+                <span class="hero-time" id="hero-clock"></span>
+            </div>
+
+            <div id="hero-breaking">
+                <div class="hero-breaking">
+                    <div class="hero-tag">Breaking</div>
+                    <h3>Loading today's top signal&hellip;</h3>
+                    <div class="hero-meta">&nbsp;</div>
+                </div>
+            </div>
+
+            <div class="hero-feed-label">Industry Coverage</div>
+            <div id="hero-feed"></div>
+
+            <div class="hero-stat-row">
+                <div class="hero-chip"><div class="hero-n">300+</div><div class="hero-l">Sources</div></div>
+                <div class="hero-chip"><div class="hero-n">6</div><div class="hero-l">Signals</div></div>
+                <div class="hero-chip"><div class="hero-n">Daily</div><div class="hero-l">Refresh</div></div>
+            </div>
+        </div>
+    </section>
+
+    <header class="masthead" id="brief">
         <p class="kicker">Signal &middot; Daily Intelligence</p>
         <h1>The Daily Brief</h1>
         <p class="dateline"><span id="brief-date"></span><span id="last-updated"></span></p>
@@ -87,6 +150,90 @@
                         '<p class="error">The brief could not be loaded.</p>';
                 });
         });
+
+        // ---------- Hero: animated headline cycler ----------
+        (function() {
+            const headlines = document.querySelectorAll('.hero-headline');
+            let current = 0;
+            setInterval(() => {
+                headlines[current].classList.remove('active');
+                current = (current + 1) % headlines.length;
+                headlines[current].classList.add('active');
+            }, 4500);
+        })();
+
+        // ---------- Hero: live clock ----------
+        (function() {
+            const clock = document.getElementById('hero-clock');
+            function tick() {
+                clock.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
+
+        // ---------- Hero: live intelligence panel (real data, /api/signals) ----------
+        (function() {
+            const WATCHED_NAMES = [
+                ['Sundar Pichai', 'Alphabet'], ['Jensen Huang', 'Nvidia'], ['Elon Musk', 'Tesla'],
+                ['Sam Altman', 'OpenAI'], ['Dario Amodei', 'Anthropic'], ['Satya Nadella', 'Microsoft'],
+                ['Tim Cook', 'Apple'], ['Mark Zuckerberg', 'Meta']
+            ];
+
+            function sourceOf(url) {
+                try { return new URL(url).hostname.replace(/^www\./, '').split('.')[0]; }
+                catch (e) { return 'source'; }
+            }
+
+            function initials(name) {
+                return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            }
+
+            function labelFor(article) {
+                const match = WATCHED_NAMES.find(([name]) => article.title.includes(name));
+                if (match) return { avatar: initials(match[0]), who: match[0], sub: match[1] };
+                const src = sourceOf(article.url);
+                return { avatar: initials(src), who: src.charAt(0).toUpperCase() + src.slice(1), sub: '' };
+            }
+
+            fetch('/api/signals')
+                .then(r => r.json())
+                .then(data => {
+                    const all = [];
+                    (data.signals || []).forEach(sig => {
+                        (sig.articles || []).forEach(a => {
+                            if (a.url) all.push(Object.assign({}, a, { signalName: sig.name }));
+                        });
+                    });
+                    if (all.length === 0) return;
+                    all.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+                    const top = all[0];
+                    document.getElementById('hero-breaking').innerHTML = `
+                        <div class="hero-breaking">
+                            <div class="hero-tag">Breaking &middot; ${top.signalName}</div>
+                            <h3><a href="${top.url}" target="_blank" rel="noopener">${top.title}</a></h3>
+                            <div class="hero-meta">${sourceOf(top.url)} &middot; Score ${top.score}</div>
+                        </div>`;
+
+                    const aiOrBiz = all.filter(a =>
+                        a.signalName === 'Signal AI' || a.signalName === 'Signal Business');
+                    const coverage = (aiOrBiz.length ? aiOrBiz : all.slice(1)).slice(0, 3);
+
+                    document.getElementById('hero-feed').innerHTML = coverage.map(a => {
+                        const l = labelFor(a);
+                        return `<div class="hero-feed-item">
+                            <div class="hero-avatar">${l.avatar}</div>
+                            <div class="hero-feed-body">
+                                <div class="hero-who">${l.who}${l.sub ? `<span>&middot; ${l.sub}</span>` : ''}</div>
+                                <div class="hero-headline-text"><a href="${a.url}" target="_blank" rel="noopener">${a.title}</a></div>
+                                <div class="hero-src">${sourceOf(a.url)}</div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                })
+                .catch(error => console.error('Error loading live intelligence panel:', error));
+        })();
     </script>
 </body>
 </html>

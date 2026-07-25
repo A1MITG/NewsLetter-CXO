@@ -62,7 +62,7 @@ def generate_executive_takeaway(articles):
     if not articles:
         return "No material CXO-level developments in the last 24 hours."
     top = articles[0]
-    return f"In the last 24 hours, the most material development for MetLife is \"{trim_headline(top['title'], 90)}\" because it impacts {top['primary_lens']}."
+    return f"In the last 24 hours, the most material development for Insurers is \"{trim_headline(top['title'], 90)}\" because it impacts {top['primary_lens']}."
 
 def generate_cxo_action_lens(articles):
     """Generate CXO action lens with Watch, Prepare, Act."""
@@ -79,11 +79,11 @@ def format_article_for_lens(article, category):
     """Format article for specific lens section."""
     signal = article['title']
     impact = f"Impacts {article['primary_lens'].lower()} considerations"
-    metlife_exposure = f"Potential exposure for MetLife in {article['primary_cxo']} domain"
+    insurer_exposure = f"Potential exposure for Insurers in {article['primary_cxo']} domain"
     return {
         'signal': signal,
         'impact': impact,
-        'metlife_exposure': metlife_exposure,
+        'insurer_exposure': insurer_exposure,
         'url': article['url'],
         'score': article['total_score'],
         'primary_cxo': article['primary_cxo']
