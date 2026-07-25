@@ -29,3 +29,6 @@ config/# Code Citations.md
 
 # Ignore local backup archives
 SIGNAL_backup.zip
+
+# Ignore local Claude Code tool state (machine-specific permissions)
+.claude/
