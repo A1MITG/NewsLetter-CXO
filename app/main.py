@@ -1,34 +1,41 @@
 # app/main.py
-from flask import Flask, render_template
-from .api.routes import api_blueprint
-from .models.article import db
+import logging
+
+from flask import Flask, jsonify, render_template
 from dotenv import load_dotenv
 
+from .api.routes import api_blueprint
+from config.env_check import is_production, validate_environment
+
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
+
 
 def create_app():
     """Create and configure an instance of the Flask application."""
+    validate_environment()
+
     app = Flask(__name__)
     app.config.from_object('config.config.Config')
-    db.init_app(app)
 
     app.register_blueprint(api_blueprint, url_prefix='/api')
 
     @app.route('/')
     def index():
-        # This will be replaced by a call to the synthesis module
-        # to get the latest newsletter data.
-        # For now, it just renders a template.
-        return render_template('index.html', newsletter_data={})
+        return render_template('index.html')
 
-    @app.route('/themes')
-    def themes():
-        return render_template('themes.html')
+    @app.route('/signals')
+    def signals():
+        return render_template('signals.html')
+
+    @app.route('/health')
+    def health():
+        return jsonify({"status": "ok"})
 
     return app
 
-# Create app instance for Flask CLI
+# Create app instance for Flask CLI / WSGI servers
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=not is_production())

@@ -1,30 +1,37 @@
 # tests/test_scorer.py
 import unittest
+
 from app.analysis.scorer import score_article
+
 
 class TestScorer(unittest.TestCase):
 
-    def test_score_article_high_impact(self):
-        """Test scoring for a high-impact article title."""
-        article = {'title': 'Breaking: Major Insurer Announces Strategic M&A for Tech Leverage'}
-        scores, total_score = score_article(article)
-        self.assertGreater(scores['Strategic Impact'], 0)
-        self.assertGreater(scores['Technology Leverage'], 0)
-        self.assertGreater(total_score, 1)
+    def test_non_insurance_article_is_excluded(self):
+        """Articles with no insurance-domain keyword score nothing."""
+        result = score_article("Local Bakery Wins Community Award")
+        self.assertEqual(result, {})
 
-    def test_score_article_low_impact(self):
-        """Test scoring for a low-impact article title."""
-        article = {'title': 'Local Agent Wins Community Award'}
-        scores, total_score = score_article(article)
-        self.assertEqual(total_score, 0)
+    def test_regulatory_article_scores_and_flags_urgency(self):
+        text = ("Breaking: Major Insurer Faces Regulatory Fine "
+                "Over Solvency Breach")
+        result = score_article(text)
+        self.assertIn('Primary Signal', result)
+        primary_category, primary_score = result['Primary Signal']
+        self.assertEqual(primary_category, 'Regulatory & Compliance')
+        self.assertGreater(primary_score, 0)
+        self.assertTrue(result['Urgency Flag'])
 
-    def test_score_article_regulatory(self):
-        """Test scoring for a regulatory article title."""
-        article = {'title': 'New Solvency II Regulation Rules Impact European Insurers'}
-        scores, total_score = score_article(article)
-        self.assertGreater(scores['Regulatory Impact'], 0)
-        self.assertGreater(scores['Risk & Resilience'], 0) # Solvency is a risk keyword
-        self.assertGreater(total_score, 1)
+    def test_macro_article_scores_without_urgency(self):
+        text = ("Global interest rate hikes and geopolitical tensions "
+                "weigh on the insurance market")
+        result = score_article(text)
+        self.assertIn('Primary Signal', result)
+        primary_category, _ = result['Primary Signal']
+        self.assertEqual(primary_category, 'Macro & Geo-Political')
+        self.assertFalse(result['Urgency Flag'])
+        self.assertIn('All Scores', result)
+        self.assertGreaterEqual(len(result['All Scores']), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

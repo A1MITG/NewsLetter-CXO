@@ -1,14 +1,6 @@
 # app/analysis/synthesis.py
-from .scorer import score_article, SCORING_KEYWORDS
+from .scorer import score_article
 from datetime import datetime
-
-LENS_MAPPING = {
-    'Macro & Geo-Political': 'Macro & Geo-Political',
-    'Regulatory & Compliance': 'Regulatory & Compliance',
-    'Economic & Market': 'Economic & Market',
-    'Digital, AI & Automation': 'Digital, AI & Automation',
-    'Operating Model & Talent': 'Operating Model & Talent'
-}
 
 CXO_MAPPING = {
     'Macro & Geo-Political': 'CEO',
@@ -32,8 +24,6 @@ def synthesize_articles(articles):
             article['total_score'] = primary_score
             article['primary_lens'] = primary_signal
             article['primary_cxo'] = CXO_MAPPING.get(primary_signal, 'CEO')
-            article['geography'] = score_output.get('Geography', 'Unspecified')
-            article['urgency'] = score_output['Urgency Flag']
             scored_articles.append(article)
     
     # Sort by score descending
@@ -53,30 +43,36 @@ def synthesize_articles(articles):
     
     # Categorize articles by lens
     for article in scored_articles[:30]:  # Limit to top 30
-        lens = article['primary_lens']
-        category = LENS_MAPPING.get(lens, 'Macro & Geo-Political')
+        category = article['primary_lens'] if article['primary_lens'] in CXO_MAPPING else 'Macro & Geo-Political'
         formatted = format_article_for_lens(article, category)
         if len(brief[category]) < 5:  # Max 5 per category
             brief[category].append(formatted)
     
     return brief
 
+def trim_headline(text, limit):
+    """Trim to a word boundary with an ellipsis instead of a mid-word cut."""
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(' ', 1)[0].rstrip(',;:—-') + '…'
+
 def generate_executive_takeaway(articles):
     """Generate one-sentence executive takeaway."""
     if not articles:
         return "No material CXO-level developments in the last 24 hours."
     top = articles[0]
-    return f"In the last 24 hours, the most material development for MetLife is {top['title'][:50]} because it impacts {top['primary_lens'].lower()}."
+    return f"In the last 24 hours, the most material development for MetLife is \"{trim_headline(top['title'], 90)}\" because it impacts {top['primary_lens']}."
 
 def generate_cxo_action_lens(articles):
     """Generate CXO action lens with Watch, Prepare, Act."""
     actions = []
     if articles:
-        actions.append("Watch: Monitor emerging trends in " + articles[0]['primary_lens'].lower())
+        actions.append("Watch: Monitor emerging trends in " + articles[0]['primary_lens'])
         if len(articles) > 1:
-            actions.append("Prepare: Assess impact of " + articles[1]['title'][:30])
+            actions.append("Prepare: Assess impact of \"" + trim_headline(articles[1]['title'], 60) + "\"")
         if len(articles) > 2:
-            actions.append("Act: Review implications of " + articles[2]['title'][:30])
+            actions.append("Act: Review implications of \"" + trim_headline(articles[2]['title'], 60) + "\"")
     return actions[:5]  # Max 5
 
 def format_article_for_lens(article, category):

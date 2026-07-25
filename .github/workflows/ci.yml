@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Syntax / build verification
+        # No linter is configured in this repo; a compile pass catches
+        # syntax errors across every module without imposing a style policy.
+        run: python -m py_compile $(git ls-files '*.py')
+
+      - name: Import check (app factory + env validation)
+        run: python -c "from app.main import app; print('App imports and initializes OK')"
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v

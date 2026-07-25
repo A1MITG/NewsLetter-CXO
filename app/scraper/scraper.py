@@ -1,15 +1,16 @@
 # app/scraper/scraper.py
 import asyncio
-import aiohttp
-import random
-import json
+import logging
 import os
+import random
+
+import aiohttp
 from bs4 import BeautifulSoup
+
 from .sources import TIER_1_SOURCES, TIER_2_SOURCES
 
-# TODO: Implement a more sophisticated scraping mechanism.
-# This could involve using a headless browser for JavaScript-heavy sites.
-# Also, add error handling and logging.
+logger = logging.getLogger(__name__)
+
 
 async def fetch_newsapi_articles(session, api_key):
     """Fetch articles from NewsAPI with insurance keywords."""
@@ -20,9 +21,13 @@ async def fetch_newsapi_articles(session, api_key):
                 data = await response.json()
                 articles = []
                 for item in data.get('articles', []):
-                    title = item.get('title', '').strip()
-                    url = item.get('url', '')
-                    date = item.get('publishedAt', '')
+                    # NewsAPI sometimes returns null (not missing) fields
+                    # for removed/paywalled articles — `or ''` guards
+                    # against that; `.get(k, '')` alone would not, since
+                    # the key is present with value None.
+                    title = (item.get('title') or '').strip()
+                    url = item.get('url') or ''
+                    date = item.get('publishedAt') or ''
                     if title and url:
                         articles.append({
                             'title': title,
@@ -31,10 +36,10 @@ async def fetch_newsapi_articles(session, api_key):
                         })
                 return articles
             else:
-                print(f"NewsAPI error: {response.status}")
+                logger.warning("NewsAPI error: %s", response.status)
                 return []
     except Exception as e:
-        print(f"Error fetching NewsAPI: {e}")
+        logger.warning("Error fetching NewsAPI: %s", e)
         return []
 
 async def fetch_html(session, url):
@@ -46,7 +51,7 @@ async def fetch_html(session, url):
             response.raise_for_status()
             return await response.text()
     except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-        print(f"Error fetching {url}: {e}")
+        logger.warning("Error fetching %s: %s", url, e)
         return None
 
 async def scrape_source(session, url):

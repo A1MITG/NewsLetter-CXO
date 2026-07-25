@@ -21,3 +21,11 @@ htmlcov/
 
 # Ignore scraped data
 scraped_articles.json
+
+# Ignore editor/AI-tool-generated clutter
+# Code Citations.md
+config/# Code Citations.md
+~$*.docx
+
+# Ignore local backup archives
+SIGNAL_backup.zip

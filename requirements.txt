@@ -1,13 +1,13 @@
-# Web Framework
-Flask
-Flask-SQLAlchemy
+# Web framework
+Flask==3.1.2
 
-# HTTP Requests
-aiohttp
-requests
+# HTTP requests (async scraping + LinkedIn/NewsAPI calls)
+aiohttp==3.13.2
+requests==2.32.5
 
-# HTML Parsing
-beautifulsoup4
+# HTML/RSS parsing
+beautifulsoup4==4.14.3
+lxml==6.0.2
 
-# For async support in Flask
-asgiref
+# Environment variables from .env
+python-dotenv==1.2.1

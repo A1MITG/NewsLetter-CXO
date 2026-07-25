@@ -1,78 +1,167 @@
-/* app/static/style.css */
+/* app/static/style.css — minimal editorial newsletter */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+    --ink: #141414;
+    --muted: #6f6f6f;
+    --faint: #9a9a9a;
+    --hairline: #e6e2da;
+    --accent: #0f2f52;
+    --paper: #fbfaf7;
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.6;
-    color: #1a1a1a;
-    max-width: 900px;
+    font-family: var(--serif);
+    color: var(--ink);
+    background: var(--paper);
+    max-width: 680px;
     margin: 0 auto;
-    padding: 20px;
-    background: #f5f5f5;
+    padding: 56px 24px;
+    line-height: 1.6;
 }
 
-header {
-    text-align: center;
-    border-bottom: 3px solid #003366;
-    padding: 30px 0;
-    margin-bottom: 30px;
-    background: #fff;
-    margin: -20px -20px 30px;
-    padding: 30px 20px;
+/* ---------- Masthead ---------- */
+.masthead { text-align: center; padding-bottom: 28px; margin-bottom: 40px; position: relative; }
+.masthead::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    border-bottom: 1px solid var(--ink);
+    border-top: 3px solid var(--ink);
+    height: 5px;
 }
 
-.header-badge {
-    display: inline-block;
-    background: #003366;
-    color: #fff;
-    padding: 5px 15px;
-    font-size: 0.75em;
+.kicker {
+    font-family: var(--sans);
+    font-size: 0.68rem;
+    letter-spacing: 0.28em;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 15px;
+    color: var(--muted);
+    margin-bottom: 14px;
 }
 
-header h1 { font-size: 1.8em; color: #003366; margin-bottom: 5px; }
-header .date { color: #666; font-size: 0.9em; }
-header .last-updated { color: #888; font-size: 0.8em; font-style: italic; }
+.masthead h1 {
+    font-size: 2.6rem;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+}
 
-section { background: #fff; padding: 25px; margin-bottom: 20px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-section h2 { font-size: 1.2em; color: #003366; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
-section h3 { font-size: 1em; color: #0056b3; margin: 20px 0 10px; }
+.dateline {
+    font-family: var(--sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--faint);
+    margin-top: 10px;
+    text-transform: uppercase;
+}
 
-.executive-take .take-text { font-size: 1.3em; font-weight: 600; color: #222; line-height: 1.4; }
+.viewnav { margin-top: 14px; }
+.viewnav a {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 2px;
+}
+.viewnav a:hover { color: var(--ink); border-color: var(--ink); }
 
-.snapshot ul, .action-brief ul { list-style: none; }
-.snapshot li, .action-brief li { padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
-.snapshot li:last-child, .action-brief li:last-child { border-bottom: none; }
+/* ---------- Lead / executive takeaway ---------- */
+.lead p {
+    font-size: 1.25rem;
+    line-height: 1.55;
+    color: var(--ink);
+    font-style: italic;
+    margin-bottom: 44px;
+}
 
-.cxo-tag {
-    display: inline-block;
-    background: #e8f0fe;
-    color: #003366;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 0.85em;
+/* ---------- Lens sections ---------- */
+.lens { margin-bottom: 42px; }
+
+.lens h2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--hairline);
+    margin-bottom: 18px;
+}
+
+.lens article { margin-bottom: 20px; }
+.lens article:last-child { margin-bottom: 0; }
+
+.tag {
+    font-size: 0.64rem;
     font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--faint);
 }
 
-.lens-section article {
-    padding: 15px;
-    margin: 10px 0;
-    background: #fafafa;
-    border-left: 3px solid #003366;
+.purpose {
+    font-family: var(--sans);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--faint);
+    margin: -12px 0 16px;
 }
-.lens-section article h4 { font-size: 0.95em; margin-bottom: 8px; }
-.lens-section article p { font-size: 0.9em; margin-bottom: 5px; color: #444; }
-.lens-section article .meta { font-size: 0.8em; color: #666; margin-top: 10px; }
-.lens-section article .meta a { color: #0056b3; }
 
-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
-th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
-th { background: #f8f9fa; font-weight: 600; color: #003366; }
+.lens h3 { font-size: 1.08rem; font-weight: 400; line-height: 1.45; }
+.lens h3 a { color: var(--ink); text-decoration: none; }
+.lens h3 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-.sources p { color: #666; font-size: 0.9em; }
-.loading, .error { text-align: center; padding: 40px; color: #666; }
-.error { color: #c00; }
+.quiet { color: var(--muted); font-style: italic; }
 
-footer { text-align: center; padding: 20px; color: #888; font-size: 0.8em; }
+/* ---------- Action lens ---------- */
+.actions { border-top: 1px solid var(--ink); padding-top: 26px; }
+
+.action { display: flex; gap: 16px; align-items: baseline; }
+
+.action .verb {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    flex: 0 0 72px;
+}
+
+.action p { font-size: 0.98rem; color: var(--ink); }
+
+/* ---------- States & footer ---------- */
+.loading, .error {
+    text-align: center;
+    padding: 60px 0;
+    color: var(--muted);
+    font-style: italic;
+}
+.error { color: #8a2a1e; }
+
+footer {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hairline);
+    text-align: center;
+    font-family: var(--sans);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+@media (max-width: 480px) {
+    body { padding: 36px 18px; }
+    .masthead h1 { font-size: 2rem; }
+    .lead p { font-size: 1.12rem; }
+}
