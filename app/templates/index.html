@@ -10,8 +10,8 @@
 <body>
     <div class="hero-topbar">
         <svg viewBox="0 0 120 120" aria-hidden="true">
-            <path d="M 82 42 A 22 22 0 1 0 60 64" fill="none" stroke="#0a0a0a" stroke-width="13"/>
-            <path d="M 60 56 A 22 22 0 1 1 38 78" fill="none" stroke="#0a0a0a" stroke-width="13"/>
+            <path d="M 82 42 A 22 22 0 1 0 60 64" fill="none" stroke="#f5a623" stroke-width="13"/>
+            <path d="M 60 56 A 22 22 0 1 1 38 78" fill="none" stroke="#f5a623" stroke-width="13"/>
             <rect x="54" y="54" width="12" height="12" fill="#2f6fed"/>
         </svg>
         <span class="word">SIGNAL</span>
@@ -33,7 +33,7 @@
         <div class="hero-left">
             <div class="hero-kicker"><span class="hero-dot"></span>AI-Native Executive Intelligence Platform</div>
             <div class="hero-headline-stage">
-                <h1 class="hero-headline active" data-i="0"><em>Signal</em>, not noise.</h1>
+                <h1 class="hero-headline" data-i="0"><em>Signal</em>, not noise.</h1>
                 <h1 class="hero-headline" data-i="1">What matters, <em>before</em> it's news.</h1>
                 <h1 class="hero-headline" data-i="2">Executive Intelligence. <em>Not information overload.</em></h1>
             </div>
@@ -152,13 +152,27 @@
         });
 
         // ---------- Hero: animated headline cycler ----------
+        // Only one headline is ever in document flow at a time (display
+        // toggled, not absolutely positioned), so the container always
+        // sizes to whichever text is showing — no fixed height to guess
+        // and no risk of a wrapped headline overlapping the copy below it.
         (function() {
             const headlines = document.querySelectorAll('.hero-headline');
             let current = 0;
+
+            headlines[current].classList.add('showing');
+            requestAnimationFrame(() => headlines[current].classList.add('visible'));
+
             setInterval(() => {
-                headlines[current].classList.remove('active');
-                current = (current + 1) % headlines.length;
-                headlines[current].classList.add('active');
+                const old = headlines[current];
+                old.classList.remove('visible');
+                setTimeout(() => {
+                    old.classList.remove('showing');
+                    current = (current + 1) % headlines.length;
+                    const next = headlines[current];
+                    next.classList.add('showing');
+                    requestAnimationFrame(() => next.classList.add('visible'));
+                }, 500);
             }, 4500);
         })();
 
