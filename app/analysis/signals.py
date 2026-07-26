@@ -66,6 +66,14 @@ KEYWORDS = {
         'trade': 1, 'oil': 1, 'border': 1, 'iran': 1, 'china': 1, 'russia': 1,
         'ukraine': 1, 'israel': 1, 'taiwan': 1, 'middle east': 1, 'gaza': 1,
         'palestine': 1,
+        # Political/government leadership changes — a minister or head of
+        # government resigning is geopolitical/domestic-policy news, not a
+        # corporate "Signal Executive" story, so it lives here instead.
+        'minister resigns': 4, 'resigns as minister': 4,
+        'cabinet reshuffle': 4, 'steps down as minister': 3,
+        'prime minister resigns': 4, 'pm resigns': 4,
+        'cabinet minister': 2,
+        'union minister': 1, 'chief minister': 1, 'prime minister': 1,
     },
     'Signal Insurance': {
         'reinsurance': 4, 'insurtech': 4, 'underwriting': 4, 'actuarial': 4,
@@ -100,7 +108,11 @@ KEYWORDS = {
         'india': 1, 'indian': 1,
     },
     'Signal Executive': {
-        'people moves': 4, 'c-suite': 4, 'boardroom': 4,
+        # 'people moves' is a generic trade-press section header, not
+        # evidence of a specific significant move — kept at medium weight
+        # so it doesn't alone stack with routine keyword matches (appoints,
+        # names, ceo) to outscore genuinely major single-story leadership news.
+        'people moves': 2, 'c-suite': 4, 'boardroom': 4,
         'chief executive officer': 4, 'executive outlook': 4,
         'chief executive': 3, 'ceo': 3, 'ceos': 3, 'cfo': 3, 'cfos': 3,
         'cio': 3, 'coo': 3, 'cro': 3, 'cxo': 3, 'chief risk officer': 3,
