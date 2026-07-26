@@ -1,12 +1,13 @@
 name: Build Signals (static)
 
 # Regenerates public/ once a day, or on demand via "Run workflow". Commits
-# it to the working branch for history, and also force-pushes just those
-# three static files to the orphan `signals-deploy` branch — that branch is
-# what Vercel actually watches, since it never contains requirements.txt or
-# .python-version and so can never trigger Vercel's Python auto-detection
-# (see README's Vercel section for why that matters). No Vercel token or
-# deploy hook is needed; the push itself triggers Vercel's redeploy.
+# it to the working branch for history, and also force-pushes the relevant
+# static files to two orphan branches — `signals-deploy` (Signals page) and
+# `command-center-deploy` (Command Center) — the ones Vercel actually
+# watches, since neither ever contains requirements.txt or .python-version
+# and so can never trigger Vercel's Python auto-detection (see README's
+# Vercel section for why that matters). No Vercel token or deploy hook is
+# needed; the push itself triggers Vercel's redeploy.
 
 on:
   schedule:
@@ -38,12 +39,17 @@ jobs:
         env:
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
 
+      - name: Build Command Center live data
+        run: python scripts/build_command_center_data.py
+        env:
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+
       - name: Commit build to working branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/
-          git diff --staged --quiet || git commit -m "Daily Signals rebuild: $(date -u +'%Y-%m-%d')"
+          git diff --staged --quiet || git commit -m "Daily Signals + Command Center rebuild: $(date -u +'%Y-%m-%d')"
           git push
 
       - name: Publish to signals-deploy branch (Vercel source)
@@ -59,3 +65,18 @@ jobs:
           git add index.html signal.css signals.json
           git commit -q -m "Signals rebuild: $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" signals-deploy
+
+      - name: Publish to command-center-deploy branch (Vercel source)
+        run: |
+          rm -rf /tmp/command-center-deploy
+          mkdir /tmp/command-center-deploy
+          cp public/command_center.html /tmp/command-center-deploy/index.html
+          cp public/command_center_data.json /tmp/command-center-deploy/command_center_data.json
+          cd /tmp/command-center-deploy
+          git init -q
+          git checkout -q -b command-center-deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html command_center_data.json
+          git commit -q -m "Command Center rebuild: $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" command-center-deploy
