@@ -43,13 +43,20 @@ async def fetch_newsapi_articles(session, api_key):
         return []
 
 async def fetch_html(session, url):
-    """Fetch HTML content from a single URL."""
+    """Fetch raw response bytes from a single URL.
+
+    Deliberately undecoded: aiohttp's response.text() trusts only the HTTP
+    Content-Type header's charset (defaulting to utf-8 when absent), which
+    several sources get wrong or omit. Handing raw bytes to BeautifulSoup
+    instead lets it detect the real encoding from the document's own XML/
+    HTML charset declaration, avoiding mojibake on misdeclared feeds.
+    """
     # Add random delay to avoid rate limiting
     await asyncio.sleep(random.uniform(1, 3))
     try:
         async with session.get(url, timeout=10) as response:
             response.raise_for_status()
-            return await response.text()
+            return await response.read()
     except (aiohttp.ClientError, asyncio.TimeoutError) as e:
         logger.warning("Error fetching %s: %s", url, e)
         return None
@@ -114,9 +121,14 @@ async def run_scraper(tier='all'):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
     async with aiohttp.ClientSession(headers=headers) as session:
         tasks = [scrape_source(session, url) for url in sources_to_scan]
-        results = await asyncio.gather(*tasks)
-        for articles in results:
-            all_articles.extend(articles)
+        # return_exceptions so one source's parse failure can't abort the
+        # whole scrape — the rest of the sources still return their articles.
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning("Source scrape failed: %s", result)
+                continue
+            all_articles.extend(result)
 
         # Add NewsAPI articles if key is available
         news_api_key = os.environ.get('NEWS_API_KEY', '')

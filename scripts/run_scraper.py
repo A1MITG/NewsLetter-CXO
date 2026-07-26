@@ -20,7 +20,7 @@ async def main():
     articles = await run_scraper(tier='all')
     logger.info("Found %d articles.", len(articles))
 
-    with open('scraped_articles.json', 'w') as f:
+    with open('scraped_articles.json', 'w', encoding='utf-8') as f:
         json.dump(articles, f, indent=4)
     logger.info("Results saved to scraped_articles.json")
 
