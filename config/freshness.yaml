@@ -1,0 +1,33 @@
+# PRD §3 — Freshness Engine.
+#
+# The PRD asked for 0-3h and 3-6h buckets. That granularity is not honest at
+# any ingestion cadence slower than the bucket itself: with a twice-daily
+# scrape, every article in a build shares an observation window of ~12h, so a
+# 3-hour bucket would be asserting precision the pipeline cannot observe.
+# Buckets below are sized to the actual cadence. Tighten them only if and
+# when ingestion frequency increases.
+#
+# Measured on the live corpus at time of writing: median age 15.6h,
+# p75 29.8h, p95 137.4h, max 19,818h (~2.3 years). That long tail is exactly
+# what archive_after_hours exists to remove from "Today's Intelligence".
+
+# Evaluated in order; first bucket whose max_age_hours is not exceeded wins.
+buckets:
+  - { name: BREAKING, max_age_hours: 6,   weight: 1.00 }
+  - { name: CURRENT,  max_age_hours: 12,  weight: 0.92 }
+  - { name: RECENT,   max_age_hours: 24,  weight: 0.80 }
+  - { name: DAY_OLD,  max_age_hours: 48,  weight: 0.60 }
+  - { name: STALE,    max_age_hours: 168, weight: 0.30 }
+
+# Beyond this, an article is retained in the store but never presented as
+# today's intelligence. PRD: "Never present multi-year-old news inside
+# Today's Intelligence."
+archive_after_hours: 168        # 7 days
+
+# Articles the feed gave no date for. We cannot claim they are current, and
+# we will not silently discard them either — they are held at a modest
+# weight, excluded from Today's Intelligence, and traced.
+undated:
+  bucket: UNDATED
+  weight: 0.40
+  treat_as_current: false

@@ -1,0 +1,77 @@
+# PRD §2 — Source Trust Framework.
+#
+# Two scores, deliberately separate. They are NOT the same thing:
+#   authority     — how expert this outlet is on its own beat.
+#   independence  — how arms-length it is from what it reports on.
+# A company press release is maximally authoritative about that company and
+# minimally independent. A wire service is the reverse. Collapsing them into
+# one "trust" number loses the distinction that Development consensus (§10)
+# will later depend on.
+#
+# Three tiers, not thirteen: with 16 feeds, finer gradations would be
+# invented precision. Add tiers when the corpus justifies them.
+#
+# PRD constraint honoured: trust influences ranking but NEVER suppresses a
+# story outright. See trust.weight() — the floor is 0.55, not 0.
+
+defaults:
+  tier: unknown
+  authority: 0.35
+  independence: 0.50
+
+tiers:
+  tier_1:   { authority: 0.95, independence: 0.95 }   # wire services, papers of record
+  tier_2:   { authority: 0.80, independence: 0.75 }   # established trade & business press
+  tier_3:   { authority: 0.50, independence: 0.50 }   # regional, aggregators, general interest
+  unknown:  { authority: 0.35, independence: 0.50 }   # unrecognised — penalised, never dropped
+
+sources:
+  # ---- tier 1: wire services and papers of record ----
+  reuters.com:                    { tier: tier_1 }
+  bloomberg.com:                  { tier: tier_1 }
+  ft.com:                         { tier: tier_1 }
+  wsj.com:                        { tier: tier_1 }
+  bbc.co.uk:                      { tier: tier_1 }
+  bbci.co.uk:                     { tier: tier_1 }
+  bbc.com:                        { tier: tier_1 }
+  theguardian.com:                { tier: tier_1 }
+  aljazeera.com:                  { tier: tier_1 }
+
+  # ---- tier 2: insurance trade press ----
+  # High authority on their own beat — higher than tier_1 generalists on
+  # reinsurance specifics — but a smaller, more industry-adjacent readership.
+  insurancejournal.com:           { tier: tier_2, authority: 0.95 }
+  businessinsurance.com:          { tier: tier_2, authority: 0.95 }
+  claimsjournal.com:              { tier: tier_2, authority: 0.90 }
+  reinsurancene.ws:               { tier: tier_2, authority: 0.92 }
+  propertycasualty360.com:        { tier: tier_2, authority: 0.90 }
+  insurancebusinessmag.com:       { tier: tier_2, authority: 0.85 }
+  nationalunderwriter.com:        { tier: tier_2, authority: 0.88 }
+  thinkadvisor.com:               { tier: tier_2, authority: 0.85 }
+
+  # ---- tier 2: business and financial press ----
+  economictimes.indiatimes.com:   { tier: tier_2 }
+  livemint.com:                   { tier: tier_2 }
+  moneycontrol.com:               { tier: tier_2 }
+
+  # ---- tier 3: general interest and regional ----
+  timesofindia.indiatimes.com:    { tier: tier_3, authority: 0.60 }
+  nzherald.co.nz:                 { tier: tier_3 }
+  masslive.com:                   { tier: tier_3 }
+  keloland.com:                   { tier: tier_3 }
+  scoop.co.nz:                    { tier: tier_3 }
+  punchng.com:                    { tier: tier_3 }
+  vanguardngr.com:                { tier: tier_3 }
+  247wallst.com:                  { tier: tier_3, authority: 0.40 }
+
+  # ---- tier 3: aggregators — republish rather than report ----
+  # Low independence by definition: they carry someone else's reporting.
+  biztoc.com:                     { tier: tier_3, authority: 0.30, independence: 0.20 }
+  roundtable.io:                  { tier: tier_3, authority: 0.30, independence: 0.25 }
+
+  # ---- off-domain: sports sites arriving via the NewsAPI query ----
+  # Kept explicit rather than silently unknown, so the noise is visible in
+  # the trace instead of being mistaken for an unrecognised business source.
+  thebiglead.com:                 { tier: tier_3, authority: 0.15, independence: 0.50 }
+  thechampaignroom.com:           { tier: tier_3, authority: 0.15, independence: 0.50 }
+  lifesciencesworld.com:          { tier: tier_3, authority: 0.45 }
