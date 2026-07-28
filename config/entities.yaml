@@ -1,0 +1,237 @@
+# PRD §5 — Entity Extraction.
+#
+# Gazetteer-driven, deliberately. Entity extraction is the one enrichment
+# stage where a deterministic list beats a model on the axis that matters
+# here: it is auditable. Every extraction points at a term in this file, so
+# a wrong entity is a config bug you can see and fix, not a hallucination
+# you have to detect.
+#
+# Precision over recall. A missed entity costs a little ranking signal; a
+# fabricated one ("Stock" as a company, from a person's surname) is the class
+# of defect this whole pipeline exists to eliminate.
+#
+# Extend freely — this file is the intended place to grow coverage.
+
+countries:
+  - United States
+  - United Kingdom
+  - India
+  - China
+  - Russia
+  - Ukraine
+  - Israel
+  - Iran
+  - Saudi Arabia
+  - United Arab Emirates
+  - Qatar
+  - Japan
+  - Germany
+  - France
+  - Australia
+  - Canada
+  - Brazil
+  - Nigeria
+  - New Zealand
+  - Guyana
+  - Taiwan
+  - Singapore
+  - Switzerland
+  - Netherlands
+  - Spain
+  - Italy
+
+# Aliases -> canonical country. Matched case-insensitively as whole words.
+country_aliases:
+  US: United States
+  U.S.: United States
+  USA: United States
+  America: United States
+  UK: United Kingdom
+  Britain: United Kingdom
+  UAE: United Arab Emirates
+  Emirates: United Arab Emirates
+
+cities:
+  - London
+  - New York
+  - Mumbai
+  - Bengaluru
+  - Bangalore
+  - Hyderabad
+  - Gurugram
+  - Gurgaon
+  - Noida
+  - Pune
+  - Chennai
+  - Delhi
+  - Dubai
+  - Abu Dhabi
+  - Singapore
+  - Hong Kong
+  - Tokyo
+  - Zurich
+  - Frankfurt
+  - Paris
+  - Sydney
+
+# Insurance, technology and Indian corporates that actually appear in this
+# corpus. Suffix detection (Inc/Ltd/Plc/AG/SE) supplements this at runtime.
+companies:
+  - Munich Re
+  - Swiss Re
+  - Hannover Re
+  - Lloyd's
+  - Mapfre
+  - AIG
+  - Allianz
+  - AXA
+  - Chubb
+  - Zurich Insurance
+  - Berkshire Hathaway
+  - Marsh
+  - Aon
+  - Willis Towers Watson
+  - Gallagher
+  - Howden
+  - Berkley
+  - Travelers
+  - Progressive
+  - Geico
+  - Anthropic
+  - OpenAI
+  - Google
+  - Alphabet
+  - Microsoft
+  - Amazon
+  - Apple
+  - Meta
+  - Nvidia
+  - Tesla
+  - SpaceX
+  - The Boring Company
+  - xAI
+  - IBM
+  - Oracle
+  - Salesforce
+  - Infosys
+  - TCS
+  - Tata Consultancy Services
+  - Wipro
+  - HCL
+  - Tech Mahindra
+  - Cognizant
+  - Accenture
+  - Capgemini
+  - Reliance
+  - Adani
+  - Skyroot
+  - Zepto
+  - Flipkart
+  - Paytm
+
+regulators:
+  - SEC
+  - FCA
+  - IRDAI
+  - RBI
+  - NAIC
+  - PRA
+  - ESMA
+  - CFTC
+  - FINRA
+  - Federal Reserve
+  - European Central Bank
+  - Bank of England
+  - AM Best
+  - Moody's
+  - S&P Global
+  - Fitch
+
+agencies:
+  - Pentagon
+  - White House
+  - NATO
+  - OPEC
+  - United Nations
+  - European Union
+  - World Bank
+  - IMF
+  - WHO
+  - Nasscom
+  - CFIUS
+
+technologies:
+  - artificial intelligence
+  - generative AI
+  - machine learning
+  - large language model
+  - deep learning
+  - cloud computing
+  - blockchain
+  - quantum computing
+  - cybersecurity
+  - robotics
+  - automation
+  - data center
+  - semiconductor
+  - 5G
+  - electric vehicle
+  - autonomous driving
+
+industries:
+  - insurance
+  - reinsurance
+  - banking
+  - manufacturing
+  - energy
+  - defence
+  - healthcare
+  - pharmaceuticals
+  - telecom
+  - logistics
+  - shipping
+  - aviation
+  - real estate
+  - retail
+
+# Role terms used to detect executives. A capitalised name is only recorded
+# as a person when it sits adjacent to one of these — a bare capitalised
+# token is never assumed to be a person.
+executive_roles:
+  - chief executive officer
+  - chief executive
+  - chief financial officer
+  - chief operating officer
+  - chief information officer
+  - chief technology officer
+  - chief risk officer
+  - managing director
+  - CEO
+  - CFO
+  - COO
+  - CIO
+  - CTO
+  - CRO
+  - chairman
+  - chairwoman
+  - president
+  - founder
+  - co-founder
+
+# Never treated as a person even when adjacent to a role term.
+person_stoplist:
+  - The
+  - A
+  - An
+  - This
+  - That
+  - New
+  - Former
+  - Ex
+  - Group
+  - Company
+  - Board
+  - Its
+  - His
+  - Her
+  - Their

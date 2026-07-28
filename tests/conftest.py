@@ -35,6 +35,24 @@ def raw_articles(raw_cache):
 
 
 @pytest.fixture(scope="session")
+def normalized(raw_articles):
+    """Signals through Sprint 1. Session-scoped: the suite was re-running the
+    whole pipeline per test, which is why it had crept to ~19s."""
+    from app.intelligence.normalize import normalize_all
+    return normalize_all(raw_articles)
+
+
+@pytest.fixture(scope="session")
+def enriched(raw_articles):
+    """Signals through Sprint 4 — normalize, trust, freshness, domains."""
+    from app.intelligence.domains import apply_all as domains_all
+    from app.intelligence.freshness import apply_all as freshness_all
+    from app.intelligence.normalize import normalize_all
+    from app.intelligence.trust import apply_all as trust_all
+    return domains_all(freshness_all(trust_all(normalize_all(raw_articles))))
+
+
+@pytest.fixture(scope="session")
 def gold():
     """Hand-labelled articles.
 
