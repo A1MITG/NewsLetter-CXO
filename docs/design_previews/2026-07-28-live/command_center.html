@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGNAL Command Center — live pipeline</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy:#0b1524; --ink:#12161c; --slate:#5a6472; --slate-light:#8a94a2;
+  --line:#e3e7eb; --line-soft:#f0f3f5; --paper:#fbfbfa;
+  --blue:#2f6fed; --red:#e11d2e; --green:#0e7c5a; --amber:#b45309;
+  --serif:Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:Consolas,"SF Mono",monospace;
+  --emoji:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;
+}
+body { font-family:var(--sans); background:var(--paper); color:var(--ink); font-size:15px; }
+a { color:inherit; text-decoration:none; }
+.em { font-family:var(--emoji); font-style:normal; line-height:1; display:inline-block; }
+.wrap { max-width:1180px; margin:0 auto; padding:0 32px; }
+
+/* ---- preview chrome ---- */
+.pv { background:#fff8e1; border-bottom:1px solid #f0d999; color:#6b5311;
+      font-family:var(--mono); font-size:11.5px; padding:8px 32px; display:flex; gap:16px; align-items:center; }
+.pv b { color:#8a6a00; }
+.pv .sp { margin-left:auto; display:flex; gap:8px; }
+.pv button { font-family:var(--mono); font-size:11px; padding:4px 11px; cursor:pointer;
+             border:1px solid currentColor; background:transparent; color:inherit; border-radius:3px; }
+
+/* ---- masthead ---- */
+.mast { background:var(--navy); border-bottom:3px solid var(--red); color:#fff; padding:18px 0 16px; }
+.mast .wrap { display:flex; align-items:center; gap:16px; }
+.mast svg { width:30px; height:30px; }
+.mast .word { font-weight:800; letter-spacing:.2em; font-size:17px; }
+.mast .asof { margin-left:auto; text-align:right; font-family:var(--mono); font-size:10.5px;
+              color:rgba(255,255,255,.6); line-height:1.6; letter-spacing:.05em; }
+.mast .asof b { color:#fff; font-weight:600; }
+
+/* ---- pipeline strip ---- */
+.strip { background:#fff; border-bottom:1px solid var(--line); }
+.strip .wrap { display:flex; gap:0; padding:0; }
+.stat { flex:1; padding:13px 18px; border-right:1px solid var(--line-soft); }
+.stat:last-child { border-right:none; }
+.stat .n { font-family:var(--mono); font-size:20px; font-weight:700; color:var(--navy); }
+.stat .k { font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase;
+           color:var(--slate-light); margin-top:3px; }
+
+/* ---- bands ---- */
+.band { padding:30px 0 6px; }
+.band-h { display:flex; align-items:baseline; gap:12px; padding-bottom:14px; border-bottom:2px solid var(--navy); }
+.band-h h2 { font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; }
+.band-h .n { font-family:var(--mono); font-size:11px; color:var(--slate-light); margin-left:auto; }
+.band.must .band-h { border-bottom-color:var(--red); }
+.band.must .band-h h2 { color:var(--red); }
+
+/* ---- card ---- */
+.card { display:grid; grid-template-columns:52px 1fr auto; gap:16px; padding:18px 0;
+        border-bottom:1px solid var(--line-soft); align-items:start; }
+.card:hover { background:#fff; }
+.rank { font-family:var(--mono); font-size:11px; color:var(--slate-light); padding-top:4px; }
+.rank .sc { display:block; font-size:14px; font-weight:700; color:var(--navy); }
+.body .kicker { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:7px;
+                font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; }
+.body .kicker .eng { color:var(--blue); font-weight:700; }
+.body .kicker .em { font-size:13px; }
+.pub { color:var(--navy); font-weight:700; font-family:var(--sans); font-size:11.5px;
+       letter-spacing:0; text-transform:none; }
+.body h3 { font-family:var(--serif); font-weight:400; font-size:19px; line-height:1.35; color:var(--navy); }
+.body h3 a:hover { color:var(--blue); text-decoration:underline; }
+.meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:9px; align-items:center; }
+.tag { font-family:var(--mono); font-size:9px; letter-spacing:.06em; text-transform:uppercase;
+       padding:3px 7px; border-radius:3px; border:1px solid var(--line); color:var(--slate); background:#fff; }
+.tag.ev { border-color:#f3d4a0; background:#fff8ec; color:var(--amber); font-weight:700; }
+.tag.t1 { border-color:#bfe3d3; background:#f0fbf6; color:var(--green); }
+.tag.fresh { border-color:#cddffb; background:#f4f8ff; color:var(--blue); }
+.why { margin-top:10px; font-size:12.5px; }
+.why summary { cursor:pointer; font-family:var(--mono); font-size:10px; letter-spacing:.1em;
+               text-transform:uppercase; color:var(--slate-light); }
+.why summary:hover { color:var(--blue); }
+.why .trace { margin-top:9px; border-left:2px solid var(--line); padding-left:12px; }
+.why .row { display:grid; grid-template-columns:78px 1fr; gap:10px; padding:3px 0; font-size:12px; }
+.why .stage { font-family:var(--mono); font-size:9.5px; text-transform:uppercase; color:var(--blue); padding-top:2px; }
+.why .reason { color:var(--slate); line-height:1.45; }
+
+/* ---- calibration control ---- */
+.cal { display:flex; flex-direction:column; gap:4px; min-width:104px; }
+.cal .lbl { font-family:var(--mono); font-size:8.5px; letter-spacing:.1em; text-transform:uppercase;
+            color:var(--slate-light); margin-bottom:2px; }
+.cal button { font-family:var(--mono); font-size:9px; letter-spacing:.05em; padding:4px 6px;
+              border:1px solid var(--line); background:#fff; color:var(--slate); cursor:pointer;
+              border-radius:3px; text-align:left; }
+.cal button:hover { border-color:var(--blue); color:var(--blue); }
+.cal button.on { background:var(--navy); border-color:var(--navy); color:#fff; font-weight:700; }
+.card.moved { background:#fffdf5; }
+
+.foot { padding:34px 0 60px; color:var(--slate-light); font-size:12px; line-height:1.6; }
+.foot code { font-family:var(--mono); font-size:11px; background:#fff; padding:1px 5px; border:1px solid var(--line); }
+.empty { padding:22px 0; color:var(--slate-light); font-style:italic; font-size:13.5px; }
+</style>
+</head>
+<body>
+
+<div class="pv">
+  <span><b>LIVE PIPELINE PREVIEW</b> — sections 1-8 + 11, no model called, $0.00 spent.</span>
+  <span class="sp">
+    <button onclick="exportCal()">Export my calibration</button>
+    <button onclick="resetCal()">Reset</button>
+  </span>
+</div>
+
+<header class="mast">
+  <div class="wrap">
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <path d="M 82 42 A 22 22 0 1 0 60 64" fill="none" stroke="#f5a623" stroke-width="13"/>
+      <path d="M 60 56 A 22 22 0 1 1 38 78" fill="none" stroke="#f5a623" stroke-width="13"/>
+      <rect x="54" y="54" width="12" height="12" fill="#2f6fed"/>
+    </svg>
+    <span class="word">SIGNAL</span>
+    <div class="asof" id="asof"></div>
+  </div>
+</header>
+
+<div class="strip"><div class="wrap" id="strip"></div></div>
+
+<div class="wrap" id="bands"></div>
+
+<div class="wrap foot">
+  <p><b>Every headline below is the publisher's own, verbatim, linked to the original.</b>
+     Nothing on this page is generated — synthesis happens downstream, in the Signals newsletter.</p>
+  <p style="margin-top:9px">Disagree with a placement? Click a band on the right of any card.
+     Then <b>Export my calibration</b> → save as <code>data/gold_set_review.csv</code> →
+     <code>python scripts/merge_review.py</code>.</p>
+</div>
+
+<script>
+const EMOJI = { global:"🌍", economy:"📈", ai:"🤖", gcc:"🏢", insurance:"🛡️", executive:"👥" };
+const BANDS = [
+  { key:"MUST_READ",  label:"Must Read",  cls:"must" },
+  { key:"IMPORTANT",  label:"Important",  cls:"" },
+  { key:"WATCH",      label:"Watch",      cls:"" },
+  { key:"BACKGROUND", label:"Background", cls:"" },
+];
+const CAL_KEY = "signal_calibration_v1";
+let STORE = null;
+let cal = JSON.parse(localStorage.getItem(CAL_KEY) || "{}");
+
+function esc(s) {
+  return String(s || "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+}
+function hostOf(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return ""; } }
+
+fetch("./intelligence_store.json").then(r => r.json()).then(d => { STORE = d; render(); })
+  .catch(e => { document.getElementById("bands").innerHTML =
+     '<p class="empty">Could not load intelligence_store.json — serve over http, not file://</p>'; });
+
+function render() {
+  const c = STORE.counts;
+  const gen = new Date(STORE.generated_at);
+  document.getElementById("asof").innerHTML =
+    `DATA AS OF <b>${esc(STORE.data_date)}</b><br>built ${gen.toLocaleString()}`;
+
+  document.getElementById("strip").innerHTML = [
+    ["scraped", c.scraped], ["signals", c.signals], ["current", c.current],
+    ["classified", c.classified], ["must read", c.by_priority.MUST_READ],
+    ["important", c.by_priority.IMPORTANT], ["published", STORE.signals.length],
+  ].map(([k, n]) => `<div class="stat"><div class="n">${n}</div><div class="k">${k}</div></div>`).join("");
+
+  const out = [];
+  for (const band of BANDS) {
+    const rows = STORE.signals.filter(s => (cal[s.url] || s.priority) === band.key)
+                              .sort((a, b) => b.impact.score - a.impact.score);
+    out.push(`<section class="band ${band.cls}">
+      <div class="band-h"><h2>${band.label}</h2><span class="n">${rows.length}</span></div>
+      ${rows.length ? rows.map((s, i) => card(s, i + 1)).join("")
+                    : '<p class="empty">Nothing in this band today.</p>'}
+    </section>`);
+  }
+  document.getElementById("bands").innerHTML = out.join("");
+}
+
+function card(s, rank) {
+  const eng = s.engine_id || "";
+  const moved = cal[s.url] && cal[s.url] !== s.priority;
+  const fresh = s.freshness || {};
+  const events = (s.events || []).map(e => `<span class="tag ev">${esc(e.type.replace(/_/g, " "))}</span>`).join("");
+  const ents = s.entities || {};
+  const entTags = ["companies", "countries", "regulators"].flatMap(k =>
+    (ents[k] || []).slice(0, 2).map(e => `<span class="tag">${esc(e.value)}</span>`)).join("");
+
+  const trace = (s.explain || []).map(e =>
+    `<div class="row"><span class="stage">${esc(e.stage)}</span>
+     <span class="reason">${esc(e.reason)}</span></div>`).join("");
+
+  const buttons = BANDS.concat([{ key:"IGNORE", label:"Ignore" }]).map(b =>
+    `<button class="${(cal[s.url] || s.priority) === b.key ? "on" : ""}"
+       onclick="setCal('${esc(s.url)}','${b.key}')">${b.label}</button>`).join("");
+
+  return `<article class="card ${moved ? "moved" : ""}">
+    <div class="rank">#${rank}<span class="sc">${s.impact.score}</span></div>
+    <div class="body">
+      <div class="kicker">
+        <span class="em">${EMOJI[eng] || "●"}</span>
+        <span class="eng">${esc((s.domains[0] || {}).display || eng)}</span>
+        <span class="pub">${esc(s.publisher)}</span>
+      </div>
+      <h3><a href="${esc(s.canonical_url)}" target="_blank" rel="noopener">${esc(s.title)}</a></h3>
+      <div class="meta">
+        <span class="tag fresh">${esc(fresh.bucket || "?")}${fresh.age_hours != null ? " · " + Math.round(fresh.age_hours) + "h" : ""}</span>
+        <span class="tag ${s.source.tier === "tier_1" ? "t1" : ""}">${esc(s.source.tier.replace("_", " "))}</span>
+        ${events}${entTags}
+        <span class="tag">${esc(hostOf(s.canonical_url))}</span>
+      </div>
+      <details class="why"><summary>Why is this here?</summary><div class="trace">${trace}</div></details>
+    </div>
+    <div class="cal"><span class="lbl">Your call</span>${buttons}</div>
+  </article>`;
+}
+
+function setCal(url, band) { cal[url] = band; localStorage.setItem(CAL_KEY, JSON.stringify(cal)); render(); }
+function resetCal() { if (confirm("Clear all your calibration overrides?")) { cal = {}; localStorage.removeItem(CAL_KEY); render(); } }
+
+function exportCal() {
+  const rows = [["index", "draft_priority", "your_priority", "source", "title", "url"]];
+  STORE.signals.forEach((s, i) => {
+    const mine = cal[s.url];
+    if (mine && mine !== s.priority)
+      rows.push([i, s.priority, mine, hostOf(s.canonical_url), s.title, s.canonical_url]);
+  });
+  if (rows.length === 1) { alert("No overrides yet — click a band on any card first."); return; }
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "gold_set_review.csv";
+  a.click();
+}
+</script>
+</body>
+</html>
