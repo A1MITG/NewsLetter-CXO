@@ -1,0 +1,56 @@
+# PRD §4 — Domain Detection.
+#
+# ONE taxonomy, two groupings. The Command Center shows engines; the Signals
+# newsletter shows Signals. Before this sprint those were two hardcoded lists
+# bridged by a dict in the build script, which is how Signal Executive came to
+# be scored and then silently discarded. Here they are two labels on the same
+# domain, so nothing can be scored into a bucket that has nowhere to render.
+#
+# Keywords are NOT duplicated here — they remain in app/analysis/signals.py,
+# which is tested and has years of bug fixes embedded in its weights. This
+# file is the taxonomy and the routing.
+
+# Minimum evidence to assign a domain at all.
+# The defect being fixed: with THRESHOLD=3 and TITLE_MULTIPLIER=2, a single
+# weight-2 keyword scored 4 and classified. 39% of live classifications rested
+# on one keyword — that is how "Paul J. Stock named president" became a
+# Business story on the surname "Stock", and how "PG&E's Data Center Pipeline"
+# became an AI story.
+evidence:
+  min_score: 6              # was effectively 3
+  min_distinct_keywords: 2  # ...unless a single decisive keyword fires:
+  decisive_weight: 3        # one keyword at weight >= 3 is sufficient alone
+
+# Secondary domains: an article may belong to several (PRD §4 — "Do not force
+# articles into a single category"). A secondary must clear this share of the
+# primary's score to be recorded, so weak noise does not accumulate tags.
+secondary_ratio: 0.5
+
+# score -> confidence normalisation. 12 ~= three solid title keywords.
+confidence_divisor: 12.0
+
+domains:
+  global:
+    signal: Signal Global
+    engine: global
+    display: Global Affairs
+  economy:
+    signal: Signal Business
+    engine: economy
+    display: Economy, Business & Markets
+  ai:
+    signal: Signal AI
+    engine: ai
+    display: AI, Technology & Innovation
+  gcc:
+    signal: Signal GCC
+    engine: gcc
+    display: GCC & Enterprise Technology
+  insurance:
+    signal: Signal Insurance
+    engine: insurance
+    display: Insurance & Financial Services
+  executive:
+    signal: Signal Executive
+    engine: executive          # previously had no engine — the reason 12
+    display: Executive & Leadership   # articles/day were being discarded
