@@ -75,17 +75,32 @@ async def scrape_source(session, url):
             title_tag = item.find('title')
             link_tag = item.find('link')
             date_tag = item.find('pubDate') or item.find('published') or item.find('updated')
+            # The feed already carries a description; it was simply never read.
+            # It is the summary the whole intelligence pipeline scores against.
+            desc_tag = (item.find('description') or item.find('summary')
+                        or item.find('content'))
+            media = (item.find('enclosure') or item.find('media:content')
+                     or item.find('media:thumbnail'))
+            author_tag = item.find('author') or item.find('creator')
             if title_tag and link_tag:
                 title = title_tag.text.strip()
                 link = link_tag.get('href') or link_tag.text.strip()
                 if not link.startswith('http'):
                     link = url.rsplit('/', 1)[0] + '/' + link
                 date = date_tag.text.strip() if date_tag else None
+                # Descriptions are frequently escaped HTML — unwrap to text.
+                summary = ''
+                if desc_tag and desc_tag.text:
+                    summary = BeautifulSoup(desc_tag.text, 'html.parser').get_text(
+                        ' ', strip=True)[:1200]
                 if title and len(title) > 10:
                     articles.append({
                         'title': title,
                         'url': link,
-                        'date': date
+                        'date': date,
+                        'summary': summary,
+                        'image': (media.get('url') or '') if media else '',
+                        'author': author_tag.text.strip() if author_tag else ''
                     })
     else:
         # Parse as HTML

@@ -27,8 +27,9 @@ scraped_articles.json
 config/# Code Citations.md
 ~$*.docx
 
-# Ignore local backup archives
+# Ignore local backup archives (including timestamped restore points)
 SIGNAL_backup.zip
+SIGNAL_backup_*.zip
 
 # Ignore local Claude Code tool state (machine-specific permissions)
 .claude/
