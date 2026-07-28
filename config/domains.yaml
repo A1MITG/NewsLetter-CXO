@@ -29,6 +29,61 @@ secondary_ratio: 0.5
 # score -> confidence normalisation. 12 ~= three solid title keywords.
 confidence_divisor: 12.0
 
+# Terms the legacy tables in app/analysis/signals.py do not carry. Kept here
+# rather than edited into that module, which is shared with the live Signals
+# page and whose weights encode years of bug fixes.
+#
+# Added in Sprint 8, after two genuinely must-read articles cleared no domain
+# at all:
+#   "Caspian Sea strike directly links wars"  -> \bwar\b misses the plural,
+#                                               \biran\b misses "Iranian"
+#   "Global property rates down 12%: Marsh"   -> insurance-market pricing
+#                                               vocabulary was absent entirely
+supplementary:
+  global:
+    wars: 2
+    iranian: 2
+    ukrainian: 1
+    israeli: 1
+    caspian: 2
+    strikes: 2
+    airstrike: 3
+    missile: 3
+    warfare: 3
+    geopolitical risk: 4
+    hormuz: 4
+  insurance:
+    property rates: 4
+    premium rates: 4
+    renewal rates: 4
+    reinsurance rates: 4
+    combined ratio: 4
+    loss ratio: 4
+    hard market: 4
+    soft market: 4
+    marsh: 3
+    aon: 3
+    willis: 2
+    gallagher: 2
+    treaty: 3
+    mga: 3
+    mgas: 3
+    placement: 2
+    subrogation: 4
+    catastrophe: 3
+  economy:
+    earnings event: 3
+    impairment: 3
+    net earnings: 3
+  ai:
+    ai safety: 4
+    ai model: 3
+    frontier model: 4
+  gcc:
+    global capability: 4
+    capability centre: 4
+    capability center: 4
+
 domains:
   global:
     signal: Signal Global

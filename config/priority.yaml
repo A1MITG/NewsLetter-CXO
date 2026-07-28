@@ -1,0 +1,32 @@
+# PRD §8 — Executive Importance Classification.
+#
+# "Executives should never be overwhelmed by volume." That makes this a
+# QUOTA problem, not a threshold problem: whatever the absolute scores do on
+# a given day, a reader should open the dashboard to a handful of must-reads,
+# not forty.
+#
+# So bands are assigned by rank within the build, bounded by absolute floors.
+# The quota stops a dramatic news day flooding the top band; the floor stops a
+# quiet news day promoting filler into it. Neither alone is sufficient — with
+# quotas only, the top 5% of a slow Tuesday becomes MUST_READ; with floors
+# only, a wildfire week puts thirty articles above the line.
+#
+# This is also the first stage that is inherently RELATIVE. Sprints 1-7 score
+# an article on its own. Priority is a judgement about an article's place in
+# today's set, so it needs the whole batch.
+
+bands:
+  - { name: MUST_READ,  max_share: 0.05, min_score: 60 }
+  - { name: IMPORTANT,  max_share: 0.20, min_score: 50 }
+  - { name: WATCH,      max_share: 0.45, min_score: 40 }
+  - { name: BACKGROUND, max_share: 1.00, min_score: 0 }
+
+# Below this, an article is IGNORE regardless of rank.
+ignore_below: 35
+
+# Conditions that force IGNORE whatever the score says. These are facts, not
+# judgements: an article we cannot date, or cannot place in any domain, has
+# no business being presented as today's executive intelligence.
+hard_ignore:
+  not_current: true        # failed the §3 freshness gate
+  no_domain: true          # cleared no domain's evidence bar in §4

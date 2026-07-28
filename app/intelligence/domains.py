@@ -48,6 +48,12 @@ def _config() -> dict:
 
 @lru_cache(maxsize=1)
 def _compiled() -> dict:
+    """Legacy keyword tables, plus the supplementary terms in domains.yaml.
+
+    The legacy tables stay authoritative and unedited — they are shared with
+    the live Signals page. Gaps found by this pipeline are filled in config,
+    where they are visible and reversible.
+    """
     out = {}
     for signal_name, kws in KEYWORDS.items():
         domain = _SIGNAL_TO_DOMAIN.get(signal_name)
@@ -55,6 +61,15 @@ def _compiled() -> dict:
             continue
         out[domain] = [(kw, re.compile(r"\b" + re.escape(kw) + r"\b"), w)
                        for kw, w in kws.items()]
+
+    for domain, extra in (_config().get("supplementary") or {}).items():
+        if domain not in out:
+            continue
+        known = {kw for kw, _, _ in out[domain]}
+        for kw, w in extra.items():
+            if kw not in known:
+                out[domain].append(
+                    (kw, re.compile(r"\b" + re.escape(kw) + r"\b"), int(w)))
     return out
 
 
