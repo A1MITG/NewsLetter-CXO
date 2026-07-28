@@ -1,0 +1,147 @@
+# PRD §6 — Event Detection.
+#
+# Same evidence discipline as §4: a weak signal alone never fires an event.
+# This matters more here than for domains, because §7 uses detected events to
+# raise executive significance — a false positive doesn't just mis-file an
+# article, it promotes it up the dashboard.
+#
+# `significance` (1-5) is what Sprint 7 consumes. It is the event type's
+# inherent weight, before any article-specific scoring.
+#
+# `veto` patterns kill a match outright. They exist because the obvious
+# keyword for an event is often a term of art in this corpus: "war risk" is an
+# insurance product, not a war; "price war" is competition, not conflict.
+
+detection:
+  min_score: 3
+  decisive_weight: 3      # one pattern at this weight fires the event alone
+
+events:
+  ACQUISITION:
+    significance: 4
+    patterns:
+      - { rx: '\b(?:to acquire|acquires|acquisition of|agreed to buy|takeover of|to purchase)\b', weight: 3 }
+      - { rx: '\b(?:acquisition|acquired|takeover|buyout)\b', weight: 2 }
+      - { rx: '\b(?:stake sale|majority stake)\b', weight: 2 }
+
+  MERGER:
+    significance: 4
+    patterns:
+      - { rx: '\b(?:to merge with|merger with|merger of|agreed to merge)\b', weight: 3 }
+      - { rx: '\b(?:merger|merges)\b', weight: 2 }
+      - { rx: '\bm&a\b', weight: 2 }
+
+  IPO:
+    significance: 4
+    patterns:
+      - { rx: '\b(?:initial public offering|goes public|ipo filing|files for ipo)\b', weight: 3 }
+      - { rx: '\bipos?\b', weight: 2 }
+      - { rx: '\b(?:lists on|listing on|market debut)\b', weight: 2 }
+
+  FUNDING:
+    significance: 3
+    patterns:
+      - { rx: '\b(?:funding round|series [a-f]\b|seed round|raises \$|seeks funding)\b', weight: 3 }
+      - { rx: '\b(?:venture capital|private equity|valuation of)\b', weight: 2 }
+      - { rx: '\b(?:funding|fundraise)\b', weight: 1 }
+
+  EXECUTIVE_APPOINTMENT:
+    significance: 3
+    patterns:
+      - { rx: '\b(?:names|appoints|elects|promotes)\b.{0,40}\b(?:ceo|cfo|coo|cio|cto|chief executive|chief financial officer|president|managing director|chairman)\b', weight: 3 }
+      - { rx: '\b(?:appointed|appointment of|new chief executive|succeeds as)\b', weight: 2 }
+      - { rx: '\bpeople moves\b', weight: 1 }
+
+  EXECUTIVE_EXIT:
+    significance: 3
+    patterns:
+      - { rx: '\b(?:steps down|stepping down|to step down|resigns as|has resigned|ousted)\b', weight: 3 }
+      - { rx: '\b(?:departure of|to depart|exits as|succession plan)\b', weight: 2 }
+      # Decisive alone: "resigns" in a headline is unambiguous, and the
+      # common phrasing is "resigns amid/after/over", not "resigns as".
+      - { rx: '\bresign(?:ation|s|ed)?\b', weight: 3 }
+
+  REGULATION:
+    significance: 4
+    patterns:
+      - { rx: '\b(?:new rules|proposed rule|regulatory approval|compliance deadline|regulator(?:s)? (?:said|will|to))\b', weight: 3 }
+      - { rx: '\b(?:regulation|regulatory|legislation|antitrust|watchdog)\b', weight: 2 }
+      - { rx: '\b(?:fined|penalt(?:y|ies))\b', weight: 2 }
+
+  SANCTIONS:
+    significance: 5
+    patterns:
+      - { rx: '\b(?:imposes sanctions|new sanctions|sanctions on|export controls|blacklisted)\b', weight: 3 }
+      - { rx: '\bsanction(?:s|ed|ing)?\b', weight: 2 }
+      - { rx: '\b(?:embargo|trade restrictions)\b', weight: 2 }
+
+  INTEREST_RATE:
+    significance: 4
+    patterns:
+      - { rx: '\b(?:rate (?:cut|hike|rise|decision)|raises rates|cuts rates|basis points)\b', weight: 3 }
+      - { rx: '\b(?:interest rates?|monetary policy|repo rate)\b', weight: 2 }
+
+  CYBER_ATTACK:
+    significance: 5
+    patterns:
+      - { rx: '\b(?:cyber ?attack|ransomware|data breach|breached|hacked|malware)\b', weight: 3 }
+      - { rx: '\b(?:cyber incident|security flaw|vulnerability|exploit)\b', weight: 2 }
+
+  NATURAL_DISASTER:
+    significance: 5
+    patterns:
+      - { rx: '\b(?:earthquake|hurricane|cyclone|typhoon|wildfire|tsunami|volcanic)\b', weight: 3 }
+      - { rx: '\b(?:flooding|floods|landslide|drought|storm damage)\b', weight: 2 }
+      - { rx: '\b(?:catastrophe|cat loss(?:es)?)\b', weight: 2 }
+
+  CONFLICT:
+    significance: 5
+    veto:
+      - '\bwar[- ]risk\b'          # an insurance product, not a war
+      - '\bprice war\b'
+      - '\btrade war\b'            # belongs to TRADE_ACTION
+      - '\btalent war\b'
+      - '\bbidding war\b'
+    patterns:
+      - { rx: '\b(?:airstrike|air strike|missile strike|invasion|ceasefire|military strike|declares war)\b', weight: 3 }
+      - { rx: '\b(?:conflict|hostilities|offensive|militant|insurgen)\b', weight: 2 }
+      - { rx: '\bwar\b', weight: 2 }
+
+  TRADE_ACTION:
+    significance: 4
+    patterns:
+      - { rx: '\b(?:trade deal|trade agreement|tariff(?:s)? on|imposes tariffs|trade war)\b', weight: 3 }
+      - { rx: '\b(?:tariffs?|import duty|customs duty)\b', weight: 2 }
+
+  SUPPLY_CHAIN:
+    significance: 4
+    patterns:
+      - { rx: '\b(?:supply chain disruption|shipping delays|port closure|freight rates surge)\b', weight: 3 }
+      - { rx: '\b(?:supply chain|logistics disruption|shipping lane)\b', weight: 2 }
+
+  ENERGY_SHOCK:
+    significance: 4
+    patterns:
+      - { rx: '\b(?:oil price(?:s)? (?:surge|spike|jump|plunge)|energy crisis|opec (?:cut|output))\b', weight: 3 }
+      - { rx: '\b(?:crude prices|energy security|gas prices)\b', weight: 2 }
+
+  PRODUCT_LAUNCH:
+    significance: 2
+    patterns:
+      - { rx: '\b(?:launches|unveils|rolls out|introduces|debuts)\b.{0,30}\b(?:platform|product|model|service|tool)\b', weight: 3 }
+      - { rx: '\b(?:launch(?:es|ed)?|unveil(?:s|ed)?|rolls out)\b', weight: 1 }
+
+  ELECTION:
+    significance: 3
+    patterns:
+      - { rx: '\b(?:general election|presidential election|election results|wins election|voted into)\b', weight: 3 }
+      - { rx: '\b(?:election|electorate|ballot)\b', weight: 2 }
+
+  EARNINGS:
+    significance: 3
+    patterns:
+      # Allow qualifiers between the verb and the figure: real headlines say
+      # "reports preliminary Q2 net profit", not "reports profit".
+      - { rx: '\b(?:quarterly results|q[1-4] (?:results|earnings)|earnings report)\b', weight: 3 }
+      - { rx: '\b(?:reports|posts|announces)\b.{0,30}?\b(?:net\s+)?(?:profit|loss|earnings)\b', weight: 3 }
+      - { rx: '\b(?:earnings|net profit|revenue rose|revenue fell)\b', weight: 2 }
