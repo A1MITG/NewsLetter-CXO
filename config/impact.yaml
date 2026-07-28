@@ -1,0 +1,60 @@
+# PRD §7 — Executive Impact Score.
+#
+# The PRD listed twelve dimensions composited into 0-100. Twelve subjective
+# axes imply a resolution nothing here can validate — what distinguishes 71
+# from 68? Four dimensions are used instead, each traceable to a signal an
+# earlier sprint actually measured, so every score can be explained rather
+# than merely asserted.
+#
+#   materiality  does it move money or risk?   <- events (§6), entities (§5)
+#   urgency      does it need attention now?   <- freshness (§3), event type
+#   credibility  can it be trusted?            <- source trust (§2)
+#   novelty      is it actually new?           <- routine-pattern penalties
+#
+# The composite is still 0-100 because it is a sort key, not a claim of
+# precision. §8 buckets it into five bands, and the bands are what a reader
+# sees.
+
+weights:
+  materiality: 0.40
+  urgency: 0.25
+  credibility: 0.20
+  novelty: 0.15
+
+# Event types that are inherently time-critical: an executive acts on these
+# today, not next week.
+urgent_events:
+  - CONFLICT
+  - CYBER_ATTACK
+  - NATURAL_DISASTER
+  - SANCTIONS
+  - SUPPLY_CHAIN
+  - ENERGY_SHOCK
+  - INTEREST_RATE
+
+# Entity types that signal real-world consequence rather than commentary.
+material_entities:
+  companies: 0.10
+  regulators: 0.12
+  agencies: 0.08
+  countries: 0.04
+
+# Headline shapes that indicate routine coverage rather than a development.
+# These are the "Q4 Preview" and "People:" columns every trade title runs.
+routine_markers:
+  - '\bpreview\b'
+  - '\bq[1-4] preview\b'
+  - '^people:'
+  - '\bwhat to expect\b'
+  - '\bdecoded:\b'
+  - '\bviewpoint:\b'
+  - '\bhow to\b'
+  - '\b(?:volumes?|edition)\s*\d'
+
+routine_penalty: 0.45
+
+# Baseline sits below 1.0 so the event bonus has headroom to register. At a
+# 1.0 baseline the bonus clamped away and novelty could only ever be
+# penalised — it could not reward an article for being a development.
+base_novelty: 0.85
+event_novelty_bonus: 0.15
