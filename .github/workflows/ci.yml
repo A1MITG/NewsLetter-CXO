@@ -30,4 +30,7 @@ jobs:
         run: python -c "from app.main import app; print('App imports and initializes OK')"
 
       - name: Run tests
-        run: python -m unittest discover -s tests -v
+        # pytest, not unittest discover: the sprint test modules use pytest
+        # fixtures and marks, so unittest silently errored on collecting them
+        # and only ran a fraction of the suite.
+        run: python -m pytest tests -v

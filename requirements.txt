@@ -11,3 +11,9 @@ lxml==6.0.2
 
 # Environment variables from .env
 python-dotenv==1.2.1
+
+# YAML config for the intelligence pipeline (app/intelligence/developments.py)
+PyYAML==6.0.3
+
+# Test runner (tests/test_sprint*.py use pytest fixtures/marks)
+pytest==9.1.1

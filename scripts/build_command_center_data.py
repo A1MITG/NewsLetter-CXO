@@ -27,38 +27,22 @@ load_dotenv()
 
 from app.scraper.store import get_articles, get_cache_date
 from app.analysis.signals import synthesize_signals
+from app.analysis.command_center import (build_engine_data, build_featured, build_hero_cards,
+                                      build_pulse_cards)
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 PUBLIC_DIR = ROOT / 'public'
 
-# Signal name -> (Command Center engine id, display name)
-SIGNAL_TO_ENGINE = {
-    'Signal Global': ('global', 'Global Affairs'),
-    'Signal Business': ('economy', 'Economy, Business & Markets'),
-    'Signal AI': ('ai', 'AI, Technology & Innovation'),
-    'Signal GCC': ('gcc', 'GCC & Enterprise Technology'),
-    'Signal Insurance': ('insurance', 'Insurance & Financial Services'),
-}
-
-# Engines with no scoring logic yet — written out honestly, not fabricated.
-COMING_SOON_ENGINES = {
-    'banking': 'Banking',
-    'manufacturing': 'Manufacturing',
-    'energy': 'Energy',
-    'defence': 'Defence',
-    'cyber': 'Cyber Intelligence',
-    'supplychain': 'Supply Chain',
-    'healthcare': 'Healthcare',
-    'telecom': 'Telecom & Digital Infrastructure',
-    'climate': 'Climate & Sustainability',
-}
-COMING_SOON_NOTE = (
-    "No scoring engine built for this domain yet — it isn't classifying "
-    "real articles today. Planned as a future configurable Intelligence Domain."
-)
-
+# Injected into the Flask template only: tells the page to read the live API
+# instead of the static snapshot.
+LIVE_URL_INJECT = '''<script>
+    // Served by Flask: read live classified articles from the API, not the
+    // prebuilt static snapshot. Must precede the main script block.
+    window.CC_DATA_URL = "/api/command-center";
+</script>
+</head>'''
 
 # A build does not re-scrape by default. store.py already scrapes at most
 # once a day; forcing a refresh here meant every build replaced the single
@@ -74,23 +58,19 @@ def main(refresh=False):
     signals_data = synthesize_signals(articles, data_date=data_date)
     by_name = {s['name']: s for s in signals_data['signals']}
 
-    engine_data = {}
-    for signal_name, (engine_id, display_name) in SIGNAL_TO_ENGINE.items():
-        signal = by_name.get(signal_name, {})
-        engine_data[engine_id] = {
-            'name': display_name,
-            'articles': [
-                {'title': a['title'], 'url': a['url']}
-                for a in signal.get('articles', [])
-            ],
-        }
-
-    for engine_id, display_name in COMING_SOON_ENGINES.items():
-        engine_data[engine_id] = {
-            'name': display_name,
-            'comingSoon': True,
-            'note': COMING_SOON_NOTE,
-        }
+    engine_data = build_engine_data(signals_data)
+    by_title = {a.get('title'): a for a in articles}
+    engine_data['_hero'] = build_hero_cards(engine_data, by_title)
+    engine_data['_featured'] = build_featured(
+        engine_data['_hero'], engine_data, by_title)
+    engine_data['_pulse'] = build_pulse_cards(articles)
+    # The static page shows the same freshness stamp as the live one; without
+    # _meta it would render blank on the Vercel deploy.
+    engine_data['_meta'] = {
+        'data_date': data_date,
+        'fetched_minutes_ago': 0,
+        'stale_excluded': signals_data.get('stale_excluded', 0),
+    }
 
     PUBLIC_DIR.mkdir(exist_ok=True)
     out_path = PUBLIC_DIR / 'command_center_data.json'
@@ -99,9 +79,23 @@ def main(refresh=False):
     logger.info("Wrote %s", out_path)
 
     html_src = ROOT / 'app' / 'static' / 'command_center_source.html'
+    source_html = html_src.read_text(encoding='utf-8')
+
+    # Static deploy copy: no CC_DATA_URL, so the page falls back to the
+    # committed command_center_data.json sitting beside it.
     html_out = PUBLIC_DIR / 'command_center.html'
     shutil.copy(html_src, html_out)
     logger.info("Wrote %s", html_out)
+
+    # Flask template: same markup, plus the live API URL. Generated from the
+    # same source so the served page and the static deploy cannot drift.
+    template_out = ROOT / 'app' / 'templates' / 'command_center.html'
+    template_html = source_html.replace('</head>', LIVE_URL_INJECT, 1)
+    # Relative asset paths work for the static deploy (files sit beside the
+    # page); Flask serves the same files from /static/, so rewrite them.
+    template_html = template_html.replace('src="./img/', 'src="/static/img/')
+    template_out.write_text(template_html, encoding='utf-8')
+    logger.info("Wrote %s", template_out)
 
 
 if __name__ == '__main__':

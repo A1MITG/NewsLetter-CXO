@@ -1,0 +1,157 @@
+"""Command Center: the front-door page and its live data endpoint.
+
+Follows the suite convention of testing against the real cached corpus
+(see tests/conftest.py) rather than synthetic fixtures.
+"""
+import json
+import unittest
+
+from app.analysis.command_center import (
+    COMING_SOON_ENGINES,
+    SIGNAL_TO_ENGINE,
+    build_engine_data,
+)
+from app.main import create_app
+
+# The tile ids the Command Center page iterates over (ENGINE_ORDER in the HTML).
+ENGINE_ORDER = ['global', 'economy', 'ai', 'gcc', 'insurance', 'banking',
+                'manufacturing', 'energy', 'defence', 'cyber', 'supplychain',
+                'healthcare', 'telecom', 'climate']
+
+
+class TestEngineMapping(unittest.TestCase):
+    """build_engine_data() must satisfy the contract the page renders against."""
+
+    def test_covers_every_tile_the_page_renders(self):
+        data = build_engine_data({'signals': []})
+        self.assertEqual(set(data), set(ENGINE_ORDER))
+
+    def test_live_and_coming_soon_split(self):
+        data = build_engine_data({'signals': []})
+        live = {k for k, v in data.items() if not v.get('comingSoon')}
+        soon = {k for k, v in data.items() if v.get('comingSoon')}
+        self.assertEqual(live, {e for e, _ in SIGNAL_TO_ENGINE.values()})
+        self.assertEqual(soon, set(COMING_SOON_ENGINES))
+
+    def test_every_engine_has_a_display_name(self):
+        for engine_id, engine in build_engine_data({'signals': []}).items():
+            self.assertTrue(engine.get('name'), f"{engine_id} has no name")
+
+    def test_coming_soon_engines_carry_no_fabricated_articles(self):
+        """The 9 unbuilt domains must never render invented content."""
+        for engine_id in COMING_SOON_ENGINES:
+            engine = build_engine_data({'signals': []})[engine_id]
+            self.assertTrue(engine['comingSoon'])
+            self.assertNotIn('articles', engine)
+            self.assertTrue(engine.get('note'))
+
+    def test_maps_real_signal_articles_onto_tiles(self):
+        signals_data = {'signals': [
+            {'name': 'Signal Global', 'articles': [
+                {'title': 'A headline', 'url': 'https://example.com/a',
+                 'extra_field': 'should be dropped'},
+            ]},
+        ]}
+        data = build_engine_data(signals_data)
+        self.assertEqual(data['global']['articles'],
+                         [{'title': 'A headline', 'url': 'https://example.com/a'}])
+
+    def test_missing_signal_yields_empty_not_error(self):
+        """A signal that classified nothing gives an empty tile, not a crash."""
+        data = build_engine_data({'signals': []})
+        self.assertEqual(data['global']['articles'], [])
+
+
+class TestRoutes(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.client = create_app().test_client()
+
+    def test_root_serves_the_command_center(self):
+        resp = self.client.get('/')
+        self.assertEqual(resp.status_code, 200)
+        body = resp.get_data(as_text=True)
+        self.assertIn('Executive Intelligence', body)
+        self.assertIn('/api/command-center', body)
+
+    def test_compact_views_still_reachable(self):
+        """The low-bandwidth reading views must survive the reshuffle."""
+        self.assertEqual(self.client.get('/brief').status_code, 200)
+        self.assertEqual(self.client.get('/signals').status_code, 200)
+
+    def test_command_center_links_to_both_compact_views(self):
+        body = self.client.get('/').get_data(as_text=True)
+        self.assertIn('href="/brief"', body)
+        self.assertIn('href="/signals"', body)
+
+    def test_engine_count_is_not_hardcoded(self):
+        """The live/coming-soon counts must derive from the data, not a literal."""
+        body = self.client.get('/').get_data(as_text=True)
+        self.assertIn('id="engineCount"', body)
+        self.assertNotIn('12 live today', body)
+
+    def test_health_still_ok(self):
+        resp = self.client.get('/health')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.get_json(), {'status': 'ok'})
+
+
+class TestFounderSection(unittest.TestCase):
+    """The About the Founder section and its portrait."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.client = create_app().test_client()
+        cls.body = cls.client.get('/').get_data(as_text=True)
+
+    def test_section_exists_for_the_nav_anchor(self):
+        """The nav has always linked to #founder; the target must exist."""
+        self.assertIn('href="#founder"', self.body)
+        self.assertIn('id="founder"', self.body)
+
+    def test_shows_name_roles_and_statement(self):
+        self.assertIn('Amit Gupta', self.body)
+        self.assertIn('Corporate Survivor', self.body)
+        self.assertIn('one weekend at a time', self.body)
+
+    def test_portrait_is_served_by_flask(self):
+        """The template must use the Flask static path, not the relative one."""
+        self.assertIn('/static/img/founder.jpg', self.body)
+        resp = self.client.get('/static/img/founder.jpg')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.mimetype, 'image/jpeg')
+
+    def test_portrait_has_accessible_alt_text(self):
+        self.assertIn('alt="Portrait of the founder of SIGNAL"', self.body)
+
+
+class TestLiveEndpoint(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.client = create_app().test_client()
+        cls.payload = cls.client.get('/api/command-center').get_json()
+
+    def test_returns_every_tile(self):
+        engines = {k: v for k, v in self.payload.items()
+                   if not k.startswith('_')}
+        self.assertEqual(set(engines), set(ENGINE_ORDER))
+
+    def test_live_tiles_carry_real_articles_from_the_corpus(self):
+        """The whole point: real scored articles reach the page."""
+        live = [v for k, v in self.payload.items()
+                if not k.startswith('_') and not v.get('comingSoon')]
+        self.assertTrue(any(e['articles'] for e in live),
+                        "no live engine returned any article")
+        for engine in live:
+            for article in engine['articles']:
+                self.assertTrue(article['title'].strip())
+                self.assertTrue(article['url'].startswith('http'))
+
+    def test_is_json_serialisable_for_the_browser(self):
+        json.dumps(self.payload)
+
+
+if __name__ == '__main__':
+    unittest.main()

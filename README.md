@@ -1,14 +1,20 @@
 # SIGNAL — Insurance & CXO Intelligence
 
 SIGNAL scrapes insurance-trade, business, and geopolitical news, scores each
-article against a weighted-keyword framework, and publishes two daily views:
+article against a weighted-keyword framework, and publishes three daily views:
 
-- **The Daily Brief** (`/`) — a five-lens executive brief (Macro & Geo-Political,
+- **The Command Center** (`/`) — the front door. Full executive intelligence
+  layout: 14 domain tiles, live ticker, hero cards, Executive Pulse and a
+  Featured Analysis. Five tiles are driven by the real scoring engine (Global,
+  Economy, AI, GCC, Insurance); the other nine are marked "coming soon" until a
+  scoring engine exists for them. Every content surface reads from
+  `/api/command-center` — nothing on the page is hardcoded copy.
+- **The Daily Brief** (`/brief`) — a five-lens executive brief (Macro & Geo-Political,
   Regulatory & Compliance, Economic & Market, Digital/AI & Automation,
-  Operating Model & Talent).
+  Operating Model & Talent). Compact, low-bandwidth: the view for mobile and travel.
 - **Signals** (`/signals`) — the same articles regrouped under six audience-facing
   Signals (Global, Business, AI, GCC, Insurance, Executive), rendered in a
-  Bloomberg-terminal-style layout.
+  Bloomberg-terminal-style layout. Also compact and image-light.
 
 A companion script can also publish a condensed version of the Daily Brief to
 LinkedIn.
@@ -18,12 +24,16 @@ LinkedIn.
 ```
 app/
   analysis/
+    command_center.py  Maps scored Signals onto the Command Center surfaces —
+                       tiles, hero row, Featured Analysis and Executive Pulse.
+                       Shared by the live API and the static build script.
     scorer.py      Keyword-weighted scoring engine for the five-lens Daily Brief
     signals.py      Weighted-evidence classifier for the six Signals (with
                      near-duplicate suppression and disambiguation rules)
     synthesis.py     Turns scored articles into the Daily Brief JSON structure
   api/
-    routes.py        Flask blueprint: /api/newsletter, /api/signals
+    routes.py        Flask blueprint: /api/newsletter, /api/signals,
+                     /api/command-center (live Command Center tiles)
   scraper/
     sources.py        Registry of RSS/HTML sources, grouped by geography/beat
     scraper.py         Async fetch + parse (RSS and HTML fallback), NewsAPI
@@ -50,11 +60,19 @@ instance/                 Runtime-only: the daily articles_cache.json (not commi
 
 1. `scraper.py` fetches every source in `sources.py` in parallel (RSS parsed as
    XML, everything else as an HTML link scrape), plus NewsAPI if a key is set.
-2. `store.py` caches the result once per calendar day in
-   `instance/articles_cache.json`. Every request that day is served from that
-   cache; if a fresh scrape ever returns nothing, the previous day's cache is
-   served instead of an empty page.
-3. `synthesis.py` (Daily Brief) and `signals.py` (Signals) each independently
+2. `store.py` caches the result in `instance/articles_cache.json` for
+   `CACHE_TTL_MINUTES` (default 30). A background thread re-scrapes on that
+   same interval, so the cache is already warm when a reader arrives and
+   nobody waits on a scrape — set `BACKGROUND_REFRESH=0` to disable it. If a
+   fresh scrape returns nothing, the previous cache is served instead of an
+   empty page.
+3. A freshness gate (`app/intelligence/freshness.py`, tuned in
+   `config/freshness.yaml`) drops anything older than 7 days or carrying no
+   publication date before it can reach a page. Feeds do go stale upstream
+   while still returning HTTP 200 — moneycontrol.com served April 2024
+   articles for months — and without the gate those land on a page stamped
+   with today's date.
+4. `synthesis.py` (Daily Brief) and `signals.py` (Signals) each independently
    score and bucket the same cached articles — two different lenses on one
    dataset.
 
@@ -68,11 +86,14 @@ cp .env.example .env          # then fill in the values you need
 python -m app.main
 ```
 
-Open `http://127.0.0.1:5000/` and `http://127.0.0.1:5000/signals`.
-`http://127.0.0.1:5000/health` returns `{"status": "ok"}` for uptime checks.
+Open `http://127.0.0.1:5000/` for the Command Center; the nav links through to
+`/brief` and `/signals`. `http://127.0.0.1:5000/health` returns `{"status": "ok"}`
+for uptime checks.
 
-Force a fresh scrape (bypassing the daily cache) by appending `?refresh=1` to
-either API endpoint.
+Force a fresh scrape (bypassing the TTL) by appending `?refresh=1` to any API
+endpoint. Set `CACHE_TTL_MINUTES` in `.env` to change how often the app
+re-scrapes; the Command Center shows a "Sources checked N min ago" stamp so
+the page states its own freshness.
 
 ## Environment variables
 

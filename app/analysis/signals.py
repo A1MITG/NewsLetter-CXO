@@ -15,6 +15,9 @@ left unclassified and dropped from the view rather than misfiled.
 import re
 from datetime import datetime
 
+from ..intelligence.freshness import classify as classify_freshness
+from ..intelligence.normalize import parse_date
+
 # Display order = the SIGNAL masthead hierarchy.
 SIGNALS = [
     {'name': 'Signal Global', 'purpose': 'Geopolitics · Trade · Defence',
@@ -233,11 +236,24 @@ def _display_date(data_date=None):
     return datetime.now().strftime('%B %d, %Y')
 
 
-def synthesize_signals(articles, data_date=None):
-    """Group scraped articles under the six Signals, strongest evidence first."""
+def _is_current(article):
+    """True when the article may be presented as today's intelligence."""
+    return classify_freshness(parse_date(article.get('date'))).get('is_current', False)
+
+
+def synthesize_signals(articles, data_date=None, require_current=True):
+    """Group scraped articles under the six Signals, strongest evidence first.
+
+    ``require_current`` applies the Sprint 3 freshness gate: anything older
+    than config/freshness.yaml's archive_after_hours, or carrying no usable
+    publication date, is excluded. Without it a feed that goes stale upstream
+    (as moneycontrol.com did, serving April 2024 items under HTTP 200) puts
+    multi-year-old stories on a page stamped with today's date.
+    """
     seen_titles = set()
     grouped = {s['name']: [] for s in SIGNALS}
     unclassified = 0
+    stale = 0
     for article in articles:
         title = article.get('title', '').strip()
         # Titles under 4 words are almost always scraped section headers
@@ -245,6 +261,9 @@ def synthesize_signals(articles, data_date=None):
         if not title or len(title.split()) < 4 or title.lower() in seen_titles:
             continue
         seen_titles.add(title.lower())
+        if require_current and not _is_current(article):
+            stale += 1
+            continue
         result = classify_article(title, article.get('summary', ''))
         if result is None:
             unclassified += 1
@@ -268,6 +287,7 @@ def synthesize_signals(articles, data_date=None):
         'date': _display_date(data_date),
         'data_date': data_date,          # ISO, or None when unknown
         'unclassified': unclassified,
+        'stale_excluded': stale,
         'signals': [
             {
                 'name': s['name'],

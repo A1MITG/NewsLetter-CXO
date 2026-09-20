@@ -392,6 +392,11 @@ a { color: inherit; }
 }
 
 </style>
+<script>
+    // Served by Flask: read live classified articles from the API, not the
+    // prebuilt static snapshot. Must precede the main script block.
+    window.CC_DATA_URL = "/api/command-center";
+</script>
 </head>
 <body>
 
@@ -612,7 +617,7 @@ a { color: inherit; }
         <p class="founder-eyebrow">About the Founder</p>
         <div class="founder-grid">
             <figure class="founder-portrait">
-                <img src="./img/founder.jpg"
+                <img src="/static/img/founder.jpg"
                      alt="Portrait of the founder of SIGNAL"
                      width="802" height="1200" loading="lazy" decoding="async">
             </figure>
