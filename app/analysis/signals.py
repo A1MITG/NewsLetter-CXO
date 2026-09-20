@@ -217,7 +217,23 @@ def classify_article(title, summary=''):
     return best, scores[best]
 
 
-def synthesize_signals(articles):
+def _display_date(data_date=None):
+    """Render the DATA's date when we know it, else fall back to today.
+
+    `data_date` is the ISO date stamped on instance/articles_cache.json.
+    Callers that know it should pass it; the fallback keeps older callers
+    working rather than crashing, but it is the behaviour that let a stale
+    build claim to be current.
+    """
+    if data_date:
+        try:
+            return datetime.strptime(data_date, '%Y-%m-%d').strftime('%B %d, %Y')
+        except (ValueError, TypeError):
+            pass
+    return datetime.now().strftime('%B %d, %Y')
+
+
+def synthesize_signals(articles, data_date=None):
     """Group scraped articles under the six Signals, strongest evidence first."""
     seen_titles = set()
     grouped = {s['name']: [] for s in SIGNALS}
@@ -249,7 +265,8 @@ def synthesize_signals(articles):
                 break
         grouped[name] = kept
     return {
-        'date': datetime.now().strftime('%B %d, %Y'),
+        'date': _display_date(data_date),
+        'data_date': data_date,          # ISO, or None when unknown
         'unclassified': unclassified,
         'signals': [
             {

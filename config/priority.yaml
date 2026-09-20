@@ -24,6 +24,15 @@ bands:
 # Below this, an article is IGNORE regardless of rank.
 ignore_below: 35
 
+# §10. A development is one story; two outlets reporting it are two articles.
+# The quota below is therefore a budget of DEVELOPMENTS, not of articles:
+# only the highest-scoring member of a development competes for a ranked
+# band. The rest are real coverage of a story already represented, so they
+# are held at `follower_band` rather than discarded — findable in the store,
+# absent from the brief. Set follower_band to IGNORE to drop them entirely.
+developments:
+  follower_band: BACKGROUND
+
 # Conditions that force IGNORE whatever the score says. These are facts, not
 # judgements: an article we cannot date, or cannot place in any domain, has
 # no business being presented as today's executive intelligence.

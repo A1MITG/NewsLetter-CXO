@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PREVIEW B v2 — SIGNAL Editorial Briefing</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --navy: #0b1524; --ink: #12161c;
+    --slate: #5a6472; --slate-light: #8a94a2; --rule: #d8dde3; --rule-soft: #eceff2;
+    --paper: #fcfbf8;           /* warm newsprint */
+    --blue: #2f6fed; --red: #e11d2e;
+    --serif: Georgia, "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: Consolas, "SF Mono", monospace;
+    --emoji: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+body { font-family: var(--serif); background: var(--paper); color: var(--ink); }
+a { color: inherit; text-decoration: none; }
+.em { font-family: var(--emoji); font-style: normal; line-height: 1; display: inline-block; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 40px; }
+
+.pv-banner { background: #fff8e1; border-bottom: 1px solid #f0d999; color: #6b5311;
+    font-size: 11.5px; padding: 7px 16px; display: flex; align-items: center; gap: 14px;
+    font-family: var(--mono); }
+.pv-banner b { color: #8a6a00; }
+
+/* ===== CHANGE 1: masthead, not a hero. ~110px, no marketing band. ===== */
+.masthead { text-align: center; padding: 22px 20px 14px; border-bottom: 1px solid var(--navy); }
+.mast-word { font-family: var(--sans); font-weight: 800; letter-spacing: .42em;
+    font-size: 27px; color: var(--navy); text-indent: .42em; }
+.mast-rule { display: flex; align-items: center; gap: 14px; max-width: 700px; margin: 11px auto 0; }
+.mast-rule .ln { flex: 1; height: 1px; background: var(--rule); }
+.mast-rule .dateline { font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--slate); white-space: nowrap; }
+.mast-sub { font-family: var(--mono); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--slate-light); margin-top: 9px; }
+
+/* section rules */
+.sec-rule { display: flex; align-items: center; gap: 14px; padding: 30px 0 16px; }
+.sec-rule .lb { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .24em;
+    text-transform: uppercase; color: var(--navy); white-space: nowrap; }
+.sec-rule .ln { flex: 1; height: 2px; background: var(--navy); }
+.sec-rule.thin .ln { height: 1px; background: var(--rule); }
+.sec-rule.thin .lb { color: var(--slate); font-weight: 400; }
+
+/* ===== LEAD ===== */
+.lead { display: grid; grid-template-columns: 1fr 300px; gap: 40px; padding-bottom: 26px;
+    border-bottom: 3px double var(--navy); }
+.lead-kicker { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--red); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.lead-kicker .em { font-size: 14px; }
+.lead h1 { font-weight: 400; font-size: 42px; line-height: 1.14; color: var(--navy); margin-bottom: 16px; }
+.lead a:hover h1 { color: var(--blue); }
+.lead .byline { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--slate-light); padding-top: 12px; border-top: 1px solid var(--rule); }
+.lead-aside { border-left: 1px solid var(--rule); padding-left: 26px; }
+.lead-aside .ttl { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--slate); margin-bottom: 14px; }
+.lead-aside li { list-style: none; padding: 11px 0; border-bottom: 1px solid var(--rule-soft); font-size: 15px; line-height: 1.4; }
+.lead-aside li:last-child { border-bottom: none; }
+.lead-aside li:hover { color: var(--blue); }
+.lead-aside .src { display: block; font-family: var(--mono); font-size: 9px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--slate-light); margin-top: 5px; }
+
+/* ===== COLUMNS ===== */
+.cols { display: grid; grid-template-columns: repeat(3, 1fr); }
+.col { padding: 0 26px; border-right: 1px solid var(--rule); }
+.col:first-child { padding-left: 0; }
+.col:last-child { border-right: none; padding-right: 0; }
+.col-head { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10px;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--navy); font-weight: 700;
+    padding-bottom: 10px; border-bottom: 2px solid var(--navy); margin-bottom: 16px; }
+.col-head .em { font-size: 14px; }
+.col-head .n { margin-left: auto; color: var(--slate-light); font-weight: 400; }
+.col .top { display: block; margin-bottom: 16px; }
+.col .top h3 { font-weight: 400; font-size: 21px; line-height: 1.26; color: var(--navy); margin-bottom: 9px; }
+.col .top:hover h3 { color: var(--blue); }
+.col .src { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--slate-light); }
+.col ul { list-style: none; border-top: 1px solid var(--rule); }
+.col li a { display: block; padding: 10px 0; border-bottom: 1px solid var(--rule-soft); font-size: 15px; line-height: 1.4; }
+.col li a:hover { color: var(--blue); }
+
+/* ===== PULSE ===== */
+.pulse-box { border: 1px solid var(--navy); padding: 0; margin-top: 8px; }
+.pulse-box .bh { background: var(--navy); color: #fff; font-family: var(--mono); font-size: 10px;
+    letter-spacing: .2em; text-transform: uppercase; padding: 9px 18px; display: flex; align-items: center; gap: 9px; }
+.pulse-box .bh .em { font-size: 13px; }
+.pulse-box .bh .note { margin-left: auto; letter-spacing: .06em; color: rgba(255,255,255,.5); font-size: 9px; }
+.pulse-row { display: flex; gap: 16px; align-items: baseline; padding: 13px 18px; border-bottom: 1px solid var(--rule-soft); }
+.pulse-row:last-child { border-bottom: none; }
+.pulse-row:hover { background: #fff; }
+.pulse-row .who { font-family: var(--sans); font-size: 12.5px; font-weight: 700; color: var(--navy);
+    width: 170px; flex: none; }
+.pulse-row .who span { display: block; font-family: var(--mono); font-size: 9px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--slate-light); font-weight: 400; margin-top: 3px; }
+.pulse-row .txt { flex: 1; font-size: 15px; line-height: 1.42; }
+.pulse-row:hover .txt { color: var(--blue); }
+
+/* ===== COVERAGE INDEX (heading deliberately neutral — CHANGE 3) ===== */
+.index-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.ix { background: var(--paper); padding: 14px 14px 13px; display: flex; flex-direction: column; gap: 7px; }
+.ix .em { font-size: 21px; }
+.ix .nm { font-family: var(--sans); font-size: 12px; font-weight: 700; color: var(--navy); line-height: 1.3; }
+.ix .ct { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--slate-light); }
+.ix.soon { background: #f4f3ef; }
+.ix.soon .em { opacity: .45; }
+.ix.soon .nm { color: var(--slate-light); font-weight: 400; }
+
+.foot { border-top: 3px double var(--navy); margin-top: 40px; padding: 22px 0 60px; text-align: center;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--slate-light); }
+.honest { font-family: var(--sans); font-size: 11.5px; color: var(--slate); font-style: italic;
+    text-align: center; padding: 14px 0 0; }
+</style>
+</head>
+<body>
+
+<div class="pv-banner">
+    <b>PREVIEW B · v2</b> — Editorial Briefing (FT / McKinsey-inspired). Built for the first time; masthead replaces the hero; emoji on all 14 engines.
+</div>
+
+<header class="masthead">
+    <div class="mast-word">SIGNAL</div>
+    <div class="mast-rule">
+        <span class="ln"></span>
+        <span class="dateline" id="dateline"></span>
+        <span class="ln"></span>
+    </div>
+    <div class="mast-sub">Executive Intelligence</div>
+</header>
+
+<div class="wrap">
+    <div class="sec-rule"><span class="lb">Today's Lead</span><span class="ln"></span></div>
+    <div class="lead" id="lead"></div>
+
+    <div class="cols" id="cols" style="padding-top:30px;"></div>
+
+    <div class="sec-rule thin" style="padding-top:34px;"><span class="lb">Coverage</span><span class="ln"></span></div>
+    <div class="index-grid" id="indexGrid"></div>
+
+    <p class="honest" id="honestNote"></p>
+
+    <div class="foot">SIGNAL · Confidential · For Executive Leadership Only</div>
+</div>
+
+<script src="./engine_emoji.js"></script>
+<script>
+let DATA = {};
+function sourceOf(u) { try { return new URL(u).hostname.replace(/^www\./,"").split(".")[0]; } catch(e) { return ""; } }
+document.getElementById("dateline").textContent =
+    new Date().toLocaleDateString([], { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+
+fetch("./command_center_data.json").then(r => r.json()).then(d => { DATA = d; build(); })
+    .catch(e => { document.getElementById("lead").innerHTML =
+        '<p style="color:#8a94a2">Could not load command_center_data.json — serve over http, not file://</p>'; console.error(e); });
+
+function liveIds() { return ENGINE_ORDER.filter(id => DATA[id] && !DATA[id].comingSoon); }
+function soonIds() { return ENGINE_ORDER.filter(id => DATA[id] &&  DATA[id].comingSoon); }
+
+function build() {
+    const ids = liveIds();
+    const lid = ids[0], la = DATA[lid].articles[0];
+
+    // ---- lead + aside ----
+    document.getElementById("lead").innerHTML =
+        '<div><a href="' + la.url + '" target="_blank" rel="noopener">' +
+            '<div class="lead-kicker"><span class="em">' + emojiFor(lid) + '</span>' + DATA[lid].name + '</div>' +
+            '<h1>' + la.title + '</h1></a>' +
+            '<div class="byline">' + sourceOf(la.url) + ' · Read the full report →</div></div>' +
+        '<aside class="lead-aside"><div class="ttl">Also developing</div><ul>' +
+            DATA[lid].articles.slice(1, 5).map(a =>
+                '<li><a href="' + a.url + '" target="_blank" rel="noopener">' + a.title +
+                '<span class="src">' + sourceOf(a.url) + '</span></a></li>').join("") +
+        '</ul></aside>';
+
+    // ---- three columns from the next three live engines ----
+    document.getElementById("cols").innerHTML = ids.slice(1, 4).map(id => {
+        const e = DATA[id], top = e.articles[0];
+        if (!top) return '<div class="col"></div>';
+        return '<div class="col">' +
+            '<div class="col-head"><span class="em">' + emojiFor(id) + '</span>' + e.name +
+            '<span class="n">' + e.articles.length + '</span></div>' +
+            '<a class="top" href="' + top.url + '" target="_blank" rel="noopener">' +
+                '<h3>' + top.title + '</h3><span class="src">' + sourceOf(top.url) + '</span></a>' +
+            '<ul>' + e.articles.slice(1, 5).map(a =>
+                '<li><a href="' + a.url + '" target="_blank" rel="noopener">' + a.title + '</a></li>').join("") +
+            '</ul></div>';
+    }).join("");
+
+    // ---- coverage index: every engine, emoji, live and expanding alike ----
+    document.getElementById("indexGrid").innerHTML = ENGINE_ORDER.map(id => {
+        const e = DATA[id]; if (!e) return "";
+        const soon = !!e.comingSoon;
+        return '<div class="ix' + (soon ? ' soon' : '') + '">' +
+            '<span class="em">' + emojiFor(id) + '</span>' +
+            '<span class="nm">' + e.name + '</span>' +
+            '<span class="ct">' + (soon ? "Expanding" : e.articles.length + " today") + '</span></div>';
+    }).join("");
+
+    const bare = ids.reduce((n, id) => n + DATA[id].articles.length, 0);
+    document.getElementById("honestNote").textContent =
+        "All " + bare + " headlines above are bare links — this layout has room for a standfirst " +
+        "under each, but the pipeline stores only title and url, so none is shown rather than invented.";
+}
+</script>
+</body>
+</html>

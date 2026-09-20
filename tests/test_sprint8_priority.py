@@ -5,6 +5,8 @@ agreement with the gold set and are PROVISIONAL while labels are draft.
 """
 import pytest
 
+from app.intelligence.developments import apply_all as developments_all
+from app.intelligence.developments import group as dev_group
 from app.intelligence.entities import apply_all as entities_all
 from app.intelligence.events import apply_all as events_all
 from app.intelligence.impact import apply_all as impact_all
@@ -14,7 +16,12 @@ from app.intelligence.priority import (BANDS, classify_batch, distribution,
 
 @pytest.fixture(scope="session")
 def prioritised(enriched):
-    return classify_batch(impact_all(events_all(entities_all(enriched))))
+    # §10 sits between impact and priority in the real build. Stating it here
+    # keeps this fixture deterministic: the shared `enriched` signals are
+    # mutated in place, so leaving §10 out made the result depend on whether
+    # a sprint-10 test had already run.
+    return classify_batch(
+        developments_all(impact_all(events_all(entities_all(enriched)))))
 
 
 # ---------- structural ----------
@@ -37,16 +44,33 @@ def test_must_read_is_a_handful(prioritised):
     assert 0 < dist["MUST_READ"] <= 20, dist
 
 
-def test_ranking_is_monotonic_within_eligible(prioritised):
-    """A higher score must never land in a lower band, among articles that
-    were not hard-ignored."""
+def test_ranking_is_monotonic_among_leads(prioritised):
+    """A higher score must never land in a lower band — among the articles
+    that actually compete for one.
+
+    Before §10 that was every eligible article. It no longer is: a follower
+    carries its own, often high, score but is parked below the ranking because
+    the story it reports is already represented by its lead. That is the point
+    of §10, so followers are excluded here — and the second half of this test
+    pins that they are the ONLY exception, which is the stronger claim.
+    """
     order = {b: i for i, b in enumerate(BANDS)}
     eligible = [s for s in prioritised
                 if s.freshness.get("is_current") and s.domains
                 and s.priority != "IGNORE"]
-    eligible.sort(key=lambda s: s.impact["score"], reverse=True)
-    ranks = [order[s.priority] for s in eligible]
-    assert ranks == sorted(ranks), "a higher-scoring article got a lower band"
+
+    lead_ids = {id(members[0]) for members in dev_group(prioritised)}
+    leads = [s for s in eligible if id(s) in lead_ids]
+    leads.sort(key=lambda s: s.impact["score"], reverse=True)
+    ranks = [order[s.priority] for s in leads]
+    assert ranks == sorted(ranks), "a higher-scoring lead got a lower band"
+
+    follower_band = "BACKGROUND"
+    for s in eligible:
+        if id(s) not in lead_ids:
+            assert s.priority == follower_band, (
+                f"a follower landed in {s.priority}, not {follower_band}: "
+                f"{s.title}")
 
 
 def test_floors_are_respected(prioritised):

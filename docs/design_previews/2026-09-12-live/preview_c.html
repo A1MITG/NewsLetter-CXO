@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PREVIEW C v2 — SIGNAL Command Center (evolved)</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --navy: #0b1524; --ink: #0a0a0a;
+    --slate: #5a6472; --slate-light: #8a94a2; --slate-100: #eef0f2; --slate-50: #f7f8f9;
+    --paper: #ffffff; --blue: #2f6fed; --red: #e11d2e;
+    --serif: Georgia, "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: Consolas, "SF Mono", monospace;
+    --emoji: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+body { font-family: var(--sans); background: var(--paper); color: var(--ink); overflow-x: hidden; }
+a { color: inherit; }
+.wrap { max-width: 1560px; margin: 0 auto; padding: 0 44px; }
+.em { font-family: var(--emoji); font-style: normal; line-height: 1; display: inline-block; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--slate); }
+.band-head { display: flex; align-items: flex-end; gap: 14px; padding: 26px 0 14px; }
+.band-head .sub { font-size: 12px; color: var(--slate-light); margin-left: auto; }
+
+.pv-banner { background: #fff8e1; border-bottom: 1px solid #f0d999; color: #6b5311;
+    font-size: 11.5px; padding: 7px 16px; display: flex; align-items: center; gap: 14px;
+    font-family: var(--mono); position: sticky; top: 0; z-index: 60; height: 30px; }
+.pv-banner b { color: #8a6a00; }
+.pv-banner .sp { margin-left: auto; display: flex; gap: 8px; }
+.pv-banner button { font-family: var(--mono); font-size: 11px; padding: 3px 10px; cursor: pointer;
+    border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 3px; }
+
+.nav-wrap { position: sticky; top: 30px; z-index: 50; background: var(--navy); border-bottom: 3px solid var(--red); }
+.nav { display: flex; align-items: center; height: 56px; padding: 0 20px; gap: 20px; }
+.nav-left { display: flex; align-items: center; gap: 10px; flex: none; }
+.nav svg { width: 26px; height: 26px; }
+.nav .word { font-weight: 800; letter-spacing: .18em; font-size: 14px; color: #fff; }
+.nav-center { flex: 1; min-width: 0; overflow: hidden; }
+.nav-right { display: flex; align-items: center; gap: 18px; flex: none; }
+.nav a.link { font-size: 12.5px; color: rgba(255,255,255,.65); text-decoration: none; }
+.nav a.link:hover { color: #fff; }
+.tk-track { display: inline-flex; align-items: center; white-space: nowrap; animation: tk 60s linear infinite; }
+.tk-track.paused { animation-play-state: paused; }
+@keyframes tk { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.tk-item { display: inline-flex; align-items: center; gap: 7px; padding: 0 16px; font-size: 11px;
+    font-weight: 700; color: rgba(255,255,255,.62); background: none; border: none;
+    font-family: var(--sans); cursor: pointer; }
+.tk-item .em { font-size: 14px; }
+.tk-item .hl { color: rgba(255,255,255,.42); font-weight: 400; }
+
+/* ===== CHANGE 1: hero cut from ~460px to ~190px =====
+   Was: 74px/66px padding, 50px headline, 4 rotating lines, full sub + 2 CTAs.
+   Now: one line, one CTA row, compressed — the TODAY band clears the fold. */
+.hero { position: relative; text-align: center; padding: 30px 20px 26px; overflow: hidden;
+    background: linear-gradient(180deg, #fbfcfd 0%, #fff 100%);
+    border-bottom: 1px solid var(--slate-100); transition: padding .4s cubic-bezier(.3,.8,.3,1); }
+.hero-wave { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .12; }
+.hero-wave path { fill: none; stroke: var(--blue); stroke-width: 2; }
+.hero-kicker { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; position: relative; }
+.hero-kicker .eyebrow { font-size: 9.5px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: blip 2s infinite; }
+@keyframes blip { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+.hero h1 { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.18;
+    color: var(--navy); position: relative; margin-bottom: 8px; }
+.hero h1 em { font-style: italic; color: var(--blue); }
+.hero-sub { font-size: 13px; color: var(--slate); max-width: 560px; margin: 0 auto 16px;
+    line-height: 1.5; position: relative; }
+.hero-cta { display: flex; gap: 10px; justify-content: center; position: relative; }
+.btn { padding: 9px 18px; border-radius: 4px; font-size: 12px; font-weight: 700; text-decoration: none; display: inline-block; }
+.btn.pri { background: var(--navy); color: #fff; }
+.btn.pri:hover { background: var(--blue); }
+.btn.sec { border: 1px solid var(--slate-100); color: var(--navy); }
+.btn.sec:hover { border-color: var(--blue); color: var(--blue); }
+.hero.mini { padding: 0; }
+.hero.mini .hero-wave, .hero.mini .hero-sub, .hero.mini .hero-kicker, .hero.mini .hero-cta { display: none; }
+.hero.mini .hero-stage { display: flex; align-items: center; justify-content: center; gap: 18px; height: 56px; }
+.hero.mini h1 { font-size: 16px; margin: 0; }
+.hero.mini .mini-only { display: inline-flex; }
+.mini-only { display: none; gap: 10px; }
+
+.divider { display: flex; align-items: center; gap: 16px; padding: 34px 0 4px; }
+.divider .ln { flex: 1; height: 2px; background: var(--navy); }
+.divider .lb { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .22em;
+    color: var(--navy); text-transform: uppercase; }
+.divider.soft .ln { background: var(--slate-100); height: 1px; }
+.divider.soft .lb { color: var(--slate-light); }
+
+.econ-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.econ-card { border: 1px solid var(--slate-100); border-radius: 8px; overflow: hidden;
+    text-decoration: none; display: flex; flex-direction: column;
+    transition: box-shadow .25s ease, transform .25s ease; }
+.econ-card:hover { box-shadow: 0 16px 34px -20px rgba(11,21,36,.35); transform: translateY(-3px); }
+.imgwell { height: 150px; background: linear-gradient(135deg, #14243a 0%, #2f6fed 130%);
+    display: flex; align-items: center; justify-content: center; position: relative; }
+.imgwell .em { font-size: 40px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+.imgwell .stamp { position: absolute; bottom: 8px; right: 9px; font-family: var(--mono);
+    font-size: 8.5px; letter-spacing: .08em; color: rgba(255,255,255,.62); text-transform: uppercase; }
+.econ-body { padding: 16px 18px 15px; flex: 1; display: flex; flex-direction: column; }
+.econ-cat { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: .13em; font-weight: 700; text-transform: uppercase; margin-bottom: 9px; color: var(--slate); }
+.econ-cat .em { font-size: 13px; }
+.econ-card h3 { font-family: var(--serif); font-weight: 400; font-size: 17px; line-height: 1.34;
+    color: var(--navy); margin-bottom: 13px; }
+.econ-card:hover h3 { color: var(--blue); }
+.econ-foot { margin-top: auto; display: flex; align-items: center; font-family: var(--mono);
+    font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--slate-light); }
+.econ-foot .rd { margin-left: auto; color: var(--blue); font-weight: 700; }
+
+.featured { display: grid; grid-template-columns: 360px 1fr; border: 1px solid var(--slate-100);
+    border-radius: 8px; overflow: hidden; text-decoration: none; margin-top: 6px; transition: box-shadow .25s ease; }
+.featured:hover { box-shadow: 0 16px 34px -20px rgba(11,21,36,.35); }
+.featured .imgwell { height: 100%; min-height: 190px; }
+.featured .fb { padding: 24px 28px; display: flex; flex-direction: column; justify-content: center; }
+.featured h2 { font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.24;
+    color: var(--navy); margin-bottom: 12px; }
+.featured:hover h2 { color: var(--blue); }
+.featured .fmeta { font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--slate-light); }
+.featured .rd { color: var(--blue); font-weight: 700; font-family: var(--mono); font-size: 11px;
+    margin-top: 14px; letter-spacing: .06em; }
+
+.pulse-strip { display: flex; gap: 18px; overflow-x: auto; padding: 4px 2px 18px; scroll-snap-type: x mandatory; }
+.pulse-card { flex: none; width: 310px; border: 1px solid var(--slate-100); border-radius: 8px;
+    padding: 16px 17px; text-decoration: none; scroll-snap-align: start; transition: box-shadow .25s ease; }
+.pulse-card:hover { box-shadow: 0 14px 30px -20px rgba(11,21,36,.35); }
+.pulse-card .who { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; }
+.pulse-card .av { width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: #fff;
+    font-family: var(--mono); font-size: 11px; font-weight: 700; display: flex;
+    align-items: center; justify-content: center; flex: none; }
+.pulse-card .nm { font-size: 13px; font-weight: 700; }
+.pulse-card .org { font-family: var(--mono); font-size: 9.5px; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--slate-light); }
+.pulse-card h4 { font-family: var(--serif); font-weight: 400; font-size: 14.5px; line-height: 1.42; color: var(--navy); }
+.pulse-card:hover h4 { color: var(--blue); }
+.pulse-card .tag { display: inline-block; margin-top: 11px; font-family: var(--mono); font-size: 8.5px;
+    letter-spacing: .1em; text-transform: uppercase; color: #92700e; background: #fff5d6;
+    border: 1px solid #ecd9a0; padding: 2px 6px; border-radius: 2px; }
+
+.persona-bar { display: flex; align-items: center; gap: 12px; background: var(--slate-50);
+    border: 1px solid var(--slate-100); border-radius: 6px; padding: 10px 16px;
+    font-size: 12px; color: var(--slate); margin-bottom: 18px; }
+.persona-bar button { margin-left: auto; font-size: 11px; font-family: var(--sans); padding: 5px 12px;
+    border: 1px solid var(--slate-100); background: #fff; border-radius: 4px; cursor: pointer; color: var(--slate); }
+.ribbon { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+.tile { border: 1px solid var(--slate-100); border-radius: 8px; overflow: hidden; cursor: pointer;
+    display: flex; flex-direction: column; transition: box-shadow .25s ease, transform .25s ease; }
+.tile:hover { box-shadow: 0 16px 32px -20px rgba(11,21,36,.35); transform: translateY(-3px); }
+.tile .imgwell { height: 84px; }
+.tile .imgwell .em { font-size: 28px; }
+.tile-body { padding: 13px 14px 14px; flex: 1; display: flex; flex-direction: column; }
+.tile-cat { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; font-weight: 700;
+    text-transform: uppercase; color: var(--slate); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px; }
+.tile-cat .em { font-size: 12px; }
+.tile-cat .cnt { margin-left: auto; color: var(--blue); }
+.headline-cycle { position: relative; min-height: 74px; flex: 1; }
+.tile-headline { font-family: var(--serif); font-weight: 400; font-size: 13.5px; line-height: 1.4;
+    color: var(--navy); position: absolute; inset: 0; opacity: 0; transition: opacity .55s ease; pointer-events: none; }
+.tile-headline.visible { opacity: 1; }
+.tile-foot { margin-top: 10px; font-family: var(--mono); font-size: 10px; color: var(--blue);
+    font-weight: 700; letter-spacing: .06em; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 9px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; border: 1px dashed var(--slate-100);
+    background: var(--slate-50); border-radius: 20px; padding: 7px 14px 7px 11px;
+    font-size: 12px; color: var(--slate-light); }
+.chip .em { font-size: 14px; opacity: .75; }
+
+.evergreen { background: var(--slate-50); border-top: 1px solid var(--slate-100); margin-top: 48px; padding: 10px 0 60px; }
+.pipe-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 22px 0 36px; }
+.pipe-step { text-align: center; flex: 1; }
+.pipe-icon { font-size: 26px; margin-bottom: 9px; font-family: var(--emoji); }
+.pipe-step p { font-size: 11.5px; color: var(--slate); font-weight: 600; }
+.pipe-arrow { color: var(--slate-light); font-size: 17px; flex: none; }
+.why-row { display: grid; grid-template-columns: 1fr 60px 1fr; gap: 12px 0; align-items: center; max-width: 780px; margin: 0 auto; }
+.why-col { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--slate-light); padding-bottom: 8px; }
+.why-col.right { text-align: right; color: var(--blue); }
+.why-item { font-size: 14px; color: var(--slate); padding: 9px 0; border-top: 1px solid var(--slate-100); }
+.why-item.right { text-align: right; color: var(--navy); font-weight: 700; }
+.why-arrow { text-align: center; color: var(--slate-light); border-top: 1px solid var(--slate-100); padding: 9px 0; }
+.closer { text-align: center; padding: 48px 20px 10px; }
+.closer h2 { font-family: var(--serif); font-weight: 400; font-size: 28px; color: var(--navy); margin-bottom: 10px; }
+.closer p { color: var(--slate); margin-bottom: 22px; }
+</style>
+</head>
+<body>
+
+<div class="pv-banner">
+    <span><b>PREVIEW C · v2</b> — hero cut ~60%; emoji on all 14 engines; engines heading removed.</span>
+    <span class="sp"><button onclick="toggleHero()" id="heroBtn">Show returning-visitor state</button></span>
+</div>
+
+<div class="nav-wrap">
+    <nav class="nav">
+        <div class="nav-left">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+                <path d="M 82 42 A 22 22 0 1 0 60 64" fill="none" stroke="#f5a623" stroke-width="13"/>
+                <path d="M 60 56 A 22 22 0 1 1 38 78" fill="none" stroke="#f5a623" stroke-width="13"/>
+                <rect x="54" y="54" width="12" height="12" fill="#2f6fed"/>
+            </svg>
+            <span class="word">SIGNAL</span>
+        </div>
+        <div class="nav-center"><div class="tk-track" id="ticker"></div></div>
+        <div class="nav-right">
+            <a class="link" href="#">Today's Brief</a>
+            <a class="link" href="https://news-letter-cxo.vercel.app" target="_blank" rel="noopener">Signals</a>
+            <a class="link" href="#">About</a>
+        </div>
+    </nav>
+</div>
+
+<section class="hero" id="hero">
+    <svg class="hero-wave" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,100 C150,40 300,160 450,100 C600,40 750,160 900,100 C1050,40 1150,90 1200,100"/>
+    </svg>
+    <div class="hero-kicker"><span class="live-dot"></span><span class="eyebrow">AI-Native Executive Intelligence</span></div>
+    <div class="hero-stage">
+        <h1>Know What Matters. <em>Not Information Overload.</em></h1>
+        <span class="mini-only"><a class="btn pri" href="#today" style="padding:7px 16px;font-size:11.5px;">Today's Intelligence</a></span>
+    </div>
+    <p class="hero-sub">Trusted global sources, scored and classified into decision-grade executive intelligence.</p>
+    <div class="hero-cta">
+        <a class="btn pri" href="#today">Explore Today's Intelligence</a>
+        <a class="btn sec" href="https://news-letter-cxo.vercel.app" target="_blank" rel="noopener">Explore Signals</a>
+    </div>
+</section>
+
+<div class="wrap" id="today">
+    <div class="divider"><span class="lb">Today</span><span class="ln"></span><span class="lb" id="todayDate"></span></div>
+
+    <div class="band-head">
+        <span class="eyebrow" style="font-size:13px;">Global Situational Awareness</span>
+        <span class="sub">Top story from each live engine</span>
+    </div>
+    <div class="econ-grid" id="econGrid"></div>
+
+    <div class="band-head"><span class="eyebrow" style="font-size:13px;">Featured Analysis</span>
+        <span class="sub">top-ranked live article — no longer hardcoded</span></div>
+    <a class="featured" id="featured" href="#" target="_blank" rel="noopener"></a>
+
+    <!-- CHANGE 3: the section eyebrow that sat here is removed; the
+         live/expanding count now carries the section on its own. -->
+    <div class="band-head" style="padding-top:26px;">
+        <span class="eyebrow" style="font-size:13px;" id="engineCount"></span>
+        <span class="sub">⭐ pin · 👁 hide · ⇄ drag</span>
+    </div>
+    <div class="persona-bar">
+        <span>Pin, hide, or drag tiles to reorder your dashboard.</span>
+        <button>Reset layout</button>
+    </div>
+    <div class="ribbon" id="ribbon"></div>
+
+    <div class="divider soft" style="padding-top:30px;"><span class="lb">Expanding Coverage</span><span class="ln"></span></div>
+    <div class="chips" id="chips" style="padding-top:14px;"></div>
+</div>
+
+<section class="evergreen">
+    <div class="wrap">
+        <div class="divider"><span class="lb">How SIGNAL Works</span><span class="ln"></span></div>
+        <div class="pipe-row">
+            <div class="pipe-step"><div class="pipe-icon">📡</div><p>Trusted Sources</p></div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step"><div class="pipe-icon">⚖️</div><p>Weighted Evidence Scoring</p></div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step"><div class="pipe-icon">🗂️</div><p>Signal Classification</p></div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step"><div class="pipe-icon">📝</div><p>Executive Synthesis</p></div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step"><div class="pipe-icon">🎯</div><p>Decision Intelligence</p></div>
+        </div>
+        <div class="why-row">
+            <div class="why-col">Traditional Information</div><div></div><div class="why-col right">Executive Intelligence</div>
+            <div class="why-item">Thousands of Articles</div><div class="why-arrow">→</div><div class="why-item right">Curated Signals</div>
+            <div class="why-item">Breaking News</div><div class="why-arrow">→</div><div class="why-item right">Business Context</div>
+            <div class="why-item">Events</div><div class="why-arrow">→</div><div class="why-item right">Connected Insights</div>
+            <div class="why-item">Information</div><div class="why-arrow">→</div><div class="why-item right">Decision Intelligence</div>
+        </div>
+        <div class="closer">
+            <h2>Built for leaders who don't need more information.</h2>
+            <p>They need better intelligence.</p>
+            <div class="hero-cta">
+                <a class="btn pri" href="#">View Today's Brief</a>
+                <a class="btn sec" href="https://news-letter-cxo.vercel.app" target="_blank" rel="noopener">Explore Signals</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="./engine_emoji.js"></script>
+<script>
+let DATA = {};
+function sourceOf(u) { try { return new URL(u).hostname.replace(/^www\./,"").split(".")[0]; } catch(e) { return ""; } }
+function toggleHero() {
+    const h = document.getElementById("hero");
+    h.classList.toggle("mini");
+    document.getElementById("heroBtn").textContent =
+        h.classList.contains("mini") ? "Show first-visit state" : "Show returning-visitor state";
+}
+document.getElementById("todayDate").textContent =
+    new Date().toLocaleDateString([], { day:"numeric", month:"long", year:"numeric" });
+
+fetch("./command_center_data.json").then(r => r.json()).then(d => { DATA = d; build(); })
+    .catch(e => { document.getElementById("econGrid").innerHTML =
+        '<p style="color:#8a94a2">Could not load command_center_data.json — serve over http, not file://</p>'; console.error(e); });
+
+function liveIds() { return ENGINE_ORDER.filter(id => DATA[id] && !DATA[id].comingSoon); }
+function soonIds() { return ENGINE_ORDER.filter(id => DATA[id] &&  DATA[id].comingSoon); }
+function well(id, stamp) {
+    return '<span class="imgwell"><span class="em">' + emojiFor(id) + '</span>' +
+        (stamp ? '<span class="stamp">' + stamp + '</span>' : '') + '</span>';
+}
+
+function build() {
+    const items = ENGINE_ORDER.map(id => {
+        const e = DATA[id]; if (!e) return "";
+        const h = e.comingSoon ? "expanding source coverage" : (e.articles[0] ? e.articles[0].title : "");
+        return '<button class="tk-item"><span class="em">' + emojiFor(id) + '</span>' +
+            '<span>' + e.name.toUpperCase() + '</span><span class="hl">' + h + '</span></button>';
+    }).join("");
+    const t = document.getElementById("ticker");
+    t.innerHTML = items + items;
+    t.addEventListener("mouseenter", () => t.classList.add("paused"));
+    t.addEventListener("mouseleave", () => t.classList.remove("paused"));
+
+    document.getElementById("econGrid").innerHTML = ["global","economy","ai"].map(id => {
+        const e = DATA[id]; if (!e || !e.articles.length) return "";
+        const a = e.articles[0];
+        return '<a class="econ-card" href="' + a.url + '" target="_blank" rel="noopener">' + well(id, "curated image") +
+            '<span class="econ-body"><span class="econ-cat"><span class="em">' + emojiFor(id) + '</span>' + e.name + '</span>' +
+            '<h3>' + a.title + '</h3><span class="econ-foot"><span>' + sourceOf(a.url) + ' · today</span>' +
+            '<span class="rd">Read →</span></span></span></a>';
+    }).join("");
+
+    const fid = liveIds()[0], fa = DATA[fid].articles[0], f = document.getElementById("featured");
+    f.href = fa.url;
+    f.innerHTML = well(fid, "curated image") +
+        '<span class="fb"><span class="econ-cat"><span class="em">' + emojiFor(fid) + '</span>' + DATA[fid].name + '</span>' +
+        '<h2>' + fa.title + '</h2><span class="fmeta">' + sourceOf(fa.url) + ' · today</span>' +
+        '<span class="rd">READ FULL BRIEF →</span></span>';
+
+    document.getElementById("engineCount").textContent =
+        liveIds().length + " live · " + soonIds().length + " expanding source coverage";
+
+    document.getElementById("ribbon").innerHTML = liveIds().map(id => {
+        const e = DATA[id], arts = e.articles.slice(0, 5);
+        return '<div class="tile" data-id="' + id + '">' + well(id, "") +
+            '<div class="tile-body"><div class="tile-cat"><span class="em">' + emojiFor(id) + '</span>' +
+            e.name + '<span class="cnt">' + e.articles.length + '</span></div>' +
+            '<div class="headline-cycle">' +
+            arts.map((a,i) => '<h4 class="tile-headline' + (i===0?' visible':'') + '">' + a.title + '</h4>').join("") +
+            '</div><div class="tile-foot">VIEW TOP 5 →</div></div></div>';
+    }).join("");
+
+    document.querySelectorAll(".headline-cycle").forEach(cycle => {
+        const hs = Array.from(cycle.querySelectorAll(".tile-headline"));
+        if (hs.length < 2) return;
+        let i = 0;
+        setInterval(() => { hs[i].classList.remove("visible"); i = (i+1) % hs.length; hs[i].classList.add("visible"); }, 4800);
+    });
+
+    document.getElementById("chips").innerHTML = soonIds().map(id =>
+        '<span class="chip"><span class="em">' + emojiFor(id) + '</span>' + DATA[id].name + '</span>').join("");
+}
+</script>
+</body>
+</html>

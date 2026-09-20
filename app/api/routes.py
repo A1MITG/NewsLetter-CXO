@@ -1,7 +1,7 @@
 # app/api/routes.py
 import logging
 from flask import Blueprint, jsonify, request
-from ..scraper.store import get_articles
+from ..scraper.store import get_articles, get_cache_date
 from ..analysis.synthesis import synthesize_articles
 from ..analysis.signals import synthesize_signals
 
@@ -19,7 +19,8 @@ def get_newsletter():
         scraped_articles = get_articles(force_refresh='refresh' in request.args)
         logger.info("Serving %d articles for newsletter (daily cache).", len(scraped_articles))
 
-        newsletter_data = synthesize_articles(scraped_articles)
+        newsletter_data = synthesize_articles(scraped_articles,
+                                              data_date=get_cache_date())
         return jsonify(newsletter_data)
     except Exception:
         logger.exception("Error generating newsletter")
@@ -32,7 +33,8 @@ def get_signals():
     try:
         scraped_articles = get_articles(force_refresh='refresh' in request.args)
         logger.info("Serving %d articles for signals (daily cache).", len(scraped_articles))
-        return jsonify(synthesize_signals(scraped_articles))
+        return jsonify(synthesize_signals(scraped_articles,
+                                          data_date=get_cache_date()))
     except Exception:
         logger.exception("Error generating signals")
         return jsonify({"error": "Failed to generate signals"}), 500

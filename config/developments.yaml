@@ -1,0 +1,89 @@
+# PRD §10 — Developments.
+#
+# Two outlets reporting the same event are two articles and ONE development.
+# Every earlier stage scores an article on its own, so nothing before this
+# point can know that. §8 then ranks by score inside a quota — and a quota is
+# exactly where duplicates do damage: on 2026-09-12 both MUST_READ slots went
+# to the same Houthi Red Sea advance, scoring 99.0 twice, because two articles
+# about one event competed as two stories.
+#
+# The legacy Signals page has never had this problem: synthesize_signals()
+# suppresses near-duplicate headlines before filling a bucket. The rule below
+# is that same rule, moved into the pipeline where it belongs and made
+# visible in config rather than buried in a module.
+#
+# WHAT THIS STAGE DOES NOT DO: it does not discard. Every article keeps its
+# place in the store and gets a development_id. §8 decides what a follower
+# is worth; this stage only decides what belongs together.
+
+similarity:
+  # Two headlines are the same development when they share at least
+  # `min_shared_terms` meaningful words AND those shared words cover at least
+  # `min_overlap` of the shorter headline. Both conditions, because either
+  # alone misfires: a raw count promotes long headlines, a bare ratio
+  # promotes three-word ones.
+  min_shared_terms: 3
+  min_overlap: 0.5
+
+  # A term must be longer than this to count as evidence at all.
+  min_term_length: 1
+
+# Words too common in headlines to signal that two titles are the same story.
+# Carried over verbatim from app/analysis/signals.py, where they were tuned
+# against this corpus. Extend here, not there — this file is the visible,
+# reversible place for it.
+stopwords:
+  - a
+  - an
+  - the
+  - of
+  - in
+  - on
+  - at
+  - to
+  - for
+  - with
+  - as
+  - by
+  - and
+  - or
+  - but
+  - is
+  - are
+  - was
+  - were
+  - be
+  - been
+  - it
+  - its
+  - this
+  - that
+  - after
+  - over
+  - amid
+  - into
+  - from
+  - up
+  - down
+  - out
+  - not
+  - no
+  - how
+  - why
+  - what
+  - his
+  - her
+  - new
+  - says
+  - said
+  - sources
+  - source
+  - report
+  - reports
+  - exclusive
+  - update
+  - jr
+  - may
+  - will
+  - would
+  - could

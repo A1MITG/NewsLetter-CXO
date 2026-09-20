@@ -27,7 +27,7 @@ load_dotenv()
 from flask import render_template
 
 from app.main import app
-from app.scraper.store import get_articles
+from app.scraper.store import get_articles, get_cache_date
 from app.analysis.signals import synthesize_signals
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -46,12 +46,18 @@ DAILY_BRIEF_LINK = '<div class="utility">\n        <span id="last-updated"></spa
 STATIC_UTILITY = '<div class="utility">\n        <span id="last-updated"></span>\n    </div>'
 
 
-def main():
-    logger.info("Scraping fresh articles for the static Signals build...")
-    articles = get_articles(force_refresh=True)
-    logger.info("Scraped %d articles.", len(articles))
+# A build does not re-scrape by default. store.py already scrapes at most
+# once a day; forcing a refresh here meant every build replaced the single
+# cache slot, so two surfaces built minutes apart could rest on two different
+# article sets. Pass --refresh when you actually want new articles.
+def main(refresh=False):
+    articles = get_articles(force_refresh=refresh)
+    data_date = get_cache_date()
+    logger.info("%d articles from the %s cache%s.",
+                len(articles), data_date or "undated",
+                " (re-scraped)" if refresh else "")
 
-    data = synthesize_signals(articles)
+    data = synthesize_signals(articles, data_date=data_date)
 
     PUBLIC_DIR.mkdir(exist_ok=True)
 
@@ -80,4 +86,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument('--refresh', action='store_true',
+                   help='re-scrape before building (overwrites the day cache)')
+    main(**vars(p.parse_args()))

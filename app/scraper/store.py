@@ -31,6 +31,16 @@ def get_articles(force_refresh=False):
         return articles
 
 
+def get_cache_date():
+    """The date of the articles currently cached, or None when there is none.
+
+    Anything built from this cache must date itself by THIS, not by when the
+    build ran — otherwise a Sunday rebuild stamps Friday's news as today's.
+    """
+    cached = _load()
+    return (cached or {}).get('date')
+
+
 def _load():
     try:
         with open(CACHE_FILE, encoding='utf-8') as f:

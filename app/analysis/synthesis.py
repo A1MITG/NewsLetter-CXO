@@ -1,5 +1,6 @@
 # app/analysis/synthesis.py
 from .scorer import score_article
+from .signals import _display_date
 from datetime import datetime
 
 CXO_MAPPING = {
@@ -10,7 +11,7 @@ CXO_MAPPING = {
     'Operating Model & Talent': 'COO'
 }
 
-def synthesize_articles(articles):
+def synthesize_articles(articles, data_date=None):
     """Synthesize articles into CXO Daily Intelligence Brief format."""
     
     # Filter and score articles
@@ -31,7 +32,8 @@ def synthesize_articles(articles):
     
     # Build the brief structure
     brief = {
-        'date': datetime.now().strftime('%B %d, %Y'),
+        'date': _display_date(data_date),
+        'data_date': data_date,          # ISO, or None when unknown
         'Macro & Geo-Political': [],
         'Regulatory & Compliance': [],
         'Economic & Market': [],

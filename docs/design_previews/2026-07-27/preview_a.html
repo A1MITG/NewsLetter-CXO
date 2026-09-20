@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PREVIEW A — SIGNAL Executive Dashboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --navy: #0b1524; --navy-2: #14243a; --ink: #0a0a0a;
+    --slate: #5a6472; --slate-light: #8a94a2; --slate-100: #eef0f2; --slate-50: #f7f8f9;
+    --paper: #ffffff;
+    --blue: #2f6fed; --red: #e11d2e;
+    --serif: Georgia, "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: Consolas, "SF Mono", monospace;
+
+    --bg: var(--paper); --fg: var(--ink); --rail-bg: var(--slate-50);
+    --line: var(--slate-100); --muted: var(--slate-light); --card: #fff;
+}
+:root[data-theme="dark"] {
+    --bg: #0d1826; --fg: #e8ecf1; --rail-bg: #0b1524;
+    --line: #1e2f45; --muted: #6f8098; --card: #101f31; --slate: #93a3b8;
+}
+
+html, body { height: 100%; }
+body {
+    font-family: var(--sans); background: var(--bg); color: var(--fg);
+    overflow: hidden; font-size: 14px;
+}
+
+/* ============ PREVIEW BANNER (not part of the design) ============ */
+.pv-banner {
+    background: #fff8e1; border-bottom: 1px solid #f0d999; color: #6b5311;
+    font-size: 11.5px; padding: 7px 16px; display: flex; align-items: center; gap: 14px;
+    font-family: var(--mono);
+}
+:root[data-theme="dark"] .pv-banner { background: #2a2410; border-color: #4a3d15; color: #d8c68a; }
+.pv-banner b { color: #8a6a00; }
+:root[data-theme="dark"] .pv-banner b { color: #f0d999; }
+.pv-banner .sp { margin-left: auto; display: flex; gap: 8px; }
+.pv-banner button {
+    font-family: var(--mono); font-size: 11px; padding: 3px 10px; cursor: pointer;
+    border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 3px;
+}
+
+/* ============ STATUS BAR ============ */
+.statusbar {
+    background: var(--navy); border-bottom: 3px solid var(--red);
+    display: flex; align-items: center; height: 52px; padding: 0 16px; gap: 18px; flex: none;
+}
+.sb-left { display: flex; align-items: center; gap: 9px; flex: none; }
+.sb-left svg.mark { width: 24px; height: 24px; }
+.sb-word { font-weight: 800; letter-spacing: .18em; font-size: 13px; color: #fff; }
+.sb-tag {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em; color: var(--red);
+    border: 1px solid var(--red); padding: 2px 6px; border-radius: 2px; font-weight: 700;
+}
+.sb-ticker { flex: 1; min-width: 0; overflow: hidden; height: 52px; display: flex; align-items: center; }
+.tk-track { display: inline-flex; align-items: center; white-space: nowrap; animation: tk 60s linear infinite; }
+.tk-track.paused { animation-play-state: paused; }
+@keyframes tk { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.tk-item {
+    display: inline-flex; align-items: center; gap: 7px; padding: 0 16px;
+    font-size: 11px; font-weight: 700; color: rgba(255,255,255,.62); cursor: pointer;
+    background: none; border: none; font-family: var(--sans); letter-spacing: .02em;
+}
+.tk-item:hover { color: #fff; }
+.tk-item .ic { width: 17px; height: 17px; flex: none; display: inline-flex; }
+.tk-item .ic svg { width: 100%; height: 100%; overflow: visible; }
+.tk-item .hl { color: rgba(255,255,255,.42); font-weight: 400; max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
+.tk-item:hover .hl { color: rgba(255,255,255,.72); }
+.sb-right { display: flex; align-items: center; gap: 16px; flex: none; }
+.sb-clock { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,.55); letter-spacing: .06em; }
+.sb-right a { font-size: 12px; color: rgba(255,255,255,.6); text-decoration: none; }
+.sb-right a:hover { color: #fff; }
+
+/* ============ APP SHELL ============ */
+.shell { display: flex; height: calc(100% - 52px - 30px); }
+.shell.no-banner { height: calc(100% - 52px); }
+
+/* ---- LEFT RAIL ---- */
+.rail {
+    width: 232px; flex: none; background: var(--rail-bg); border-right: 1px solid var(--line);
+    overflow-y: auto; padding: 14px 0 30px;
+}
+.rail-head {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em; color: var(--muted);
+    padding: 0 16px 9px; text-transform: uppercase;
+}
+.rail-head.gap { padding-top: 18px; margin-top: 12px; border-top: 1px solid var(--line); }
+.eng {
+    display: flex; align-items: center; gap: 9px; padding: 8px 16px; cursor: pointer;
+    font-size: 12.5px; border-left: 3px solid transparent; color: var(--fg);
+}
+.eng:hover { background: var(--card); }
+.eng.active { border-left-color: var(--red); background: var(--card); font-weight: 700; }
+.eng .dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; flex: none; }
+.eng .dot.live { animation: blip 2.4s ease-in-out infinite; }
+@keyframes blip { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+.eng .ic { width: 17px; height: 17px; flex: none; display: inline-flex; }
+.eng .ic svg { width: 100%; height: 100%; overflow: visible; }
+.eng .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eng .ct { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.eng.soon { color: var(--muted); cursor: default; }
+.eng.soon .dot { background: transparent; border: 1px solid var(--muted); }
+.eng.soon:hover { background: transparent; }
+.eng.soon .ct { font-size: 9px; letter-spacing: .06em; }
+.rail-foot { padding: 16px; font-size: 10.5px; color: var(--muted); line-height: 1.5; }
+
+/* ---- CENTER ---- */
+.center { flex: 1; min-width: 0; overflow-y: auto; background: var(--bg); }
+.center-head {
+    position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--line);
+    padding: 14px 24px 11px; display: flex; align-items: baseline; gap: 12px; z-index: 5;
+}
+.center-head h2 {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .16em; font-weight: 700;
+    text-transform: uppercase; color: var(--fg);
+}
+.center-head .cnt { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-left: auto; }
+
+.story { display: flex; gap: 14px; padding: 15px 24px; border-bottom: 1px solid var(--line); text-decoration: none; color: inherit; }
+.story:hover { background: var(--card); }
+:root:not([data-theme="dark"]) .story:hover { background: var(--slate-50); }
+.story .bar { width: 3px; flex: none; border-radius: 2px; background: var(--blue); }
+.story .sb { flex: 1; min-width: 0; }
+.story .cat {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .13em; font-weight: 700;
+    text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+}
+.story .cat .ic { width: 14px; height: 14px; display: inline-flex; }
+.story .cat .ic svg { width: 100%; height: 100%; overflow: visible; }
+.story h3 {
+    font-family: var(--serif); font-weight: 400; font-size: 16px; line-height: 1.38;
+    margin-bottom: 7px; color: var(--fg);
+}
+.story:hover h3 { color: var(--blue); }
+.story .meta {
+    font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .06em;
+    display: flex; align-items: center; gap: 10px; text-transform: uppercase;
+}
+.story .meta .rd { margin-left: auto; color: var(--blue); font-weight: 700; }
+.story .rank {
+    font-family: var(--mono); font-size: 10px; color: var(--muted); width: 20px; flex: none;
+    padding-top: 2px; text-align: right;
+}
+
+/* ---- RIGHT RAIL ---- */
+.pulse {
+    width: 318px; flex: none; border-left: 1px solid var(--line); overflow-y: auto;
+    background: var(--rail-bg); padding-bottom: 30px;
+}
+.pulse-head {
+    position: sticky; top: 0; background: var(--rail-bg); border-bottom: 1px solid var(--line);
+    padding: 14px 16px 11px; z-index: 5;
+}
+.pulse-head h2 {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .16em; font-weight: 700;
+    text-transform: uppercase;
+}
+.pulse-head p { font-size: 10.5px; color: var(--muted); margin-top: 5px; line-height: 1.45; }
+.pc { display: block; padding: 13px 16px; border-bottom: 1px solid var(--line); text-decoration: none; color: inherit; }
+.pc:hover { background: var(--card); }
+.pc .who { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.pc .av {
+    width: 26px; height: 26px; border-radius: 50%; flex: none; background: var(--navy);
+    color: #fff; font-size: 9.5px; font-weight: 700; display: flex; align-items: center;
+    justify-content: center; font-family: var(--mono); letter-spacing: .02em;
+}
+.pc .nm { font-size: 12px; font-weight: 700; }
+.pc .org { font-family: var(--mono); font-size: 9.5px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.pc h4 { font-family: var(--serif); font-weight: 400; font-size: 13.5px; line-height: 1.42; }
+.pc:hover h4 { color: var(--blue); }
+.pc .tag {
+    display: inline-block; margin-top: 8px; font-family: var(--mono); font-size: 8.5px;
+    letter-spacing: .1em; text-transform: uppercase; color: #92700e; background: #fff5d6;
+    border: 1px solid #ecd9a0; padding: 2px 6px; border-radius: 2px;
+}
+:root[data-theme="dark"] .pc .tag { background: #2a2410; border-color: #4a3d15; color: #d8c68a; }
+
+.empty { padding: 40px 24px; text-align: center; color: var(--muted); font-size: 13px; font-style: italic; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="pv-banner" id="pvBanner">
+    <span><b>PREVIEW A</b> — Executive Dashboard (Bloomberg-inspired). Headlines are live from your real command_center_data.json.</span>
+    <span class="sp">
+        <button onclick="toggleTheme()">Toggle dark terminal</button>
+        <button onclick="document.getElementById('pvBanner').remove();document.getElementById('shell').classList.add('no-banner')">Hide this bar</button>
+    </span>
+</div>
+
+<div class="statusbar">
+    <div class="sb-left">
+        <svg class="mark" viewBox="0 0 120 120" aria-hidden="true">
+            <path d="M 82 42 A 22 22 0 1 0 60 64" fill="none" stroke="#f5a623" stroke-width="13"/>
+            <path d="M 60 56 A 22 22 0 1 1 38 78" fill="none" stroke="#f5a623" stroke-width="13"/>
+            <rect x="54" y="54" width="12" height="12" fill="#2f6fed"/>
+        </svg>
+        <span class="sb-word">SIGNAL</span>
+        <span class="sb-tag">LIVE</span>
+    </div>
+    <div class="sb-ticker"><div class="tk-track" id="ticker"></div></div>
+    <div class="sb-right">
+        <span class="sb-clock" id="clock"></span>
+        <a href="#">Brief</a>
+        <a href="https://news-letter-cxo.vercel.app" target="_blank" rel="noopener">Signals</a>
+    </div>
+</div>
+
+<div class="shell" id="shell">
+    <!-- LEFT RAIL -->
+    <nav class="rail">
+        <div class="rail-head">Intelligence Engines</div>
+        <div id="liveEngines"></div>
+        <div class="rail-head gap">Expanding Coverage</div>
+        <div id="soonEngines"></div>
+        <div class="rail-foot">
+            Counts are today's qualifying articles per engine.
+            Dimmed engines have no scoring model yet.
+        </div>
+    </nav>
+
+    <!-- CENTER -->
+    <main class="center">
+        <div class="center-head">
+            <h2 id="centerTitle">All Signals</h2>
+            <span class="cnt" id="centerCount"></span>
+        </div>
+        <div id="stories"></div>
+    </main>
+
+    <!-- RIGHT RAIL -->
+    <aside class="pulse">
+        <div class="pulse-head">
+            <h2>Executive Pulse</h2>
+            <p>Leadership stories with material coverage today.</p>
+        </div>
+        <div id="pulseList"></div>
+    </aside>
+</div>
+
+<script src="./engine_icons.js"></script>
+<script>
+/* ---- Curated pulse items: real articles + real URLs, but hand-picked in an
+       earlier session, not selected by the pipeline. Marked as such below. ---- */
+const PULSE = [
+    { name: "Sundar Pichai", org: "Alphabet", init: "SP",
+      title: "Gemini now used by 90% of Fortune 100 companies as AI investments “redefine” business",
+      url: "https://www.livemint.com/companies/news/alphabet-q2-results-gemini-use-90-pc-fortune-100-company-ceo-sundar-pichai-google-cloud-ai-investments-redefine-business-11784797080817.html" },
+    { name: "Jensen Huang", org: "Nvidia", init: "JH",
+      title: "Backs open AI models and a coalition for safety and innovation",
+      url: "https://economictimes.indiatimes.com/tech/artificial-intelligence/nvidia-ceo-jensen-huang-backs-open-ai-models-coalition-for-safety-and-innovation/articleshow/132612697.cms" },
+    { name: "Elon Musk", org: "The Boring Company", init: "EM",
+      title: "The Boring Company seeks funding at a $20 billion valuation, per WSJ",
+      url: "https://economictimes.indiatimes.com/tech/funding/elon-musks-boring-company-seeks-funding-at-20-billion-valuation-wsj/articleshow/132617539.cms" },
+    { name: "Pawan Kumar", org: "Skyroot", init: "PK",
+      title: "“First cheque is never just capital, it’s belief”: on angel investor Mukesh Bansal",
+      url: "https://economictimes.indiatimes.com/tech/startups/first-cheque-is-never-just-capital-its-belief-skyroots-pawan-kumar-on-angel-investor-mukesh-bansal/articleshow/132589622.cms" }
+];
+
+const CAT_COLOR = {
+    global: "#e11d2e", economy: "#0e7c5a", ai: "#2f6fed",
+    gcc: "#8b5cf6", insurance: "#c2410c", executive: "#0891b2"
+};
+
+let DATA = {}, active = "all";
+
+function sourceOf(url) {
+    try { return new URL(url).hostname.replace(/^www\./, "").split(".")[0]; }
+    catch (e) { return ""; }
+}
+
+function tick() {
+    const d = new Date();
+    document.getElementById("clock").textContent =
+        d.toLocaleDateString([], { day: "2-digit", month: "short" }).toUpperCase() +
+        " · " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+tick(); setInterval(tick, 30000);
+
+function toggleTheme() {
+    const r = document.documentElement;
+    r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark";
+}
+
+fetch("./command_center_data.json")
+    .then(r => r.json())
+    .then(d => { DATA = d; buildRail(); buildTicker(); renderStories(); buildPulse(); })
+    .catch(e => {
+        document.getElementById("stories").innerHTML =
+            '<div class="empty">Could not load command_center_data.json — serve this file over http, not file://</div>';
+        console.error(e);
+    });
+
+function liveIds()  { return ENGINE_ORDER.filter(id => DATA[id] && !DATA[id].comingSoon); }
+function soonIds()  { return ENGINE_ORDER.filter(id => DATA[id] &&  DATA[id].comingSoon); }
+
+function buildRail() {
+    const L = document.getElementById("liveEngines");
+    L.innerHTML =
+        '<div class="eng active" data-id="all"><span class="dot live"></span>' +
+        '<span class="ic"></span><span class="nm">All Signals</span>' +
+        '<span class="ct">' + liveIds().reduce((n, id) => n + DATA[id].articles.length, 0) + '</span></div>' +
+        liveIds().map(id => {
+            const e = DATA[id];
+            return '<div class="eng" data-id="' + id + '">' +
+                '<span class="dot live"></span>' +
+                '<span class="ic">' + (ENGINE_ICONS[id] || "") + '</span>' +
+                '<span class="nm">' + e.name + '</span>' +
+                '<span class="ct">' + e.articles.length + '</span></div>';
+        }).join("");
+
+    document.getElementById("soonEngines").innerHTML = soonIds().map(id =>
+        '<div class="eng soon"><span class="dot"></span>' +
+        '<span class="ic">' + (ENGINE_ICONS[id] || "") + '</span>' +
+        '<span class="nm">' + DATA[id].name + '</span>' +
+        '<span class="ct">SOON</span></div>').join("");
+
+    L.querySelectorAll(".eng").forEach(el => el.addEventListener("click", () => {
+        L.querySelectorAll(".eng").forEach(x => x.classList.remove("active"));
+        el.classList.add("active");
+        active = el.dataset.id;
+        renderStories();
+        document.querySelector(".center").scrollTop = 0;
+    }));
+}
+
+function buildTicker() {
+    const items = ENGINE_ORDER.map(id => {
+        const e = DATA[id]; if (!e) return "";
+        const head = e.comingSoon ? "expanding source coverage" : (e.articles[0] ? e.articles[0].title : "");
+        return '<button class="tk-item" data-id="' + id + '">' +
+            '<span class="ic">' + (ENGINE_ICONS[id] || "") + '</span>' +
+            '<span>' + e.name.toUpperCase() + '</span>' +
+            '<span class="hl">' + head + '</span></button>';
+    }).join("");
+    const t = document.getElementById("ticker");
+    t.innerHTML = items + items;
+    t.addEventListener("mouseenter", () => t.classList.add("paused"));
+    t.addEventListener("mouseleave", () => t.classList.remove("paused"));
+}
+
+function renderStories() {
+    const box = document.getElementById("stories");
+    let rows = [];
+
+    if (active === "all") {
+        // Interleave engines so the top of the stack spans all five, Bloomberg-style.
+        const ids = liveIds();
+        const max = Math.max(...ids.map(id => DATA[id].articles.length));
+        for (let i = 0; i < max; i++)
+            ids.forEach(id => { if (DATA[id].articles[i]) rows.push({ id, a: DATA[id].articles[i] }); });
+        document.getElementById("centerTitle").textContent = "All Signals";
+    } else {
+        rows = DATA[active].articles.map(a => ({ id: active, a }));
+        document.getElementById("centerTitle").textContent = DATA[active].name;
+    }
+
+    document.getElementById("centerCount").textContent = rows.length + " STORIES · TODAY";
+
+    if (!rows.length) { box.innerHTML = '<div class="empty">No qualifying story today.</div>'; return; }
+
+    box.innerHTML = rows.map((r, i) => {
+        const c = CAT_COLOR[r.id] || "#5a6472";
+        return '<a class="story" href="' + r.a.url + '" target="_blank" rel="noopener">' +
+            '<span class="rank">' + String(i + 1).padStart(2, "0") + '</span>' +
+            '<span class="bar" style="background:' + c + '"></span>' +
+            '<span class="sb">' +
+                '<span class="cat" style="color:' + c + '">' +
+                    '<span class="ic">' + (ENGINE_ICONS[r.id] || "") + '</span>' + DATA[r.id].name +
+                '</span>' +
+                '<h3>' + r.a.title + '</h3>' +
+                '<span class="meta"><span>' + sourceOf(r.a.url) + '</span><span>TODAY</span>' +
+                '<span class="rd">READ →</span></span>' +
+            '</span></a>';
+    }).join("");
+}
+
+function buildPulse() {
+    document.getElementById("pulseList").innerHTML = PULSE.map(p =>
+        '<a class="pc" href="' + p.url + '" target="_blank" rel="noopener">' +
+            '<span class="who"><span class="av">' + p.init + '</span>' +
+            '<span><span class="nm">' + p.name + '</span><br>' +
+            '<span class="org">' + p.org + '</span></span></span>' +
+            '<h4>' + p.title + '</h4>' +
+            '<span class="tag">curated · not pipeline-selected</span>' +
+        '</a>').join("");
+}
+</script>
+</body>
+</html>

@@ -22,6 +22,8 @@ from datetime import datetime, timezone
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from app.intelligence.developments import apply_all as developments_all  # noqa: E402
+from app.intelligence.developments import distribution as dev_distribution  # noqa: E402
 from app.intelligence.domains import apply_all as domains_all          # noqa: E402
 from app.intelligence.entities import apply_all as entities_all        # noqa: E402
 from app.intelligence.events import apply_all as events_all            # noqa: E402
@@ -55,6 +57,9 @@ def build(refresh: bool = False) -> dict:
     signals = entities_all(signals)
     signals = events_all(signals)
     signals = impact_all(signals)
+    # §10 runs between impact and priority: it needs scores to pick a lead,
+    # and priority needs the grouping to stop one story taking two slots.
+    signals = developments_all(signals)
     signals = classify_batch(signals)
 
     engines = {}
@@ -79,6 +84,7 @@ def build(refresh: bool = False) -> dict:
             "signals": len(signals),
             "current": sum(1 for s in signals if s.freshness.get("is_current")),
             "classified": sum(1 for s in signals if s.domains),
+            "developments": dev_distribution(signals),
             "by_priority": distribution(signals),
             "by_tier": dict(Counter(s.source.tier for s in signals)),
         },
@@ -99,9 +105,18 @@ def main(refresh: bool, out: str) -> int:
     print(f"scraped     : {c['scraped']}")
     print(f"signals     : {c['signals']}  ({c['current']} current, "
           f"{c['classified']} classified)")
+    d = c["developments"]
+    print(f"developments: {d['developments']} distinct  "
+          f"({d['collapsed']} duplicate articles collapsed, "
+          f"largest group {d['largest']})")
     print("priority    : " + "  ".join(f"{k}={v}" for k, v in c["by_priority"].items()))
     print(f"published   : {len(store['signals'])} (IGNORE excluded)")
-    print(f"wrote       : {path.relative_to(ROOT)}  "
+    shown = path.resolve()
+    try:
+        shown = shown.relative_to(ROOT)
+    except ValueError:
+        pass          # --out pointed outside the repo; show it absolute
+    print(f"wrote       : {shown}  "
           f"({path.stat().st_size / 1024:.0f} KB)")
     return 0
 
