@@ -108,7 +108,16 @@ KEYWORDS = {
         # this mirrors: a single weak keyword should never force a fit).
         'tcs': 1, 'infosys': 1, 'wipro': 1, 'cognizant': 1, 'capgemini': 1,
         'accenture': 1,
-        'india': 1, 'indian': 1,
+        # 'india'/'indian' are deliberately ABSENT. They are a dateline,
+        # not evidence of a capability centre. As two separate weight-1
+        # entries they summed to exactly THRESHOLD (title 'Indian' = 2,
+        # summary 'India' = 1), so any story from the Indian press cleared
+        # the bar on nationality alone -- an art-auction piece and an oil
+        # pipeline both landed in this Signal that way, and 5 of 6 live
+        # GCC classifications rested on nothing else. The comment above
+        # guards against ONE weak keyword; this was two, which is why it
+        # slipped through. A genuine GCC story still classifies on its
+        # city ('hyderabad', 'bengaluru') or its vocabulary.
     },
     'Signal Executive': {
         # 'people moves' is a generic trade-press section header, not
