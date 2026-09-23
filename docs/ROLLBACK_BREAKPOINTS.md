@@ -4,7 +4,7 @@ A breakpoint (BP) is a commit you can safely return to. This register lists ever
 one, what it changed, how far it has travelled (local → committed → pushed →
 live), and the exact command to roll it back.
 
-*Last updated: 2026-09-23 (BP-18 live) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
+*Last updated: 2026-09-24 (BP-19 live) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
 (GitHub now redirects it to `A1MITG/SYGNALZ`).*
 
 ---
@@ -27,6 +27,7 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 
 | BP | Commit | Date (IST) | Stage | Change | What it did | Roll back with |
 |---|---|---|---|---|---|---|
+| BP-19 | `16f2d16` | 2026-09-24 00:05 | **Live** | ClimateTile | Sixth "coming soon" tile made live, with the same rules as Defence: the headline must name it, and bare "storm", "flood", "monsoon" and "rainfall" sit at 2 with a Climate floor of 5. Renewables and power stay with Energy; insured losses and cat bonds stay with Insurance. `NEUTRALIZE`: the business, political and investment "climate"; metaphorical storms, floods, droughts ("London's listing drought") and landslides; Cyber's Salt and Volt Typhoon hacker groups. Placed after Cyber, ahead of AI. Holds 8 stories on the 2026-09-23 scan, mostly extreme weather; Executive gives up a wildfire-liability story (7 to 6). First-draft rubric. Tests: `tests/test_climate_tile.py`. Live as `signals-deploy` `5449bb4`. | `git revert 16f2d16`, then rebuild and republish |
 | BP-18 | `d62ee64` | 2026-09-23 23:58 | **Live** | CyberTile | Fifth "coming soon" tile made live, with the same rules as Defence: the headline must name it, and bare "privacy", "breach", "scam" and "hack" sit at 2 with a Cyber floor of 5. `NEUTRALIZE`: cyber insurance (cover, underwriting, claims, cat bonds, which are Insurance's), "Cyber Monday", "life hacks", "breach of contract", "Trojan horse". Takes "cyber defence", which Defence already blanks. Unambiguous names only ("Palo Alto Networks"; no "Wiz" or "Tenable"). Placed after Healthcare, ahead of AI. Holds 5 stories on 2026-09-23, 4 of them from AI's overflow; every other tile keeps its count. First-draft rubric. Tests: `tests/test_cyber_tile.py`. Live as `signals-deploy` `6461974`. | `git revert d62ee64`, then rebuild and republish |
 | BP-17 | `936d870` | 2026-09-23 23:41 | **Live** | HealthcareTile | Fourth "coming soon" tile made live, with the same rules as Defence: the headline must name it, and bare "medical", "drug" and "patients" sit at 2 with a Healthcare floor of 5. `NEUTRALIZE`: health insurance, health insurers and COVID insurance claims (Insurance's), drug crime, computer viruses, "financial health", "pandemic-era" loans and metaphors. Unambiguous names only ("World Health Organization", not "WHO"). Placed after Defence, ahead of AI. Holds 2 stories on 2026-09-23, neither taken from another tile. First-draft rubric. Tests: `tests/test_healthcare_tile.py`. Live as `signals-deploy` `4dc164f`. | `git revert 936d870`, then rebuild and republish |
 | BP-16 | `6440fa8` | 2026-09-23 23:29 | **Live** | PulseZeroWidth | Fix found while checking BP-15: a tab laid out at zero width (e.g. a hidden pane) showed Pulse's 2 leaders 4 times, because at width 0 every card "overflows". The loop now decides nothing until the row has a width and waits for the resize. Live as `signals-deploy` `07629b2`. | `git revert 6440fa8`, then rebuild and republish |
@@ -47,7 +48,7 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 | BP-01 | `d82d6d6` | 2026-09-21 16:58 | **Live** | GCCFix | "India"/"Indian" alone no longer classify a story as Signal GCC. Affects which stories reach the live GCC tile. | `git revert d82d6d6`, then rebuild data and republish |
 
 **Dependencies to respect when rolling back**
-- **Revert newest first.** BP-02/03, BP-04, BP-06, BP-08 and BP-10 to BP-18 all touch the Command Center page (`command_center_source.html`, the template, `public/`). Reverting an older one on its own will likely conflict.
+- **Revert newest first.** BP-02/03, BP-04, BP-06, BP-08 and BP-10 to BP-19 all touch the Command Center page (`command_center_source.html`, the template, `public/`). Reverting an older one on its own will likely conflict.
 - BP-02 and BP-03 go together; reverting only one leaves the source template and the generated page out of step.
 - BP-04 and BP-01 both change the GCC rules in `app/analysis/signals.py`. Revert BP-04 first if you revert both.
 - Reverting a **Live** breakpoint doesn't change the website until `signals-deploy` is republished: run the *Build Signals* workflow, or push a rebuilt tree.
@@ -74,8 +75,9 @@ The workflow force-pushes this branch daily, so its history is short. Keep this 
 
 | Live state | Commit | Published | What visitors saw |
 |---|---|---|---|
-| **Current** | `6461974` | 2026-09-23 23:58 | BP-18: Cyber tile live (10 live tiles, 4 coming soon) |
-| Previous | `4dc164f` | 2026-09-23 23:41 | BP-17: Healthcare tile live (9 live tiles, 5 coming soon) |
+| **Current** | `5449bb4` | 2026-09-24 00:06 | BP-19: Climate tile live (11 live tiles, 3 coming soon) |
+| Previous | `6461974` | 2026-09-23 23:58 | BP-18: Cyber tile live (10 live tiles, 4 coming soon) |
+| Earlier | `4dc164f` | 2026-09-23 23:41 | BP-17: Healthcare tile live (9 live tiles, 5 coming soon) |
 | Earlier | `07629b2` | 2026-09-23 23:29 | BP-16: Pulse zero-width guard, on top of the BP-15 Defence tile (8 live tiles) |
 | Earlier | `3748930` | 2026-09-23 23:23 | BP-15: Defence tile live |
 | Earlier | `ee0f4cd` | 2026-09-23 22:36 | BP-14: Energy tile live (7 live tiles) |
