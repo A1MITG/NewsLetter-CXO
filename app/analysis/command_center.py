@@ -23,6 +23,7 @@ SIGNAL_TO_ENGINE = {
     'Signal Banking': ('banking', 'Banking'),
     'Signal Energy': ('energy', 'Energy'),
     'Signal Defence': ('defence', 'Defence'),
+    'Signal Healthcare': ('healthcare', 'Healthcare'),
 }
 
 # Engines with no scoring logic yet — written out honestly, not fabricated.
@@ -30,7 +31,6 @@ COMING_SOON_ENGINES = {
     'manufacturing': 'Manufacturing',
     'cyber': 'Cyber Intelligence',
     'supplychain': 'Supply Chain',
-    'healthcare': 'Healthcare',
     'telecom': 'Telecom & Digital Infrastructure',
     'climate': 'Climate & Sustainability',
 }

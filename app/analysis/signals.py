@@ -45,6 +45,8 @@ TILE_SIGNALS = [
      'audience': 'Energy & Infrastructure'},
     {'name': 'Signal Defence', 'purpose': 'Armed Forces · Weapons · Defence Industry · Security',
      'audience': 'Defence & Policy'},
+    {'name': 'Signal Healthcare', 'purpose': 'Hospitals · Pharma · Medtech · Public Health',
+     'audience': 'Healthcare & Life Sciences'},
 ]
 _TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
 
@@ -428,13 +430,77 @@ KEYWORDS = {
         'israel aerospace industries': 4, 'mbda': 4, 'hanwha aerospace': 4,
         'cochin shipyard': 3, 'thales': 3, 'saab': 3, 'kongsberg': 3,
     },
+    # Tile-only. First draft 2026-09-23, same review rules as Defence.
+    # Health insurance stays with Insurance, so health insurers
+    # (UnitedHealth, Humana, Aetna, Cigna) are left out. Names in unambiguous
+    # forms only: "World Health Organization", not "WHO" (the word "who");
+    # "European Medicines Agency", not "EMA"; "Eli Lilly", not "Lilly";
+    # "Abbott Laboratories", not "Abbott".
+    'Signal Healthcare': {
+        # Industry
+        'healthcare': 4, 'health care': 4, 'pharmaceutical': 4,
+        'pharmaceuticals': 4, 'drugmaker': 4, 'drugmakers': 4, 'biotech': 4,
+        'biotechnology': 4, 'medtech': 4, 'healthtech': 4, 'medical device': 4,
+        'medical devices': 4, 'generic drugs': 4, 'biosimilar': 4,
+        'biosimilars': 4, 'cdmo': 4, 'telemedicine': 4,
+        'pharma': 3, 'generics': 3, 'diagnostics': 3,
+        # Regulators, ministries and public programmes
+        'fda': 4, 'usfda': 4, 'cdsco': 4, 'dcgi': 4, 'european medicines agency': 4,
+        'world health organization': 4, 'world health organisation': 4,
+        'tedros': 4, 'health ministry': 4, 'ministry of health': 4,
+        'health minister': 4, 'health secretary': 4, 'hhs': 4,
+        'health and human services': 4, 'nih': 4, 'icmr': 4, 'aiims': 4,
+        'national medical commission': 4, 'nhs': 4, 'ayushman bharat': 4,
+        'public health': 4, 'medicaid': 4,
+        'cdc': 3, 'medicare': 3,
+        # Care delivery
+        'hospital': 3, 'hospitals': 3, 'doctors': 3, 'nurses': 3, 'surgery': 3,
+        'health system': 3,
+        # Bare "medical", "drug", "patients" and "clinic" are weak on purpose:
+        # with the floor of 5 (SIGNAL_FLOORS) none qualifies a headline alone
+        # ("medical AI" is an AI story, "unpaid comp medical bills" an
+        # insurance one).
+        'medical': 2, 'patient': 2, 'patients': 2, 'clinic': 2, 'clinics': 2,
+        'drug': 2, 'drugs': 2,
+        # Medicines and research
+        'clinical trial': 4, 'clinical trials': 4, 'drug approval': 4,
+        'vaccine': 4, 'vaccines': 4, 'vaccination': 4, 'gene therapy': 4,
+        'cell therapy': 4, 'oncology': 4, 'obesity drug': 4,
+        'weight-loss drug': 4, 'glp-1': 4, 'ozempic': 4, 'wegovy': 4,
+        'mounjaro': 4,
+        'medicine': 3, 'medicines': 3, 'therapy': 3, 'cancer': 3, 'diabetes': 3,
+        'insulin': 3, 'antibiotic': 3, 'antibiotics': 3,
+        # Public health
+        'pandemic': 4, 'covid': 4, 'dengue': 4, 'malaria': 4, 'tuberculosis': 4,
+        'measles': 4, 'mpox': 4, 'h5n1': 4, 'bird flu': 4, 'nipah': 4,
+        'cholera': 4, 'mental health': 4,
+        'outbreak': 3, 'epidemic': 3, 'virus': 3, 'infection': 3,
+        'infections': 3, 'disease': 3, 'diseases': 3, 'life expectancy': 3,
+        # Companies: India
+        'sun pharma': 4, 'sun pharmaceutical': 4, 'dr reddy': 4, 'dr. reddy': 4,
+        'cipla': 4, 'lupin': 4, 'aurobindo pharma': 4, 'zydus': 4, 'glenmark': 4,
+        'biocon': 4, "divi's": 4, 'torrent pharma': 4, 'alkem': 4,
+        'mankind pharma': 4, 'syngene': 4, 'serum institute': 4,
+        'bharat biotech': 4, 'apollo hospitals': 4, 'fortis healthcare': 4,
+        'max healthcare': 4, 'narayana health': 4,
+        # Companies: global
+        'pfizer': 4, 'moderna': 4, 'johnson & johnson': 4, 'j&j': 4, 'merck': 4,
+        'novartis': 4, 'roche': 4, 'astrazeneca': 4, 'sanofi': 4, 'gsk': 4,
+        'glaxosmithkline': 4, 'eli lilly': 4, 'novo nordisk': 4, 'abbvie': 4,
+        'bristol myers': 4, 'bristol-myers': 4, 'amgen': 4, 'gilead': 4,
+        'regeneron': 4, 'takeda': 4, 'teva': 4, 'medtronic': 4,
+        'abbott laboratories': 4, 'siemens healthineers': 4, 'ge healthcare': 4,
+        'philips healthcare': 4,
+        'bayer': 3,
+    },
 }
 
 # Signals whose headline must itself carry one of their keywords. A summary
 # can add weight but cannot qualify a story alone: in the 2026-09-23 scan
 # "home loan" deep in a summary put an online-safety story in Banking, and
 # Goldman Sachs and Citigroup named as brokers put a Meesho stake sale there.
-TITLE_REQUIRED = {'Signal Banking', 'Signal Energy', 'Signal Defence'}
+TITLE_REQUIRED = {'Signal Banking', 'Signal Energy', 'Signal Defence',
+                  'Signal Healthcare'}
 
 # Phrases that contain a signal's keyword but are not about that signal. They
 # are blanked out of the text before that signal (and only that signal) is
@@ -479,6 +545,26 @@ NEUTRALIZE = {
         r"air force one|secret weapons?|cyber ?defen[cs]e|"
         r"(?:army|navy|military|air force|marine|war) veterans?)\b"
     ),
+    # Health insurance and COVID insurance claims belong to Insurance ("Judge
+    # rules for Sompo unit in COVID cover fight" reached the draft tile); drug
+    # crime to Global; computer viruses to Cyber; "financial health" and
+    # "pandemic-era" loans to Business; and metaphors to nobody.
+    'Signal Healthcare': re.compile(
+        r"\b(?:health (?:insurance|insurers?|cover(?:age)?|plans?)|mediclaim|medicare advantage|"
+        r"covid(?:-19)? (?:cover|insurance|claims?|business interruption|losses|polic(?:y|ies))|"
+        r"drugs?[- ](?:trafficking|traffickers?|cartels?|busts?|lords?|smuggling|smugglers?|"
+        r"seizures?|seized|peddlers?|peddling|mules?|haul|rackets?|raids?|dealers?|dealing|"
+        r"money|cases?|syndicates?)|war on drugs|"
+        r"computer virus(?:es)?|"
+        r"(?:outbreak|epidemic) of (?:violence|fighting|war|protests|clashes|hostilities|"
+        r"fraud|layoffs|scams?)|"
+        r"(?:financial|economic|fiscal|corporate|market|balance[- ]sheet) health|"
+        r"health of the (?:economy|market|company)|"
+        r"(?:post|pre)[- ](?:pandemic|covid)|(?:pandemic|covid)[- ](?:era|lows?|highs?|levels?|"
+        r"peaks?|boom|recovery|stimulus|loans?|relief)|"
+        r"spin doctors?|retail therapy|nurses (?:a|an|the|his|her|its|their|hopes|"
+        r"ambitions?|grudges?|wounds?))\b"
+    ),
 }
 
 # Most specific first: on tied scores, the article lands in the earlier signal.
@@ -486,8 +572,8 @@ NEUTRALIZE = {
 # of the broad signals, so a banking story on a tie lands in Banking rather
 # than Business.
 PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal Energy',
-            'Signal Defence', 'Signal AI', 'Signal Global', 'Signal Executive',
-            'Signal Business']
+            'Signal Defence', 'Signal Healthcare', 'Signal AI', 'Signal Global',
+            'Signal Executive', 'Signal Business']
 
 THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Per-signal minimum, where the shared THRESHOLD is too loose. GCC sits at 6
@@ -497,7 +583,9 @@ THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Defence sits at 5 so that a bare "defence" or "drone" in a headline (2 x 2 =
 # 4) cannot qualify alone, while one strong term there (military, troops,
 # missile: 3 x 2 = 6) still can.
-SIGNAL_FLOORS = {'Signal GCC': 6, 'Signal Defence': 5}
+# Healthcare sits at 5 for the same reason: "medical" or "drug" alone in a
+# headline is not enough, "hospital" or "vaccine" is.
+SIGNAL_FLOORS = {'Signal GCC': 6, 'Signal Defence': 5, 'Signal Healthcare': 5}
 TITLE_MULTIPLIER = 2  # a keyword in the headline is worth double
 MAX_PER_SIGNAL = 8
 
