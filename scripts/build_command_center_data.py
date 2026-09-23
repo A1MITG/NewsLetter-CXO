@@ -58,8 +58,8 @@ def main(refresh=False):
     signals_data = synthesize_signals(articles, data_date=data_date)
     by_name = {s['name']: s for s in signals_data['signals']}
 
-    engine_data = build_engine_data(signals_data)
     by_title = {a.get('title'): a for a in articles}
+    engine_data = build_engine_data(signals_data, by_title)
     engine_data['_hero'] = build_hero_cards(engine_data, by_title)
     engine_data['_featured'] = build_featured(
         engine_data['_hero'], engine_data, by_title)

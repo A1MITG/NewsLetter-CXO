@@ -55,8 +55,8 @@ def get_command_center():
                     len(scraped_articles))
         signals_data = synthesize_signals(scraped_articles,
                                           data_date=get_cache_date())
-        payload = build_engine_data(signals_data)
         by_title = {a.get('title'): a for a in scraped_articles}
+        payload = build_engine_data(signals_data, by_title)
         payload['_hero'] = build_hero_cards(payload, by_title)
         payload['_featured'] = build_featured(payload['_hero'], payload, by_title)
         payload['_pulse'] = build_pulse_cards(scraped_articles)

@@ -54,7 +54,50 @@ class TestEngineMapping(unittest.TestCase):
         ]}
         data = build_engine_data(signals_data)
         self.assertEqual(data['global']['articles'],
-                         [{'title': 'A headline', 'url': 'https://example.com/a'}])
+                         [{'title': 'A headline', 'url': 'https://example.com/a',
+                           'image': None}])
+
+    def test_article_image_comes_from_the_raw_corpus(self):
+        """A tile cycles its headlines; each needs its own picture.
+
+        The image is not on the scored article, so build_engine_data takes
+        the raw corpus keyed by title. Without it every slide reported no
+        image and one baked-in photo sat under all five headlines.
+        """
+        signals_data = {'signals': [
+            {'name': 'Signal Global', 'articles': [
+                {'title': 'Has a photo', 'url': 'https://example.com/a'},
+                {'title': 'Has none', 'url': 'https://example.com/b'},
+            ]},
+        ]}
+        by_title = {
+            'Has a photo': {'image': 'https://cdn.example.com/photo.jpg'},
+            'Has none': {'image': ''},
+        }
+        articles = build_engine_data(signals_data, by_title)['global']['articles']
+        self.assertEqual(articles[0]['image'], 'https://cdn.example.com/photo.jpg')
+        self.assertIsNone(articles[1]['image'])
+
+    def test_unusable_image_urls_are_reported_as_absent(self):
+        """Only absolute http(s) urls qualify, as elsewhere on this page.
+
+        A relative path or a scraper placeholder would render as a broken
+        frame; reporting None lets the tile show its domain vector instead.
+        """
+        signals_data = {'signals': [
+            {'name': 'Signal Global', 'articles': [
+                {'title': 'Relative', 'url': 'https://example.com/a'},
+                {'title': 'Placeholder', 'url': 'https://example.com/b'},
+                {'title': 'Missing key', 'url': 'https://example.com/c'},
+            ]},
+        ]}
+        by_title = {
+            'Relative': {'image': '/static/img/thumb.jpg'},
+            'Placeholder': {'image': 'data:image/gif;base64,R0lGOD'},
+            'Missing key': {},
+        }
+        articles = build_engine_data(signals_data, by_title)['global']['articles']
+        self.assertEqual([a['image'] for a in articles], [None, None, None])
 
     def test_missing_signal_yields_empty_not_error(self):
         """A signal that classified nothing gives an empty tile, not a crash."""

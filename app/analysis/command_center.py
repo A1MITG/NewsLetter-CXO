@@ -281,9 +281,30 @@ def build_featured(hero_cards, engine_data, articles_by_title):
     return None
 
 
-def build_engine_data(signals_data):
-    """Map a synthesize_signals() result onto the Command Center tile contract."""
+def _article_image(raw):
+    """An article's own image, or None.
+
+    Only absolute http(s) urls qualify — the same test the hero, featured and
+    Pulse builders apply. A relative path or a scraper placeholder would
+    render as a broken frame, and the tile's vector is the better answer.
+    """
+    image = ((raw or {}).get('image') or '').strip()
+    return image if image.startswith('http') else None
+
+
+def build_engine_data(signals_data, articles_by_title=None):
+    """Map a synthesize_signals() result onto the Command Center tile contract.
+
+    ``articles_by_title`` is the raw corpus keyed by title, the same map the
+    hero/featured builders already take. Passing it attaches each article's
+    own image so a tile can show the picture belonging to the headline it is
+    currently cycling, instead of one baked-in photo sitting under all five.
+    It stays optional: callers that only need titles and urls (and the tests
+    that pin this contract) may omit it, and every article then reports no
+    image, which the page renders as that domain's vector.
+    """
     by_name = {s['name']: s for s in signals_data.get('signals', [])}
+    by_title = articles_by_title or {}
 
     engine_data = {}
     for signal_name, (engine_id, display_name) in SIGNAL_TO_ENGINE.items():
@@ -291,7 +312,8 @@ def build_engine_data(signals_data):
         engine_data[engine_id] = {
             'name': display_name,
             'articles': [
-                {'title': a['title'], 'url': a['url']}
+                {'title': a['title'], 'url': a['url'],
+                 'image': _article_image(by_title.get(a['title']))}
                 for a in signal.get('articles', [])
             ],
         }
