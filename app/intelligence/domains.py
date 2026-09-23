@@ -24,7 +24,8 @@ from functools import lru_cache
 
 import yaml
 
-from app.analysis.signals import KEYWORDS, _GCC_TERM, _GULF_CONTEXT, _normalize
+from app.analysis.signals import (KEYWORDS, _GCC_TERM, _GULF_CONTEXT,
+                                  _normalize, gcc_axes)
 
 CONFIG = pathlib.Path(__file__).resolve().parents[2] / "config" / "domains.yaml"
 
@@ -100,6 +101,19 @@ def score_domains(title: str, summary: str = "") -> dict:
             results["global"]["score"] += 2 * mult
             results["gcc"]["evidence"].append(
                 {"keyword": "gcc", "weight": 0, "where": "vetoed: Gulf context"})
+
+    # Same two-axis gate the legacy classifier applies, from the same
+    # definition. Evidence rules count keywords; they cannot ask what KIND of
+    # thing each keyword is, which is why "noida + gurugram" cleared
+    # min_score 6 and min_distinct_keywords 2 while naming no capability
+    # centre and no action taken on one.
+    if results.get("gcc", {}).get("score"):
+        has_entity, has_action = gcc_axes(title, summary)
+        if not (has_entity and has_action):
+            results["gcc"]["score"] = 0
+            results["gcc"]["evidence"].append(
+                {"keyword": "", "weight": 0,
+                 "where": "gated: needs an entity and an action"})
     return results
 
 

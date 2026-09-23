@@ -115,6 +115,19 @@ a { color: inherit; }
 .tile.live .tile-headline, .tile.flat .tile-headline { color: #fff; }
 .hero-sub { position: relative; z-index: 2; font-size: 14.5px; line-height: 1.5; color: var(--slate); max-width: 500px; margin: 0 auto 20px; }
 .hero-cta { position: relative; z-index: 2; display: flex; gap: 12px; justify-content: center; }
+/* Parked, not removed. The two nav links and the hero's CTA pair were
+   spending vertical space above the first row of news without earning it,
+   so the news now starts higher. Nothing behind them changed: the markup,
+   the hrefs, and the /brief and /signals routes are all still live and
+   reachable directly. To bring them back, delete this one rule -- the
+   "parked" class on those three elements then does nothing.
+   The closer section's .hero-cta is deliberately NOT parked: it sits at
+   the foot of the page, where the space costs nothing. */
+/* !important is load-bearing: a responsive rule below re-shows these two
+   nav links under 780px (.nav-right a.link[href="/brief"] and [href="/signals"]
+   at specificity 0,2,1), so a plain .parked would be overridden on narrow
+   screens and the links would reappear there. */
+.parked { display: none !important; }
 .btn { padding: 12px 24px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; text-decoration: none; border-radius: 3px; display: inline-block; transition: transform .15s ease, box-shadow .15s ease; }
 .btn:hover { transform: translateY(-1px); }
 .btn.pri { background: var(--navy); color: #fff; }
@@ -430,8 +443,8 @@ a { color: inherit; }
             </div>
         </div>
         <div class="nav-right">
-            <a class="link" href="/brief">Today's Brief</a>
-            <a class="link" href="/signals">Signals</a>
+            <a class="link parked" href="/brief">Today's Brief</a>
+            <a class="link parked" href="/signals">Signals</a>
             <span class="icon-btn" title="Search (not yet wired up)">&#128269;</span>
             <a class="link" href="#">About</a>
             <a class="link" href="#founder">About the Founder</a>
@@ -460,7 +473,7 @@ a { color: inherit; }
             <h1 class="hero-headline">What Matters, <em>Before It's News.</em></h1>
         </div>
         <p class="hero-sub">SIGNAL continuously monitors trusted global sources and transforms them into decision-grade executive intelligence.</p>
-        <div class="hero-cta">
+        <div class="hero-cta parked">
             <a class="btn pri" href="#economy">Explore Today's Intelligence</a>
             <a class="btn sec" href="https://news-letter-cxo.vercel.app" target="_blank" rel="noopener">Explore Signals</a>
         </div>
