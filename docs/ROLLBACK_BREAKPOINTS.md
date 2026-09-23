@@ -4,7 +4,7 @@ A breakpoint (BP) is a commit you can safely return to. This register lists ever
 one, what it changed, how far it has travelled (local → committed → pushed →
 live), and the exact command to roll it back.
 
-*Last updated: 2026-09-23 (BP-10 live) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
+*Last updated: 2026-09-23 (BP-12 live) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
 (GitHub now redirects it to `A1MITG/SYGNALZ`).*
 
 ---
@@ -27,6 +27,8 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 
 | BP | Commit | Date (IST) | Stage | Change | What it did | Roll back with |
 |---|---|---|---|---|---|---|
+| BP-12 | `3caca00` | 2026-09-23 20:38 | **Live** | PulseLoop | Fix for BP-10: Executive Pulse showed its 2 leaders twice on the live site. The loop now decides from the cards' natural width (flex-basis + gaps) rather than rounded scrollWidth, and re-decides on resize from the original cards. Live as `signals-deploy` `c367713`. | `git revert 3caca00`, then rebuild and republish |
+| BP-11 | `fd69310` | 2026-09-23 20:29 | **Live** | BankingTile | First "coming soon" tile made live, on the same logic as the other tiles. New `signals.TILE_SIGNALS` (tile-only domains that compete only when `include_tile_signals=True`; the Signals page keeps its six), a Banking keyword list (first draft, to be reviewed), `NEUTRALIZE` (West Bank, World Bank, food bank and the like blanked before Banking is scored), and Banking placed after GCC and Insurance in `PRIORITY`. Tests: `tests/test_banking_tile.py`. Live as `signals-deploy` `bc4845d`. | `git revert fd69310` (after BP-12 if reverting both), then rebuild and republish |
 | BP-10 | `548eb99` | 2026-09-23 20:09 | **Live** | PeopleRows | Final page rows now run: engine tiles (all 14, self-scrolling) → Featured Analysis (GCC → Insurance → Global) → People Movers → Executive Pulse → Leaders on Record. The Global/Economy/AI card row and `_hero` are removed. New `app/scraper/leader_quotes.py` and `config/leader_quotes.yaml` (verbatim quotes from newsrooms, press and Anthropic's news page, cached in `instance/`). New `build_movers`, `build_record`, `build_people_rows` in `command_center.py`. Pulse is limited to corporate roles, and each person appears once (Movers > Record > Pulse). Movers, Pulse and Record cards widen to fill their row. Tests: new `tests/test_people_rows.py`; row tests in `test_freshness_gate.py` rewritten. Live as `signals-deploy` `104a533`. | `git revert 548eb99`, then restore the live site to `14a1957` (see *Live site*) or run the *Build Signals* workflow |
 | *BP-09 (pending)* | — | 2026-09-23 | **Local** | Hero animation + top-rows previews | Two untracked preview folders. `docs/design_previews/2026-09-23-hero-signal/`: the `GlobalSignalAnimation` demos (Orbital, Engine, Pipeline), the Demo 4 redesign `IntelligenceField` (canvas), and Final-page placement previews. `docs/design_previews/2026-09-23-rows/`: the agreed four-row top (self-scrolling engine row, Featured Analysis, People Movers, Leaders on Record), generated from the live cache, plus `quotes_probe.py`, which reads company newsrooms and technology press for verbatim leader quotes. `docs/design_previews/index.html` is a hub page linking every preview. None of it touches the live page. | Not committed. Delete the folders to discard them. |
 | BP-08 | `2bb31d3` | 2026-09-23 11:55 | **Live** | TileImages | Articles on the Command Center that arrive without a feed image now take their page's `og:image`, skipping publisher logo cards. Fixed the Insurance tile never showing a photo. New `app/scraper/article_images.py` and tests; used in the build script and `/api/command-center`. | `git revert 2bb31d3`, then rebuild data and republish (see *Live site*) |
@@ -39,7 +41,7 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 | BP-01 | `d82d6d6` | 2026-09-21 16:58 | **Live** | GCCFix | "India"/"Indian" alone no longer classify a story as Signal GCC. Affects which stories reach the live GCC tile. | `git revert d82d6d6`, then rebuild data and republish |
 
 **Dependencies to respect when rolling back**
-- **Revert newest first.** BP-02/03, BP-04, BP-06, BP-08 and BP-10 all touch the Command Center page (`command_center_source.html`, the template, `public/`). Reverting an older one on its own will likely conflict.
+- **Revert newest first.** BP-02/03, BP-04, BP-06, BP-08, BP-10, BP-11 and BP-12 all touch the Command Center page (`command_center_source.html`, the template, `public/`). Reverting an older one on its own will likely conflict.
 - BP-02 and BP-03 go together; reverting only one leaves the source template and the generated page out of step.
 - BP-04 and BP-01 both change the GCC rules in `app/analysis/signals.py`. Revert BP-04 first if you revert both.
 - Reverting a **Live** breakpoint doesn't change the website until `signals-deploy` is republished: run the *Build Signals* workflow, or push a rebuilt tree.
@@ -66,8 +68,10 @@ The workflow force-pushes this branch daily, so its history is short. Keep this 
 
 | Live state | Commit | Published | What visitors saw |
 |---|---|---|---|
-| **Current** | `104a533` | 2026-09-23 20:09 | BP-10 layout: engines → Featured → People Movers → Executive Pulse → Leaders on Record; Signals at `/signals` |
-| Previous | `14a1957` | 2026-09-23 11:55 | Command Center at `/` with recovered tile images (BP-08), Signals at `/signals` |
+| **Current** | `c367713` | 2026-09-23 20:38 | BP-12: Executive Pulse loop fix, on top of the BP-11 Banking tile |
+| Previous | `bc4845d` | 2026-09-23 20:29 | BP-11: Banking tile live; Pulse could still show duplicate cards |
+| Earlier | `104a533` | 2026-09-23 20:09 | BP-10 layout: engines → Featured → People Movers → Executive Pulse → Leaders on Record; Signals at `/signals` |
+| Earlier | `14a1957` | 2026-09-23 11:55 | Command Center at `/` with recovered tile images (BP-08), Signals at `/signals` |
 | Earlier | `280ee29` | 2026-09-23 11:42 | Command Center at `/` (BP-07), Signals at `/signals` |
 | Pre-DeployRoot | `5dc48b9` | 2026-07-25 | The Signals page only, at `/`. **Only in the local reflog; git will eventually clean it up.** Preserve it with `git tag live-pre-deployroot 5dc48b9`. |
 
