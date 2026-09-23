@@ -41,4 +41,23 @@ TIER_2_SOURCES = {
         "https://www.business-standard.com/rss/home_page_top_stories.rss",
         "https://timesofindia.indiatimes.com/rssfeeds/1898055.cms",
     ],
+    # 2026-09-24: trade press for the Command Center's last three tile-only
+    # domains, which the general feeds above barely cover. All verified
+    # same-day. Light Reading was left out: its feed carries future-dated
+    # event listings, which would stay "current" for months. IndustryWeek
+    # (404), The Manufacturer, Assembly and Plant Engineering (403) failed.
+    "Telecom": [
+        "https://telecom.economictimes.indiatimes.com/rss/topstories",
+        "https://www.rcrwireless.com/feed",
+        "https://www.mobileworldlive.com/feed/",
+    ],
+    "Supply Chain & Logistics": [
+        "https://www.supplychaindive.com/feeds/news/",
+        "https://theloadstar.com/feed/",
+        "https://www.freightwaves.com/news/feed",
+    ],
+    "Manufacturing": [
+        "https://www.manufacturingdive.com/feeds/news/",
+        "https://manufacturing.economictimes.indiatimes.com/rss/topstories",
+    ],
 }

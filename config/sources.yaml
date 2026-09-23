@@ -54,6 +54,15 @@ sources:
   livemint.com:                   { tier: tier_2 }
   moneycontrol.com:               { tier: tier_2 }
 
+  # ---- tier 2: domain trade press (2026-09-24, Command Center tiles) ----
+  # telecom. and manufacturing.economictimes inherit economictimes' tier.
+  rcrwireless.com:                { tier: tier_2 }
+  mobileworldlive.com:            { tier: tier_2 }
+  supplychaindive.com:            { tier: tier_2 }
+  theloadstar.com:                { tier: tier_2 }
+  freightwaves.com:               { tier: tier_2 }
+  manufacturingdive.com:          { tier: tier_2 }
+
   # ---- tier 3: general interest and regional ----
   timesofindia.indiatimes.com:    { tier: tier_3, authority: 0.60 }
   nzherald.co.nz:                 { tier: tier_3 }

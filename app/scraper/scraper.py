@@ -3,6 +3,7 @@ import asyncio
 import logging
 import os
 import random
+from html import unescape
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -83,7 +84,9 @@ async def scrape_source(session, url):
                      or item.find('media:thumbnail'))
             author_tag = item.find('author') or item.find('creator')
             if title_tag and link_tag:
-                title = title_tag.text.strip()
+                # Some feeds (ET Telecom) escape their titles twice, so one
+                # parse still leaves "&amp;" in the text.
+                title = unescape(title_tag.text.strip())
                 link = link_tag.get('href') or link_tag.text.strip()
                 if not link.startswith('http'):
                     link = url.rsplit('/', 1)[0] + '/' + link
