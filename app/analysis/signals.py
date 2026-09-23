@@ -43,6 +43,8 @@ TILE_SIGNALS = [
      'audience': 'BFSI'},
     {'name': 'Signal Energy', 'purpose': 'Oil & Gas · Power · Renewables · Energy Policy',
      'audience': 'Energy & Infrastructure'},
+    {'name': 'Signal Defence', 'purpose': 'Armed Forces · Weapons · Defence Industry · Security',
+     'audience': 'Defence & Policy'},
 ]
 _TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
 
@@ -378,13 +380,61 @@ KEYWORDS = {
         'power grid corporation': 4, 'nhpc': 4, 'tata power': 4,
         'adani green': 4, 'adani power': 4, 'jsw energy': 4, 'oil india': 4,
     },
+    # Tile-only. First draft 2026-09-23, same review rules as Energy. Takes
+    # its stories mostly from Signal Global, which keeps diplomacy,
+    # ceasefires and "war" in general; Defence is armed forces, weapons and
+    # the defence industry. Companies in unambiguous forms only ("Dassault
+    # Aviation", not the software maker; "Hindustan Aeronautics", not "HAL").
+    'Signal Defence': {
+        # Institutions and people
+        'defence ministry': 4, 'ministry of defence': 4, 'defense department': 4,
+        'department of defense': 4, 'pentagon': 4, 'armed forces': 4,
+        'air force': 4, 'defence minister': 4, 'defense minister': 4,
+        'defence secretary': 4, 'defense secretary': 4, 'secretary of defense': 4,
+        'army chief': 4, 'navy chief': 4, 'air chief': 4, 'coast guard': 4,
+        'military': 3, 'army': 3, 'navy': 3, 'naval': 3, 'troops': 3,
+        'soldiers': 3, 'nato': 3, 'paramilitary': 3,
+        'bsf': 3, 'crpf': 3,
+        # Operations and conflict
+        'military exercise': 4, 'military drills': 4, 'war games': 4,
+        'military operation': 4, 'military aid': 4, 'military base': 4,
+        'military bases': 4, 'airstrike': 4, 'airstrikes': 4, 'air strike': 4,
+        'drone strike': 4, 'drone strikes': 4, 'border clash': 4,
+        'airspace': 3, 'militants': 3, 'insurgents': 3, 'counter-terrorism': 3,
+        # Weapons and platforms
+        'missile': 4, 'missiles': 4, 'ballistic': 4, 'hypersonic': 4,
+        'fighter jet': 4, 'fighter jets': 4, 'warship': 4, 'warships': 4,
+        'submarine': 4, 'submarines': 4, 'aircraft carrier': 4, 'frigate': 4,
+        'artillery': 4, 'howitzer': 4, 'ammunition': 4, 'battle tank': 4,
+        'nuclear weapons': 4, 'nuclear warhead': 4, 'nuclear arsenal': 4,
+        'missile defence': 4, 'air defence': 4, 'air defense': 4, 'iron dome': 4,
+        'rafale': 4, 'f-35': 4, 'sukhoi': 4, 'tejas': 4, 'brahmos': 4,
+        's-400': 4, 'himars': 4, 'mq-9': 4,
+        'weapons': 3, 'weapon': 3,
+        # Bare "defence" and "drone" are weak on purpose: with the floor of
+        # 5 (SIGNAL_FLOORS) neither qualifies a headline alone, because
+        # "Chelsea's defence holds firm" and a delivery drone are not news
+        # about armed forces.
+        'defence': 2, 'defense': 2, 'drone': 2, 'drones': 2,
+        # Budgets, trade and industry
+        'defence budget': 4, 'defense budget': 4, 'defence spending': 4,
+        'defense spending': 4, 'defence exports': 4, 'defence procurement': 4,
+        'defence deal': 4, 'defense contract': 4, 'arms deal': 4, 'arms sales': 4,
+        'arms exports': 4, 'defence stocks': 4, 'defense stocks': 4,
+        'drdo': 4, 'hindustan aeronautics': 4, 'bharat electronics': 4,
+        'mazagon dock': 4, 'lockheed martin': 4, 'lockheed': 4, 'raytheon': 4,
+        'northrop grumman': 4, 'general dynamics': 4, 'bae systems': 4,
+        'rheinmetall': 4, 'dassault aviation': 4, 'elbit': 4,
+        'israel aerospace industries': 4, 'mbda': 4, 'hanwha aerospace': 4,
+        'cochin shipyard': 3, 'thales': 3, 'saab': 3, 'kongsberg': 3,
+    },
 }
 
 # Signals whose headline must itself carry one of their keywords. A summary
 # can add weight but cannot qualify a story alone: in the 2026-09-23 scan
 # "home loan" deep in a summary put an online-safety story in Banking, and
 # Goldman Sachs and Citigroup named as brokers put a Meesho stake sale there.
-TITLE_REQUIRED = {'Signal Banking', 'Signal Energy'}
+TITLE_REQUIRED = {'Signal Banking', 'Signal Energy', 'Signal Defence'}
 
 # Phrases that contain a signal's keyword but are not about that signal. They
 # are blanked out of the text before that signal (and only that signal) is
@@ -420,6 +470,15 @@ NEUTRALIZE = {
         r"solar (?:system|eclipse|flares?)|energy drinks?|energy levels?|"
         r"power banks?|superpowers?|powerhouses?)\b"
     ),
+    # Sport, law and metaphor; veterans' personal stories; and cyber defence,
+    # which belongs to the Cyber tile.
+    'Signal Defence': re.compile(
+        r"\b(?:(?:title|world cup|trophy|championship|league|his|her|their|its) defen[cs]e|"
+        r"defen[cs]e (?:lawyers?|counsel|attorneys?|team|solicitor|case)|self-defen[cs]e|"
+        r"in defen[cs]e of|public defenders?|army of|salvation army|navy blue|old navy|"
+        r"air force one|secret weapons?|cyber ?defen[cs]e|"
+        r"(?:army|navy|military|air force|marine|war) veterans?)\b"
+    ),
 }
 
 # Most specific first: on tied scores, the article lands in the earlier signal.
@@ -427,14 +486,18 @@ NEUTRALIZE = {
 # of the broad signals, so a banking story on a tie lands in Banking rather
 # than Business.
 PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal Energy',
-            'Signal AI', 'Signal Global', 'Signal Executive', 'Signal Business']
+            'Signal Defence', 'Signal AI', 'Signal Global', 'Signal Executive',
+            'Signal Business']
 
 THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Per-signal minimum, where the shared THRESHOLD is too loose. GCC sits at 6
 # because at 5 an IT-vendor services deal ("HCLTech bags AI-led IT
 # transformation deal from M Group") clears both axes and reaches the tile --
 # a supplier story, not a capability-centre one.
-SIGNAL_FLOORS = {'Signal GCC': 6}
+# Defence sits at 5 so that a bare "defence" or "drone" in a headline (2 x 2 =
+# 4) cannot qualify alone, while one strong term there (military, troops,
+# missile: 3 x 2 = 6) still can.
+SIGNAL_FLOORS = {'Signal GCC': 6, 'Signal Defence': 5}
 TITLE_MULTIPLIER = 2  # a keyword in the headline is worth double
 MAX_PER_SIGNAL = 8
 

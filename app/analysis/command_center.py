@@ -22,12 +22,12 @@ SIGNAL_TO_ENGINE = {
     # Center, which calls synthesize_signals(include_tile_signals=True).
     'Signal Banking': ('banking', 'Banking'),
     'Signal Energy': ('energy', 'Energy'),
+    'Signal Defence': ('defence', 'Defence'),
 }
 
 # Engines with no scoring logic yet — written out honestly, not fabricated.
 COMING_SOON_ENGINES = {
     'manufacturing': 'Manufacturing',
-    'defence': 'Defence',
     'cyber': 'Cyber Intelligence',
     'supplychain': 'Supply Chain',
     'healthcare': 'Healthcare',
