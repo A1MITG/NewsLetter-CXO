@@ -164,7 +164,13 @@ The page updates once a day on the schedule above; there is no live
 `?refresh=1` for this static build — use the workflow's manual "Run
 workflow" button to force an early rebuild.
 
-This only covers `/signals`. The Daily Brief (`/`) and the LinkedIn script
+`news-letter-cxo.vercel.app` is wired to `signals-deploy`, so that branch's
+root `index.html` is the **Command Center**; the Signals page is published
+alongside it as `signals.html`, served at `/signals` via `vercel.json`
+`cleanUrls`. (GitHub's default branch has no effect on what Vercel serves —
+only the Vercel project's Production Branch does.)
+
+The Daily Brief (`/`) and the LinkedIn script
 still need the always-on Flask app described below.
 
 ## Deployment notes
