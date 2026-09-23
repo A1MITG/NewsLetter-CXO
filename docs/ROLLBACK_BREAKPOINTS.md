@@ -4,7 +4,7 @@ A breakpoint (BP) is a commit you can safely return to. This register lists ever
 one, what it changed, how far it has travelled (local → committed → pushed →
 live), and the exact command to roll it back.
 
-*Last updated: 2026-09-24 (BP-23 live) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
+*Last updated: 2026-09-24 (BP-24 pushed) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
 (GitHub now redirects it to `A1MITG/SYGNALZ`).*
 
 ---
@@ -27,6 +27,7 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 
 | BP | Commit | Date (IST) | Stage | Change | What it did | Roll back with |
 |---|---|---|---|---|---|---|
+| BP-24 | `3bc58a4` | 2026-09-24 00:53 | Pushed | RubricCleanup | `app/analysis/signals.py` restructured for reading and editing: the fifteen Signals at the top, shared rules, then one rubric per Signal in the same shape (headline_must_match, min_score, keywords with points, ignore list one phrase per line), then the unchanged machinery. The old tables (KEYWORDS, NEUTRALIZE, TITLE_REQUIRED, SIGNAL_FLOORS) are derived from the rubrics. **No behaviour change**: proven identical over 869 articles (11,361 checks) and the same stories on all 14 tiles, so no deploy was needed; the 08:00 IST daily build runs it. Guard tests: `tests/test_rubrics.py`. | `git revert 3bc58a4` (nothing depends on it) |
 | BP-23 | `6626dd1` | 2026-09-24 00:37 | **Live** | ManufacturingTile | The last "coming soon" tile made live, with the same rules as Defence (headline required, floor 5; "plant", "production", "PMI" at 2). Power plants and oil production stay with Energy; film "production", Palantir Foundry, "manufacturing consent" are blanked. Placed after Supply Chain, ahead of AI. Holds 8 stories on 2026-09-24. No tile is "coming soon" any more. First-draft rubric. Tests: `tests/test_manufacturing_tile.py`. Live as `signals-deploy` `767ebfb`. | `git revert 6626dd1`, then rebuild and republish |
 | BP-22 | `d5eb27d` | 2026-09-24 00:32 | **Live** | SupplyChainTile | Eighth tile made live, same rules (headline required, floor 5; "shortage", "port", "bottleneck", "UPS" at 2). The context rule: a housing, talent, water or cash "shortage" is not supply chain (a truck-driver shortage is). Software supply-chain attacks stay with Cyber; freight insurance with Insurance; India's UPS pension scheme is blanked. Holds 8 stories on 2026-09-24; FedEx's and Old Dominion's rate increases leave Banking and Global. Tests: `tests/test_supply_chain_tile.py`. Live as `signals-deploy` `767ebfb`. | `git revert d5eb27d` (after BP-23 if reverting both), then rebuild and republish |
 | BP-21 | `12db981` | 2026-09-24 00:29 | **Live** | TelecomTile | Seventh tile made live, same rules (headline required, floor 5; "subscribers", "satellite", "ITU" at 2). Data centres count (the tile is Telecom & Digital Infrastructure). Airtel Money, Jio Financial, JioBlackRock and JioHotstar are blanked; Defence now blanks "submarine cable". The scraper drops Mobile World Live's French and Spanish republications. Holds 8 stories on 2026-09-24. Tests: `tests/test_telecom_tile.py`. Live as `signals-deploy` `767ebfb`. | `git revert 12db981` (after BP-22/23), then rebuild and republish |
