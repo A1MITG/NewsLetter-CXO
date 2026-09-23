@@ -8,7 +8,7 @@ from html import unescape
 import aiohttp
 from bs4 import BeautifulSoup
 
-from .sources import TIER_1_SOURCES, TIER_2_SOURCES
+from .sources import EXCLUDE_URL_PARTS, TIER_1_SOURCES, TIER_2_SOURCES
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +153,9 @@ async def run_scraper(tier='all'):
         if news_api_key:
             news_articles = await fetch_newsapi_articles(session, news_api_key)
             all_articles.extend(news_articles)
+
+    all_articles = [a for a in all_articles
+                    if not any(part in (a.get('url') or '') for part in EXCLUDE_URL_PARTS)]
 
     # Deduplicate articles by URL
     all_articles = list({article['url']: article for article in all_articles if article.get('url')}.values())

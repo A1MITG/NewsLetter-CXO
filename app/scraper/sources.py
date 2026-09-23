@@ -61,3 +61,8 @@ TIER_2_SOURCES = {
         "https://manufacturing.economictimes.indiatimes.com/rss/topstories",
     ],
 }
+
+# URL fragments of articles to drop. Mobile World Live republishes its stories
+# in French and Spanish under these paths, which put the same story on a tile
+# twice, once untranslated.
+EXCLUDE_URL_PARTS = ("mobileworldlive.com/french/", "mobileworldlive.com/spanish/")

@@ -51,6 +51,8 @@ TILE_SIGNALS = [
      'audience': 'CISO & Risk'},
     {'name': 'Signal Climate', 'purpose': 'Climate Change · Extreme Weather · Emissions · Sustainability',
      'audience': 'Sustainability & Risk'},
+    {'name': 'Signal Telecom', 'purpose': 'Operators · Networks · Spectrum · Data Centres',
+     'audience': 'Telecom & Digital Infrastructure'},
 ]
 _TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
 
@@ -580,6 +582,57 @@ KEYWORDS = {
         'pollution': 3, 'sustainability': 3, 'recycling': 3, 'epa': 3,
         'environmental': 2, 'sustainable': 2, 'wildlife': 2,
     },
+    # Tile-only. First draft 2026-09-24, same review rules as Defence, fed
+    # mainly by the telecom trade press added that day (ET Telecom, RCR
+    # Wireless, Mobile World Live). The tile is "Telecom & Digital
+    # Infrastructure", so data centres count. Airtel Money and Jio Financial
+    # are fintech and markets stories, not telecom (see NEUTRALIZE).
+    'Signal Telecom': {
+        # Industry
+        'telecom': 4, 'telecoms': 4, 'telecommunications': 4, 'telco': 4,
+        'telcos': 4, 'mobile operator': 4, 'mobile operators': 4,
+        'wireless carrier': 4, 'wireless carriers': 4, 'mobile network': 4,
+        'mobile networks': 4, 'telecom operator': 4, 'network operator': 4,
+        # Networks and technology
+        '5g': 4, '6g': 4, 'spectrum': 4, 'spectrum auction': 4, 'broadband': 4,
+        'satellite internet': 4, 'satellite broadband': 4, 'satcom': 4,
+        'direct-to-device': 4, 'direct-to-cell': 4, 'fixed wireless': 4,
+        'ftth': 4, 'optical fibre': 4, 'optical fiber': 4, 'fibre network': 4,
+        'fiber network': 4, 'subsea cable': 4, 'subsea cables': 4,
+        'undersea cable': 4, 'undersea cables': 4, 'submarine cable': 4,
+        'submarine cables': 4, 'open ran': 4, 'o-ran': 4, 'small cells': 4,
+        'telecom towers': 4, 'esim': 4, 'mobile data': 4, 'internet shutdown': 4,
+        'network outage': 4, 'call drops': 4, 'number portability': 4,
+        'data centre': 4, 'data centres': 4, 'data center': 4, 'data centers': 4,
+        '4g': 3, 'lte': 3, 'wi-fi': 3, 'wifi': 3, 'roaming': 3, 'sim card': 3,
+        'sim cards': 3, 'hyperscale': 3, 'colocation': 3, 'low earth orbit': 3,
+        'fibre': 3, 'fiber': 3, 'internet outage': 3,
+        # Weak on purpose: with the floor of 5 (SIGNAL_FLOORS) none qualifies
+        # a headline alone ("subscribers" of a newsletter, a spy "satellite",
+        # the UN's "ITU" launching an AI course).
+        'subscribers': 2, 'subscriber': 2, 'satellite': 2, 'connectivity': 2,
+        'towers': 2, 'prepaid': 2, 'postpaid': 2, 'itu': 2,
+        # Pricing and regulation
+        'mobile tariffs': 4, 'mobile tariff': 4, 'recharge plans': 4,
+        'recharge plan': 4, 'arpu': 4, 'trai': 4,
+        'department of telecommunications': 4, 'telecom ministry': 4, 'fcc': 4,
+        'ofcom': 4, 'gsma': 4, 'coai': 4, 'sms': 3,
+        # Companies: India
+        'reliance jio': 4, 'jio': 4, 'jio platforms': 4, 'bharti airtel': 4,
+        'airtel': 4, 'vodafone idea': 4, 'bsnl': 4, 'mtnl': 4, 'indus towers': 4,
+        'tata communications': 4, 'tejas networks': 4,
+        'sterlite technologies': 4, 'hfcl': 4,
+        # Companies: global
+        'vodafone': 4, 'verizon': 4, 'at&t': 4, 't-mobile': 4,
+        'deutsche telekom': 4, 'telefonica': 4, 'telefónica': 4, 'bt group': 4,
+        'etisalat': 4, 'ooredoo': 4, 'singtel': 4, 'china mobile': 4,
+        'ericsson': 4, 'nokia': 4, 'zte': 4, 'starlink': 4, 'oneweb': 4,
+        'eutelsat': 4, 'project kuiper': 4, 'ast spacemobile': 4, 'iridium': 4,
+        'viasat': 4, 'intelsat': 4, 'american tower': 4, 'crown castle': 4,
+        'cellnex': 4, 'equinix': 4, 'digital realty': 4,
+        'charter communications': 4,
+        'huawei': 3, 'ntt': 3, 'comcast': 3, 'kuiper': 3,
+    },
 }
 
 # Signals whose headline must itself carry one of their keywords. A summary
@@ -587,7 +640,8 @@ KEYWORDS = {
 # "home loan" deep in a summary put an online-safety story in Banking, and
 # Goldman Sachs and Citigroup named as brokers put a Meesho stake sale there.
 TITLE_REQUIRED = {'Signal Banking', 'Signal Energy', 'Signal Defence',
-                  'Signal Healthcare', 'Signal Cyber', 'Signal Climate'}
+                  'Signal Healthcare', 'Signal Cyber', 'Signal Climate',
+                  'Signal Telecom'}
 
 # Phrases that contain a signal's keyword but are not about that signal. They
 # are blanked out of the text before that signal (and only that signal) is
@@ -629,7 +683,7 @@ NEUTRALIZE = {
         r"\b(?:(?:title|world cup|trophy|championship|league|his|her|their|its) defen[cs]e|"
         r"defen[cs]e (?:lawyers?|counsel|attorneys?|team|solicitor|case)|self-defen[cs]e|"
         r"in defen[cs]e of|public defenders?|army of|salvation army|navy blue|old navy|"
-        r"air force one|secret weapons?|cyber ?defen[cs]e|"
+        r"air force one|secret weapons?|cyber ?defen[cs]e|submarine cables?|"
         r"(?:army|navy|military|air force|marine|war) veterans?)\b"
     ),
     # Health insurance and COVID insurance claims belong to Insurance ("Judge
@@ -687,6 +741,17 @@ NEUTRALIZE = {
         r"(?:flood|storm|hurricane|wildfire|cyclone|weather) (?:insurance|insurers?|cover|"
         r"claims|reinsurance|losses|premiums?)|cat bonds?|catastrophe bonds?)\b"
     ),
+    # Other senses of "spectrum" and "fibre"; the fintech and media arms of
+    # telecom groups; and subscribers to things that are not phone plans.
+    'Signal Telecom': re.compile(
+        r"\b(?:(?:political|autism|autistic|broad|wide|whole|entire|full|"
+        r"other end of the) spectrum|broad-spectrum|spectrum of|"
+        r"across the (?:political )?spectrum|"
+        r"(?:dietary|high|low|soluble|insoluble|carbon|glass)[- ]fib(?:re|er)|"
+        r"fib(?:re|er) (?:diet|intake|supplements?)|"
+        r"jio financial(?: services)?|jio ?blackrock|jio ?hotstar|airtel money|"
+        r"(?:newsletter|youtube|channel|streaming|netflix|podcast|substack) subscribers?)\b"
+    ),
 }
 
 # Most specific first: on tied scores, the article lands in the earlier signal.
@@ -695,7 +760,8 @@ NEUTRALIZE = {
 # than Business.
 PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal Energy',
             'Signal Defence', 'Signal Healthcare', 'Signal Cyber', 'Signal Climate',
-            'Signal AI', 'Signal Global', 'Signal Executive', 'Signal Business']
+            'Signal Telecom', 'Signal AI', 'Signal Global', 'Signal Executive',
+            'Signal Business']
 
 THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Per-signal minimum, where the shared THRESHOLD is too loose. GCC sits at 6
@@ -709,7 +775,7 @@ THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # "privacy" or "storm" alone in a headline is not enough, "hospital",
 # "hackers" or "hurricane" is.
 SIGNAL_FLOORS = {'Signal GCC': 6, 'Signal Defence': 5, 'Signal Healthcare': 5,
-                 'Signal Cyber': 5, 'Signal Climate': 5}
+                 'Signal Cyber': 5, 'Signal Climate': 5, 'Signal Telecom': 5}
 TITLE_MULTIPLIER = 2  # a keyword in the headline is worth double
 MAX_PER_SIGNAL = 8
 
