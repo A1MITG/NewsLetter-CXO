@@ -49,6 +49,8 @@ TILE_SIGNALS = [
      'audience': 'Healthcare & Life Sciences'},
     {'name': 'Signal Cyber', 'purpose': 'Cyber Attacks · Data Breaches · Security Industry · Data Protection',
      'audience': 'CISO & Risk'},
+    {'name': 'Signal Climate', 'purpose': 'Climate Change · Extreme Weather · Emissions · Sustainability',
+     'audience': 'Sustainability & Risk'},
 ]
 _TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
 
@@ -536,6 +538,48 @@ KEYWORDS = {
         'darktrace': 4, 'rapid7': 4, 'proofpoint': 4, 'kaspersky': 4, 'sophos': 4,
         'trellix': 4, 'quick heal': 4, 'cloudflare': 3,
     },
+    # Tile-only. First draft 2026-09-24, same review rules as Defence.
+    # Renewables, power and the energy transition stay with Energy (which
+    # blanks "greenhouse gas" so it lands here); insured losses and cat bonds
+    # stay with Insurance (see NEUTRALIZE).
+    'Signal Climate': {
+        # Core
+        'climate change': 4, 'global warming': 4, 'climate crisis': 4,
+        'climate action': 4, 'climate finance': 4, 'climate targets': 4,
+        'climate goals': 4, 'climate policy': 4, 'climate tech': 4, 'climate': 3,
+        # Emissions and carbon
+        'greenhouse gas': 4, 'greenhouse gases': 4, 'carbon emissions': 4,
+        'net zero': 4, 'net-zero': 4, 'decarbonisation': 4, 'decarbonization': 4,
+        'carbon neutral': 4, 'carbon-neutral': 4, 'carbon credits': 4,
+        'carbon credit': 4, 'carbon market': 4, 'carbon markets': 4,
+        'carbon tax': 4, 'carbon border': 4, 'cbam': 4, 'carbon capture': 4,
+        'carbon footprint': 4,
+        'emissions': 3, 'carbon': 3, 'methane': 3,
+        # Diplomacy and science
+        'cop31': 4, 'cop30': 4, 'unfccc': 4, 'ipcc': 4, 'paris agreement': 4,
+        'paris climate': 4, 'el nino': 4, 'el niño': 4, 'la nina': 4, 'la niña': 4,
+        # Extreme weather
+        'extreme weather': 4, 'heatwave': 4, 'heatwaves': 4, 'heat wave': 4,
+        'record heat': 4, 'cyclone': 4, 'hurricane': 4, 'typhoon': 4,
+        'wildfire': 4, 'wildfires': 4, 'forest fire': 4, 'bushfire': 4,
+        'cloudburst': 4, 'floods': 4, 'flash floods': 4, 'tropical storm': 4,
+        'sea level': 4, 'sea levels': 4, 'sea-level rise': 4, 'glacier': 4,
+        'glaciers': 4, 'coral bleaching': 4,
+        'flooding': 3, 'drought': 3, 'landslide': 3, 'landslides': 3,
+        # Weak on purpose: with the floor of 5 (SIGNAL_FLOORS) none qualifies
+        # a headline alone.
+        'flood': 2, 'storm': 2, 'monsoon': 2, 'rainfall': 2,
+        # Environment and sustainability
+        'air pollution': 4, 'air quality': 4, 'aqi': 4, 'smog': 4,
+        'stubble burning': 4, 'plastic waste': 4, 'plastic pollution': 4,
+        'single-use plastic': 4, 'e-waste': 4, 'circular economy': 4,
+        'biodiversity': 4, 'deforestation': 4, 'afforestation': 4,
+        'environment ministry': 4, 'national green tribunal': 4, 'ngt': 4,
+        'esg': 4, 'brsr': 4, 'green bonds': 4, 'green bond': 4,
+        'green finance': 4, 'sustainable finance': 4,
+        'pollution': 3, 'sustainability': 3, 'recycling': 3, 'epa': 3,
+        'environmental': 2, 'sustainable': 2, 'wildlife': 2,
+    },
 }
 
 # Signals whose headline must itself carry one of their keywords. A summary
@@ -543,7 +587,7 @@ KEYWORDS = {
 # "home loan" deep in a summary put an online-safety story in Banking, and
 # Goldman Sachs and Citigroup named as brokers put a Meesho stake sale there.
 TITLE_REQUIRED = {'Signal Banking', 'Signal Energy', 'Signal Defence',
-                  'Signal Healthcare', 'Signal Cyber'}
+                  'Signal Healthcare', 'Signal Cyber', 'Signal Climate'}
 
 # Phrases that contain a signal's keyword but are not about that signal. They
 # are blanked out of the text before that signal (and only that signal) is
@@ -619,6 +663,30 @@ NEUTRALIZE = {
         r"breach(?:es|ed)? of (?:contract|trust|duty|promise|privilege|ceasefire|covenants?|"
         r"conduct|code|the peace|rules)|trojan horse)\b"
     ),
+    # The business, political and investment "climate"; metaphorical storms,
+    # floods, droughts and landslides ("London's listing drought" reached the
+    # draft tile); Cyber's hacker groups named after typhoons; and insured
+    # losses and cat bonds, which belong to Insurance.
+    'Signal Climate': re.compile(
+        r"\b(?:(?:political|business|investment|economic|regulatory|market|geopolitical|"
+        r"policy|funding|financial|trade|social|current|tough|hostile|operating|lending|"
+        r"credit|deal|ipo) climate|climate of (?:fear|uncertainty|distrust|mistrust|"
+        r"hostility|impunity|suspicion)|"
+        r"(?:salt|volt|flax|linen|silk) typhoon|"
+        r"carbon (?:copy|copies|fibre|fiber|dating|steel)|"
+        r"(?:perfect|political|media|social media|twitter|diplomatic) storm|storm of|"
+        r"storm(?:s|ed|ing)? (?:into|out|off|to|back|past|through)|"
+        r"(?:takes?|took|taking|taken) .{1,20} by storm|"
+        r"flood(?:s|ed|ing)? (?:of|the market|the zone|in)|"
+        r"(?:trophy|title|goal|ipo|listings?|deal|funding|hiring|win|scoring|medal|run|"
+        r"investment|profit|earnings|dividend|m&a|merger) drought|"
+        r"landslide (?:victory|win|wins|majority|mandate|defeat|election)|"
+        r"(?:debt|fiscal|financial|business|long-term) sustainability|"
+        r"monsoon session|"
+        r"(?:insured|catastrophe|cat|nat ?cat) (?:losses|loss|claims|bonds?|exposure)|"
+        r"(?:flood|storm|hurricane|wildfire|cyclone|weather) (?:insurance|insurers?|cover|"
+        r"claims|reinsurance|losses|premiums?)|cat bonds?|catastrophe bonds?)\b"
+    ),
 }
 
 # Most specific first: on tied scores, the article lands in the earlier signal.
@@ -626,8 +694,8 @@ NEUTRALIZE = {
 # of the broad signals, so a banking story on a tie lands in Banking rather
 # than Business.
 PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal Energy',
-            'Signal Defence', 'Signal Healthcare', 'Signal Cyber', 'Signal AI',
-            'Signal Global', 'Signal Executive', 'Signal Business']
+            'Signal Defence', 'Signal Healthcare', 'Signal Cyber', 'Signal Climate',
+            'Signal AI', 'Signal Global', 'Signal Executive', 'Signal Business']
 
 THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Per-signal minimum, where the shared THRESHOLD is too loose. GCC sits at 6
@@ -637,10 +705,11 @@ THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Defence sits at 5 so that a bare "defence" or "drone" in a headline (2 x 2 =
 # 4) cannot qualify alone, while one strong term there (military, troops,
 # missile: 3 x 2 = 6) still can.
-# Healthcare and Cyber sit at 5 for the same reason: "medical" or "privacy"
-# alone in a headline is not enough, "hospital" or "hackers" is.
+# Healthcare, Cyber and Climate sit at 5 for the same reason: "medical",
+# "privacy" or "storm" alone in a headline is not enough, "hospital",
+# "hackers" or "hurricane" is.
 SIGNAL_FLOORS = {'Signal GCC': 6, 'Signal Defence': 5, 'Signal Healthcare': 5,
-                 'Signal Cyber': 5}
+                 'Signal Cyber': 5, 'Signal Climate': 5}
 TITLE_MULTIPLIER = 2  # a keyword in the headline is worth double
 MAX_PER_SIGNAL = 8
 
