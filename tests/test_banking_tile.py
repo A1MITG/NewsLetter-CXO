@@ -43,6 +43,42 @@ class TestBankingIgnoresLookalikes(unittest.TestCase):
         self.assertNotEqual(banking('Chile confirms vast lithium deposits in the north'), 'Signal Banking')
 
 
+class TestBankingRubricReview(unittest.TestCase):
+    """The 2026-09-23 review: headline rule, bank names, and the lookalikes
+    those names bring with them."""
+
+    def test_a_bank_only_in_the_summary_cannot_qualify(self):
+        """Goldman Sachs and Citigroup as brokers put a stake sale in Banking."""
+        self.assertNotEqual(banking(
+            'RPS Ventures sells 0.9% stake in Meesho for Rs 899.7 crore',
+            'Goldman Sachs and Citigroup acted as brokers; the bank desks placed the shares.'),
+            'Signal Banking')
+
+    def test_banks_on_as_a_verb_is_not_banking(self):
+        self.assertNotEqual(banking('Snapdeal banks on Gen Z to leave its old image behind'), 'Signal Banking')
+
+    def test_banks_on_strike_still_is(self):
+        self.assertEqual(banking('Banks on strike: services hit for three days'), 'Signal Banking')
+
+    def test_banks_by_name_across_regions(self):
+        for title in ('Deutsche Bank to cut 2,000 jobs in retail unit',
+                      'Punjab National Bank raises MCLR by 10 bps',
+                      'Mizuho and MUFG lift lending targets for Asia'):
+            self.assertEqual(banking(title), 'Signal Banking', title)
+
+    def test_bank_results_vocabulary(self):
+        self.assertEqual(banking('Gross NPA of public sector banks falls to decade low'), 'Signal Banking')
+
+    def test_bank_branded_insurers_are_not_banking(self):
+        for title in ('SBI Life Q2 profit rises 18% as premiums grow',
+                      'ICICI Lombard posts strong growth in motor insurance',
+                      "Lloyd's of London market reports record premiums"):
+            self.assertNotEqual(banking(title), 'Signal Banking', title)
+
+    def test_casa_needs_its_banking_sense(self):
+        self.assertNotEqual(banking('Casa Bonita reopens with new owners'), 'Signal Banking')
+
+
 class TestSignalsPageUnchanged(unittest.TestCase):
     """Banking is a tile only; the Signals page keeps its six."""
 

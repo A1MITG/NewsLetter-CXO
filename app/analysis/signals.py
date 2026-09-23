@@ -252,30 +252,87 @@ KEYWORDS = {
         'board': 1, 'executive': 1, 'executives': 1, 'governance': 1,
         'names': 1,
     },
-    # Tile-only (see TILE_SIGNALS). First draft, 2026-09-23: weights follow
-    # the other signals' scale (4 decisive, 3 strong, 2 medium, 1 weak) and
-    # are expected to be tuned in review.
+    # Tile-only (see TILE_SIGNALS). Weights follow the other signals' scale
+    # (4 decisive, 3 strong, 2 medium, 1 weak). Reviewed 2026-09-23 against
+    # the live scan: the headline must also name Banking (TITLE_REQUIRED), so
+    # a bank that only appears in a summary — as a deal's broker, say — can
+    # add weight but never qualify a story on its own.
     'Signal Banking': {
+        # The business of banking
         'nbfc': 4, 'nbfcs': 4, 'non-performing assets': 4, 'npa': 4, 'npas': 4,
-        'bad loans': 4, 'repo rate': 4, 'basel': 4, 'neobank': 4,
-        'payments bank': 4, 'microfinance': 4, 'digital lending': 4,
-        'cooperative bank': 4, 'co-operative bank': 4, 'banking sector': 4,
-        'monetary policy committee': 4, 'vrrr': 4,
+        'gross npa': 4, 'net npa': 4, 'bad loans': 4, 'stressed assets': 4,
+        'asset quality': 4, 'net interest margin': 4, 'net interest income': 4,
+        'credit growth': 4, 'deposit growth': 4, 'capital adequacy': 4,
+        'bad bank': 4, 'narcl': 4, 'basel': 4, 'neobank': 4, 'payments bank': 4,
+        'small finance bank': 4, 'microfinance': 4, 'digital lending': 4,
+        'housing finance': 4, 'gold loan': 4, 'gold loans': 4,
+        'priority sector lending': 4, 'cooperative bank': 4, 'co-operative bank': 4,
+        'public sector bank': 4, 'public sector banks': 4,
+        'private sector bank': 4, 'private sector banks': 4, 'banking sector': 4,
+        'deposit insurance': 4, 'dicgc': 4, 'bank run': 4, 'jan dhan': 4,
         'banking': 3, 'banker': 3, 'bankers': 3, 'lender': 3, 'lenders': 3,
-        'rbi': 3, 'reserve bank': 3, 'central bank': 3, 'federal reserve': 3,
-        'monetary policy': 3, 'rate cut': 3, 'rate hike': 3, 'fintech': 3,
-        'upi': 3, 'credit card': 3, 'mortgage': 3, 'mortgages': 3,
-        'home loan': 3, 'kyc': 3, 'money laundering': 3,
-        'sbi': 3, 'state bank of india': 3, 'hdfc bank': 3, 'icici bank': 3,
-        'axis bank': 3, 'kotak mahindra bank': 3, 'jpmorgan': 3,
-        'goldman sachs': 3, 'citigroup': 3, 'wells fargo': 3,
-        'bank of america': 3, 'hsbc': 3, 'barclays': 3,
+        'psb': 3, 'psbs': 3, 'casa ratio': 4, 'casa deposits': 4,
+        'fixed deposit': 3, 'fixed deposits': 3, 'loan emi': 3,
+        'fd rates': 3, 'credit card': 3, 'mortgage': 3, 'mortgages': 3,
+        'home loan': 3, 'buy now pay later': 3, 'bnpl': 3, 'fintech': 3,
+        'kyc': 3, 'money laundering': 3, 'financial inclusion': 3, 'cibil': 3,
         'bank': 2, 'banks': 2, 'loan': 2, 'loans': 2, 'lending': 2,
-        'deposit': 2, 'deposits': 2, 'payments': 2, 'liquidity': 2,
-        'interest rate': 2, 'interest rates': 2,
+        'deposit': 2, 'deposits': 2, 'liquidity': 2,
+        'credit score': 2, 'remittances': 2,
         'credit': 1,
+        # Central banks and monetary policy
+        'monetary policy committee': 4, 'repo rate': 4, 'mclr': 4, 'vrrr': 4,
+        'rbi governor': 4,
+        'rbi': 3, 'reserve bank': 3, 'central bank': 3, 'federal reserve': 3,
+        'monetary policy': 3, 'rate cut': 3, 'rate hike': 3,
+        'european central bank': 3, 'bank of england': 3, 'bank of japan': 3,
+        "people's bank of china": 3,
+        'interest rate': 2, 'interest rates': 2,
+        # Payment systems
+        'npci': 4, 'payment aggregator': 4, 'cbdc': 4, 'digital rupee': 4,
+        'e-rupee': 4,
+        'upi': 3, 'rtgs': 3, 'neft': 3, 'imps': 3, 'rupay': 3,
+        'payments': 2,
+        # Banks by name. A name in a headline is strong evidence (3); the
+        # pure investment banks sit at 2, because their headlines are as
+        # often a market call ("Goldman sees Nifty at ...") as banking news.
+        # India
+        'sbi': 3, 'state bank of india': 3, 'hdfc bank': 3, 'icici bank': 3,
+        'axis bank': 3, 'kotak mahindra bank': 3, 'kotak bank': 3,
+        'pnb': 3, 'punjab national bank': 3, 'bank of baroda': 3,
+        'canara bank': 3, 'union bank of india': 3, 'bank of india': 3,
+        'indian bank': 3, 'indusind bank': 3, 'idbi bank': 3, 'yes bank': 3,
+        'idfc first bank': 3, 'federal bank': 3, 'bandhan bank': 3,
+        'au small finance bank': 3, 'rbl bank': 3,
+        # United States
+        'jpmorgan': 3, 'jpmorgan chase': 3, 'jpmorganchase': 3,
+        'bank of america': 3, 'citigroup': 3, 'citibank': 3, 'citi': 2,
+        'wells fargo': 3, 'us bancorp': 3, 'u.s. bancorp': 3, 'pnc': 3,
+        'truist': 3, 'capital one': 3, 'bny mellon': 3,
+        'bank of new york mellon': 3,
+        'goldman sachs': 2, 'morgan stanley': 2,
+        # Europe and the UK
+        'hsbc': 3, 'barclays': 3, 'bnp paribas': 3, 'credit agricole': 3,
+        'crédit agricole': 3, 'santander': 3, 'societe generale': 3,
+        'société générale': 3, 'deutsche bank': 3, 'commerzbank': 3,
+        'ubs': 3, 'credit suisse': 3, 'ing group': 3, 'ing bank': 3,
+        'unicredit': 3, 'intesa sanpaolo': 3, 'bbva': 3, 'natwest': 3,
+        'lloyds bank': 3, 'lloyds banking group': 3, 'standard chartered': 3,
+        'nordea': 3,
+        # Asia-Pacific, Middle East, Canada
+        'icbc': 3, 'china construction bank': 3, 'agricultural bank of china': 3,
+        'bank of china': 3, 'mufg': 3, 'mitsubishi ufj': 3, 'smbc': 3,
+        'sumitomo mitsui': 3, 'mizuho': 3, 'dbs bank': 3, 'dbs group': 3,
+        'ocbc': 3, 'uob': 3, 'emirates nbd': 3, 'first abu dhabi bank': 3,
+        'qnb': 3, 'royal bank of canada': 3, 'td bank': 3, 'commonwealth bank': 3,
     },
 }
+
+# Signals whose headline must itself carry one of their keywords. A summary
+# can add weight but cannot qualify a story alone: in the 2026-09-23 scan
+# "home loan" deep in a summary put an online-safety story in Banking, and
+# Goldman Sachs and Citigroup named as brokers put a Meesho stake sale there.
+TITLE_REQUIRED = {'Signal Banking'}
 
 # Phrases that contain a signal's keyword but are not about that signal. They
 # are blanked out of the text before that signal (and only that signal) is
@@ -285,7 +342,20 @@ NEUTRALIZE = {
     'Signal Banking': re.compile(
         r"\b(?:west bank|world bank|food banks?|blood banks?|sperm banks?|seed banks?|"
         r"piggy banks?|river ?banks?|memory banks?|data banks?|power banks?|"
-        r"(?:gold|mineral|lithium|oil|gas|copper|coal|rare earth) deposits?)\b"
+        r"(?:gold|mineral|lithium|oil|gas|copper|coal|rare earth) deposits?|"
+        # "banks on" as a verb: "Snapdeal banks on Gen Z".
+        # Not "banks on strike" or "banks on Sunday", which are banking news.
+        r"(?:banks?|banking) on\b(?! (?:strike|holiday|alert|notice|monday|tuesday|"
+        r"wednesday|thursday|friday|saturday|sunday))|"
+        # Insurers, fund houses and brokers that carry a bank's name belong
+        # with Insurance or markets, not Banking. Longest names first, so
+        # "icici prudential amc" is blanked whole.
+        r"sbi life|sbi general|sbi mutual fund|sbi funds management|sbi cards?|"
+        r"hdfc life|hdfc ergo|hdfc amc|hdfc mutual fund|hdfc securities|"
+        r"icici prudential(?: amc| life| mutual fund)?|icici lombard|icici securities|"
+        r"kotak life|kotak general|kotak mahindra amc|kotak securities|"
+        r"axis max life|axis mutual fund|axis securities|bajaj allianz|"
+        r"lloyd's(?: of london)?)\b"
     ),
 }
 
@@ -422,13 +492,14 @@ def score_signals(title, summary=''):
         blank = NEUTRALIZE.get(name)
         if blank:
             t, s = blank.sub(' ', t), blank.sub(' ', s)
-        total = 0
+        total, in_title = 0, False
         for regex, weight in patterns:
             if regex.search(t):
                 total += weight * TITLE_MULTIPLIER
+                in_title = True
             elif s and regex.search(s):
                 total += weight
-        scores[name] = total
+        scores[name] = total if in_title or name not in TITLE_REQUIRED else 0
 
     if _GULF_CONTEXT.search(title) or _GULF_CONTEXT.search(summary):
         # "GCC" beside Gulf terms is the Gulf Cooperation Council. The GCC
