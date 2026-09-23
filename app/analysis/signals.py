@@ -47,6 +47,8 @@ TILE_SIGNALS = [
      'audience': 'Defence & Policy'},
     {'name': 'Signal Healthcare', 'purpose': 'Hospitals · Pharma · Medtech · Public Health',
      'audience': 'Healthcare & Life Sciences'},
+    {'name': 'Signal Cyber', 'purpose': 'Cyber Attacks · Data Breaches · Security Industry · Data Protection',
+     'audience': 'CISO & Risk'},
 ]
 _TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
 
@@ -493,6 +495,47 @@ KEYWORDS = {
         'philips healthcare': 4,
         'bayer': 3,
     },
+    # Tile-only. First draft 2026-09-23, same review rules as Defence. Cyber
+    # insurance stays with Insurance (see NEUTRALIZE). Takes its stories
+    # mostly from AI, where "AI-powered cybersecurity" used to land.
+    'Signal Cyber': {
+        # Core
+        'cybersecurity': 4, 'cyber security': 4, 'cyber-security': 4,
+        'cyberattack': 4, 'cyberattacks': 4, 'cyber attack': 4, 'cyber attacks': 4,
+        'cyber-attack': 4, 'cyber-attacks': 4, 'cybercrime': 4, 'cyber crime': 4,
+        'cybercriminals': 4, 'cyber threat': 4, 'cyber threats': 4,
+        'cyber espionage': 4, 'cyber warfare': 4, 'cyberwar': 4,
+        'cyber defence': 4, 'cyber defense': 4, 'cyber fraud': 4, 'cyber cell': 4,
+        'cyber police': 4, 'cyber': 3,
+        # Attacks and threats
+        'ransomware': 4, 'malware': 4, 'spyware': 4, 'phishing': 4, 'infostealer': 4,
+        'botnet': 4, 'ddos': 4, 'zero-day': 4, 'computer virus': 4,
+        'data breach': 4, 'data breaches': 4, 'security breach': 4, 'data leak': 4,
+        'data leaks': 4, 'stolen data': 4, 'security flaw': 4, 'security flaws': 4,
+        'security vulnerability': 4, 'bug bounty': 4, 'identity theft': 4,
+        'sim swap': 4, 'online fraud': 4, 'digital fraud': 4, 'upi fraud': 4,
+        'digital arrest': 4,
+        'hackers': 4, 'hacker': 4, 'hacked': 4, 'hacking': 3, 'scammers': 3,
+        'deepfake': 3, 'deepfakes': 3, 'encryption': 3, 'firewall': 3,
+        # Weak on purpose: with the floor of 5 (SIGNAL_FLOORS) none qualifies
+        # a headline alone ("Meta leans into AI amid privacy pushback" is an
+        # AI story; "breach" and "scam" have everyday senses).
+        'hack': 2, 'breach': 2, 'vulnerability': 2, 'vulnerabilities': 2,
+        'scam': 2, 'scams': 2, 'privacy': 2, 'surveillance': 2, 'password': 2,
+        'passwords': 2, 'trojan': 2,
+        # Data protection and agencies
+        'data protection': 4, 'data privacy': 4, 'dpdp': 4, 'gdpr': 4,
+        'cert-in': 4, 'cisa': 4, 'ncsc': 4, 'nciipc': 4, 'i4c': 4,
+        # Threat groups
+        'lockbit': 4, 'lazarus group': 4, 'scattered spider': 4, 'shinyhunters': 4,
+        'salt typhoon': 4, 'volt typhoon': 4, 'nso group': 4, 'pegasus spyware': 4,
+        # Companies, unambiguous forms only ("Palo Alto Networks", not the
+        # city; no "Wiz" or "Tenable", which are ordinary words)
+        'crowdstrike': 4, 'palo alto networks': 4, 'zscaler': 4, 'fortinet': 4,
+        'check point software': 4, 'sentinelone': 4, 'okta': 4, 'mandiant': 4,
+        'darktrace': 4, 'rapid7': 4, 'proofpoint': 4, 'kaspersky': 4, 'sophos': 4,
+        'trellix': 4, 'quick heal': 4, 'cloudflare': 3,
+    },
 }
 
 # Signals whose headline must itself carry one of their keywords. A summary
@@ -500,7 +543,7 @@ KEYWORDS = {
 # "home loan" deep in a summary put an online-safety story in Banking, and
 # Goldman Sachs and Citigroup named as brokers put a Meesho stake sale there.
 TITLE_REQUIRED = {'Signal Banking', 'Signal Energy', 'Signal Defence',
-                  'Signal Healthcare'}
+                  'Signal Healthcare', 'Signal Cyber'}
 
 # Phrases that contain a signal's keyword but are not about that signal. They
 # are blanked out of the text before that signal (and only that signal) is
@@ -565,6 +608,17 @@ NEUTRALIZE = {
         r"spin doctors?|retail therapy|nurses (?:a|an|the|his|her|its|their|hopes|"
         r"ambitions?|grudges?|wounds?))\b"
     ),
+    # Cyber insurance (cover, underwriting, claims, cat bonds) belongs to
+    # Insurance; the rest is everyday usage.
+    'Signal Cyber': re.compile(
+        r"\b(?:cyber(?:[- ]?security)? (?:insurance|insurers?|cover(?:age)?|polic(?:y|ies)|"
+        r"underwriting|underwriters?|reinsurance|premiums?|claims?|market|pricing|losses|"
+        r"cat(?:astrophe)?(?: bonds?)?)|cyber risks? (?:insurance|cover|pricing|models?|"
+        r"modell?ing|underwriting|transfer)|cyber monday|"
+        r"life ?hacks?|growth hack(?:s|ing|ers?)?|"
+        r"breach(?:es|ed)? of (?:contract|trust|duty|promise|privilege|ceasefire|covenants?|"
+        r"conduct|code|the peace|rules)|trojan horse)\b"
+    ),
 }
 
 # Most specific first: on tied scores, the article lands in the earlier signal.
@@ -572,8 +626,8 @@ NEUTRALIZE = {
 # of the broad signals, so a banking story on a tie lands in Banking rather
 # than Business.
 PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal Energy',
-            'Signal Defence', 'Signal Healthcare', 'Signal AI', 'Signal Global',
-            'Signal Executive', 'Signal Business']
+            'Signal Defence', 'Signal Healthcare', 'Signal Cyber', 'Signal AI',
+            'Signal Global', 'Signal Executive', 'Signal Business']
 
 THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Per-signal minimum, where the shared THRESHOLD is too loose. GCC sits at 6
@@ -583,9 +637,10 @@ THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Defence sits at 5 so that a bare "defence" or "drone" in a headline (2 x 2 =
 # 4) cannot qualify alone, while one strong term there (military, troops,
 # missile: 3 x 2 = 6) still can.
-# Healthcare sits at 5 for the same reason: "medical" or "drug" alone in a
-# headline is not enough, "hospital" or "vaccine" is.
-SIGNAL_FLOORS = {'Signal GCC': 6, 'Signal Defence': 5, 'Signal Healthcare': 5}
+# Healthcare and Cyber sit at 5 for the same reason: "medical" or "privacy"
+# alone in a headline is not enough, "hospital" or "hackers" is.
+SIGNAL_FLOORS = {'Signal GCC': 6, 'Signal Defence': 5, 'Signal Healthcare': 5,
+                 'Signal Cyber': 5}
 TITLE_MULTIPLIER = 2  # a keyword in the headline is worth double
 MAX_PER_SIGNAL = 8
 
