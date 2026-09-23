@@ -41,6 +41,8 @@ SIGNALS = [
 TILE_SIGNALS = [
     {'name': 'Signal Banking', 'purpose': 'Banks · Lending · Payments · Central Banks',
      'audience': 'BFSI'},
+    {'name': 'Signal Energy', 'purpose': 'Oil & Gas · Power · Renewables · Energy Policy',
+     'audience': 'Energy & Infrastructure'},
 ]
 _TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
 
@@ -326,13 +328,63 @@ KEYWORDS = {
         'ocbc': 3, 'uob': 3, 'emirates nbd': 3, 'first abu dhabi bank': 3,
         'qnb': 3, 'royal bank of canada': 3, 'td bank': 3, 'commonwealth bank': 3,
     },
+    # Tile-only. First draft 2026-09-23, built with the Banking review's
+    # lessons from the start: the headline must name it (TITLE_REQUIRED),
+    # everyday senses of its words are blanked (NEUTRALIZE), and companies
+    # appear only in unambiguous forms ("Shell plc", not "Shell"; "BP plc",
+    # not "BP", which is also basis points).
+    'Signal Energy': {
+        # Oil and gas
+        'crude oil': 4, 'oil prices': 4, 'oil price': 4, 'brent': 4, 'wti': 4,
+        'opec': 4, 'lng': 4, 'natural gas': 4, 'refinery': 4, 'refineries': 4,
+        'oilfield': 4, 'oil and gas': 4, 'oil & gas': 4, 'petroleum': 4,
+        'gas pipeline': 4, 'oil pipeline': 4, 'fuel prices': 4, 'fuel price': 4,
+        'jet fuel': 4, 'omc': 4, 'omcs': 4, 'oil marketing companies': 4,
+        'city gas': 4, 'cbg': 4, 'ethanol blending': 4, 'biofuel': 4, 'biofuels': 4,
+        'crude': 3, 'barrel': 3, 'barrels': 3, 'upstream': 3, 'downstream': 3,
+        'gas prices': 3, 'gas supply': 3, 'petrol': 3, 'diesel': 3,
+        'gasoline': 3, 'lpg': 3, 'cng': 3, 'ethanol': 3,
+        'oil': 2, 'fuel': 2,
+        'gas': 1,
+        # Power
+        'power sector': 4, 'power plant': 4, 'power plants': 4,
+        'power generation': 4, 'power demand': 4, 'power grid': 4,
+        'power prices': 4, 'power tariff': 4, 'power outage': 4,
+        'load shedding': 4, 'discom': 4, 'discoms': 4, 'electricity prices': 4,
+        'grid operator': 4, 'energy storage': 4, 'battery storage': 4,
+        'thermal power': 4, 'hydropower': 4, 'hydroelectric': 4,
+        'electricity': 3, 'blackout': 3, 'transmission line': 3,
+        'megawatt': 3, 'gigawatt': 3,
+        'mw': 2, 'gw': 2,
+        # Renewables and nuclear
+        'renewable energy': 4, 'solar power': 4, 'solar energy': 4,
+        'wind power': 4, 'wind energy': 4, 'offshore wind': 4, 'wind farm': 4,
+        'wind turbine': 4, 'green hydrogen': 4, 'nuclear power': 4,
+        'nuclear plant': 4, 'nuclear reactor': 4, 'nuclear energy': 4,
+        'small modular reactor': 4, 'coal mine': 4,
+        'renewables': 3, 'solar': 3, 'hydrogen': 3, 'coal': 3,
+        # Policy and markets
+        'energy security': 4, 'energy transition': 4, 'energy policy': 4,
+        'energy prices': 4, 'energy ministry': 4, 'energy minister': 4,
+        'energy crisis': 4,
+        'energy': 2,
+        # Companies, unambiguous forms only
+        'saudi aramco': 4, 'aramco': 4, 'exxonmobil': 4, 'exxon': 4,
+        'chevron': 4, 'shell plc': 4, 'royal dutch shell': 4,
+        'totalenergies': 4, 'bp plc': 4, 'conocophillips': 4, 'equinor': 4,
+        'petrobras': 4, 'adnoc': 4, 'qatarenergy': 4, 'gazprom': 4,
+        'rosneft': 4, 'nextera': 4, 'ongc': 4, 'indian oil': 4, 'iocl': 4,
+        'bpcl': 4, 'hpcl': 4, 'gail': 4, 'ntpc': 4, 'coal india': 4,
+        'power grid corporation': 4, 'nhpc': 4, 'tata power': 4,
+        'adani green': 4, 'adani power': 4, 'jsw energy': 4, 'oil india': 4,
+    },
 }
 
 # Signals whose headline must itself carry one of their keywords. A summary
 # can add weight but cannot qualify a story alone: in the 2026-09-23 scan
 # "home loan" deep in a summary put an online-safety story in Banking, and
 # Goldman Sachs and Citigroup named as brokers put a Meesho stake sale there.
-TITLE_REQUIRED = {'Signal Banking'}
+TITLE_REQUIRED = {'Signal Banking', 'Signal Energy'}
 
 # Phrases that contain a signal's keyword but are not about that signal. They
 # are blanked out of the text before that signal (and only that signal) is
@@ -357,14 +409,25 @@ NEUTRALIZE = {
         r"axis max life|axis mutual fund|axis securities|bajaj allianz|"
         r"lloyd's(?: of london)?)\b"
     ),
+    # Everyday senses of Energy's words: kitchen oils, weapons, politics.
+    # Greenhouse gas belongs with Climate; nuclear weapons with Defence.
+    'Signal Energy': re.compile(
+        r"\b(?:(?:cooking|edible|palm|olive|vegetable|essential|coconut|mustard|"
+        r"castor|fish) oils?|oil paint(?:ing)?s?|oilseeds?|tear gas|"
+        r"greenhouse gas(?:es)?|gas chambers?|laughing gas|"
+        r"nuclear (?:weapons?|warheads?|missiles?|arsenal|bombs?|tests?|deal|"
+        r"talks|programme|program|threat)|shell compan(?:y|ies)|"
+        r"solar (?:system|eclipse|flares?)|energy drinks?|energy levels?|"
+        r"power banks?|superpowers?|powerhouses?)\b"
+    ),
 }
 
 # Most specific first: on tied scores, the article lands in the earlier signal.
 # Tile-only domains sit after the audience's core (GCC, Insurance) and ahead
 # of the broad signals, so a banking story on a tie lands in Banking rather
 # than Business.
-PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal AI',
-            'Signal Global', 'Signal Executive', 'Signal Business']
+PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal Energy',
+            'Signal AI', 'Signal Global', 'Signal Executive', 'Signal Business']
 
 THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Per-signal minimum, where the shared THRESHOLD is too loose. GCC sits at 6

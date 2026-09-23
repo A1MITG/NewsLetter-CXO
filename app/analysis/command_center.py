@@ -21,12 +21,12 @@ SIGNAL_TO_ENGINE = {
     # Tile-only signals (signals.TILE_SIGNALS): scored only for the Command
     # Center, which calls synthesize_signals(include_tile_signals=True).
     'Signal Banking': ('banking', 'Banking'),
+    'Signal Energy': ('energy', 'Energy'),
 }
 
 # Engines with no scoring logic yet — written out honestly, not fabricated.
 COMING_SOON_ENGINES = {
     'manufacturing': 'Manufacturing',
-    'energy': 'Energy',
     'defence': 'Defence',
     'cyber': 'Cyber Intelligence',
     'supplychain': 'Supply Chain',
