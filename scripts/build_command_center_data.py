@@ -28,8 +28,8 @@ load_dotenv()
 from app.scraper.store import get_articles, get_cache_date
 from app.scraper.article_images import fill_signal_images
 from app.analysis.signals import synthesize_signals
-from app.analysis.command_center import (build_engine_data, build_featured, build_hero_cards,
-                                      build_pulse_cards)
+from app.analysis.command_center import build_engine_data, build_featured, build_people_rows
+from app.scraper.leader_quotes import get_leader_quotes
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
@@ -62,10 +62,9 @@ def main(refresh=False):
     by_title = {a.get('title'): a for a in articles}
     fill_signal_images(signals_data, by_title)
     engine_data = build_engine_data(signals_data, by_title)
-    engine_data['_hero'] = build_hero_cards(engine_data, by_title)
-    engine_data['_featured'] = build_featured(
-        engine_data['_hero'], engine_data, by_title)
-    engine_data['_pulse'] = build_pulse_cards(articles)
+    engine_data['_featured'] = build_featured(engine_data, by_title)
+    # The static build waits for a fresh quote set; the live API never does.
+    engine_data.update(build_people_rows(articles, get_leader_quotes(block=True)))
     # The static page shows the same freshness stamp as the live one; without
     # _meta it would render blank on the Vercel deploy.
     engine_data['_meta'] = {

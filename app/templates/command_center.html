@@ -245,10 +245,16 @@ a { color: inherit; }
 /* ---------- Band 3: Executive Pulse (auto-scroll) ---------- */
 .pulse-note { font-size: 12px; color: var(--slate); margin: -8px 0 16px; max-width: 640px; }
 .pulse-viewport { overflow: hidden; padding-bottom: 40px; }
-.pulse-track { display: flex; gap: 16px; width: max-content; }
-.pulse-card { flex: 0 0 260px; background: #fff; border: 1px solid var(--slate-100); border-radius: 10px; overflow: hidden; }
-.pulse-photo { height: 140px; position: relative; }
-.pulse-photo img { width: 100%; height: 100%; object-fit: cover; }
+/* Like People Movers: the track is the row's width, so few cards grow to fill
+   it, aligned with the rows above; many cards keep their 260px basis and
+   overflow, and startPulseScroller loops them. (width: max-content would size
+   growable cards to their unwrapped headlines instead.) */
+.pulse-track { display: flex; gap: 16px; }
+.pulse-card { flex: 1 0 260px; background: #fff; border: 1px solid var(--slate-100); border-radius: 10px; overflow: hidden; }
+/* The photo deepens as the card widens, so a stretched card shows a portrait
+   rather than a thin strip; the crop favours the upper part, where faces sit. */
+.pulse-photo { aspect-ratio: 16 / 7; min-height: 140px; max-height: 220px; position: relative; }
+.pulse-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; }
 .pulse-photo::after { content:''; position:absolute; inset:0; background: linear-gradient(0deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 45%); }
 .pulse-who { position: absolute; left: 14px; bottom: 10px; z-index: 2; color: #fff; }
 .pulse-who .name { font-weight: 700; font-size: 13px; }
@@ -267,7 +273,9 @@ a { color: inherit; }
 .persona-reset { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--blue); cursor: pointer; background: none; border: none; }
 .persona-note { font-size: 11px; color: var(--slate-light); margin: -6px 0 16px; max-width: 720px; line-height: 1.5; }
 
-.ribbon { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 20px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+/* No scroll-snap: the row drifts on its own (startRibbonDrift), and snapping
+   would pull every small step back to the nearest tile. */
+.ribbon { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 20px; -webkit-overflow-scrolling: touch; }
 .ribbon::-webkit-scrollbar { height: 6px; }
 .ribbon::-webkit-scrollbar-thumb { background: var(--slate-100); border-radius: 3px; }
 .tile { flex: 0 0 250px; scroll-snap-align: start; border-radius: 10px; overflow: hidden; position: relative; min-height: 290px; display: flex; flex-direction: column; justify-content: flex-end; transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease; cursor: grab; }
@@ -344,6 +352,28 @@ a { color: inherit; }
 .featured-impl { font-size: 12.5px; color: rgba(255,255,255,.65); margin-bottom: 14px; }
 .featured-impl b { color: #9fc1ff; }
 .featured-read { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+
+/* ---------- People rows: People Movers, Leaders on Record ----------
+   Cards grow to fill the row when there are few, so each row spans the same
+   width as the rows above it, and keep a minimum width (scrolling) when many. */
+.row-lede { font-size: 12px; color: var(--slate); margin: -8px 0 16px; max-width: 640px; }
+.people-row { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 14px; margin-bottom: 30px; }
+.move-card { flex: 1 0 300px; display: flex; flex-direction: column; gap: 10px; background: #fff; border: 1px solid #e3e7ec; border-radius: 10px; padding: 18px 20px; text-decoration: none; color: inherit; transition: border-color .2s ease, transform .2s ease; }
+.move-card:hover, .quote-card:hover { border-color: var(--blue); transform: translateY(-2px); }
+.move-type { align-self: flex-start; font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; background: var(--blue-soft); color: var(--blue); }
+.move-type.exit { background: var(--slate-100); color: var(--slate); }
+.move-card h4 { font-family: var(--serif); font-weight: 400; font-size: 16px; line-height: 1.35; color: var(--navy); }
+.row-meta { margin-top: auto; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--slate-light); }
+.quote-card { flex: 1 0 290px; display: flex; flex-direction: column; gap: 14px; background: #fff; border: 1px solid #e3e7ec; border-left: 2px solid var(--blue); border-radius: 4px 10px 10px 4px; padding: 20px 22px; text-decoration: none; color: inherit; transition: border-color .2s ease, transform .2s ease; }
+.quote-card blockquote { font-family: var(--serif); font-size: 16.5px; line-height: 1.45; color: var(--navy); max-width: 62ch; }
+.quote-who { font-size: 12.5px; font-weight: 700; color: var(--navy); }
+.quote-who span { font-weight: 400; color: var(--slate); }
+.row-empty { flex: 1 0 300px; border: 1px dashed #d8dce2; background: var(--slate-50); border-radius: 10px; padding: 20px 24px; font-family: var(--serif); font-size: 16px; color: var(--navy); }
+.listening { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -14px 0 40px; }
+.listening-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--slate-light); margin-right: 4px; }
+.listening-chip { font-size: 11px; color: var(--navy); background: #fff; border: 1px solid #e3e7ec; border-radius: 20px; padding: 2px 9px; }
+.listening-chip i { font-style: normal; color: var(--slate-light); }
+@media (max-width: 640px) { .move-card, .row-empty { flex-basis: 260px; } .quote-card { flex-basis: 280px; } }
 
 /* ---------- Pipeline ---------- */
 .pipeline { background: var(--navy); color: #fff; padding: 52px 0; }
@@ -503,16 +533,16 @@ a { color: inherit; }
         </div>
         <p class="hero-sub parked">SIGNAL continuously monitors trusted global sources and transforms them into decision-grade executive intelligence.</p>
         <div class="hero-cta parked">
-            <a class="btn pri" href="#economy">Explore Today's Intelligence</a>
+            <a class="btn pri" href="#featured">Explore Today's Intelligence</a>
             <a class="btn sec" href="https://news-letter-cxo.vercel.app" target="_blank" rel="noopener">Explore Signals</a>
         </div>
     </section>
 
     <!-- ===== Band 2: Explore Intelligence Engines + Personalization Bar =====
-         Moved above Global Situational Awareness so the engine tiles are
-         on screen at load. They used to open at ~1330px on a 800px-tall
-         viewport, which meant the page's primary navigation was two
-         scrolls down. ===== -->
+         First after the hero so the engine tiles are on screen at load.
+         They used to open at ~1330px on a 800px-tall viewport, which meant
+         the page's primary navigation was two scrolls down. All 14 tiles sit
+         in one row that drifts on its own (startRibbonDrift). ===== -->
     <div id="engines" class="band-head">
         <span class="eyebrow" style="font-size:13px;">Explore Intelligence Engines</span>
         <span class="sub" id="engineCount">&nbsp;</span>
@@ -605,30 +635,45 @@ a { color: inherit; }
         <div class="tile soon fade-up" data-id="climate" draggable="true" onclick="if(!event.target.closest('.tile-controls')) openEnginePanel('climate')"><svg class="tile-vector" viewBox="0 0 240 224" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M92 142 C92 92 128 62 172 60 C174 106 146 142 92 142 Z" class="vln"/><path d="M172 60 C140 78 112 106 96 138" class="vln2"/><path d="M128 84 L140 92 M116 104 L130 110 M106 122 L120 126" class="vln2"/><path d="M48 176 H196" class="vln"/><path d="M56 168 L86 156 L112 162 L150 150 L188 132" class="vln2"/><circle cx="188" cy="132" r="4" class="vdot"/></svg><div class="tile-body"><div class="tile-top"><span class="tile-cat"><span class="tcat-ic" data-icon="climate"></span>Climate &amp; Sustainability</span><span class="tile-controls"><button class="tile-ctrl pin-btn" title="Pin">⭐</button><button class="tile-ctrl hide-btn" title="Hide">👁</button></span></div></div><span class="soon-badge">Coming Soon</span></div>
     </div>
 
-    <!-- ===== Band 3: Global Affairs / Economy / AI — fixed row, in this exact order ===== -->
-    <div id="economy" class="band-head">
-        <span class="eyebrow" style="font-size:13px;">Global Situational Awareness</span>
-    </div>
-    <div class="econ-grid three-col" id="econGrid">
-        <!-- Populated from /api/command-center _hero. Previously three
-             hardcoded cards with base64 images, frozen on July 2026 stories
-             while the live tiles below them moved on. -->
-    </div>
+    <!-- The Global Affairs / Economy / AI card row that sat here repeated
+         three engines already in the tile row above, and was removed. Each
+         row below answers one question, and a person appears in only one of
+         them: People Movers > Leaders on Record > Executive Pulse. -->
 
-    <!-- ===== Band 4: Executive Pulse (~30% viewport, auto-scroll) ===== -->
+    <!-- ===== Band 3: Featured Analysis — GCC, then Insurance, else the top global story ===== -->
+    <div id="featured" class="band-head">
+        <span class="eyebrow" style="font-size:13px;">Featured Analysis</span>
+    </div>
+    <div id="featuredSlot"><!-- populated from _featured --></div>
+
+    <!-- ===== Band 4: People Movers — who moved ===== -->
+    <div id="movers" class="band-head">
+        <span class="eyebrow" style="font-size:13px;">People Movers</span>
+        <span class="sub" id="moversCount"></span>
+    </div>
+    <p class="row-lede">Appointments and exits that today's headlines state outright.</p>
+    <div class="people-row" id="moversRow"><!-- populated from _movers --></div>
+
+    <!-- ===== Band 5: Executive Pulse — business leaders making news (auto-scroll) ===== -->
     <div id="pulseSection">
     <div class="band-head">
         <span class="icon-widget" aria-hidden="true" style="font-size:24px;">👥</span>
         <span class="eyebrow" style="font-size:13px;">Executive Pulse</span>
     </div>
-    <p class="pulse-note">Only leaders and corporate-leadership stories with genuine, material coverage today appear here — never a fabricated quote, never a raw social feed. This watchlist checks a broad set of business, technology and policy leaders; most days only a few will have real coverage.</p>
+    <p class="pulse-note">Business leaders making news today. A leader appears only when a named executive is the subject of a real story — never a fabricated quote, never a raw social feed. Most days only a few qualify.</p>
     <div class="pulse-viewport" id="pulseViewport">
         <div class="pulse-track" id="pulseTrack"><!-- populated from _pulse --></div>
     </div>
     </div>
 
-    <div class="band-head" style="padding-top:24px;"><span class="eyebrow">Featured Analysis</span></div>
-    <div id="featuredSlot"><!-- populated from _featured --></div>
+    <!-- ===== Band 6: Leaders on Record — in their own words ===== -->
+    <div id="leaders" class="band-head">
+        <span class="eyebrow" style="font-size:13px;">Leaders on Record</span>
+        <span class="sub" id="recordCount"></span>
+    </div>
+    <p class="row-lede">AI and frontier-tech leaders in their own words, quoted verbatim by a company newsroom or the technology press.</p>
+    <div class="people-row" id="recordRow"><!-- populated from _record --></div>
+    <div class="listening" id="recordListening"></div>
 </div>
 
 <section class="pipeline">
@@ -890,14 +935,15 @@ a { color: inherit; }
             return r.json();
         })
         .then(data => {
-            // _meta/_hero/_featured are page furniture, not tiles — keep them
+            // The _-prefixed keys are page furniture, not tiles — keep them
             // out of ENGINE_DATA so nothing iterates over them as an engine.
-            const { _meta, _hero, _featured, _pulse, ...engines } = data;
+            const { _meta, _featured, _movers, _pulse, _record, ...engines } = data;
             ENGINE_DATA = engines;
             CC_META = _meta || null;
-            renderHeroCards(_hero || []);
             renderFeatured(_featured);
+            renderMovers(_movers || []);
             renderPulseCards(_pulse || []);
+            renderRecord(_record || { quotes: [], leaders: [] });
             updateEngineCount();
             renderFreshness();
             initTileHeadlines();
@@ -916,27 +962,44 @@ a { color: inherit; }
         }[c]));
     }
 
-    function renderHeroCards(cards) {
-        const grid = document.getElementById('econGrid');
-        if (!grid) return;
-        if (!cards.length) {
-            grid.innerHTML = '<p class="pulse-note">No qualifying lead story today.</p>';
-            return;
-        }
-        grid.innerHTML = cards.map(c => `
-        <a class="econ-card fade-up in" href="${esc(c.url)}" target="_blank" rel="noopener">
-            <img src="${esc(c.image)}" alt="" loading="lazy" decoding="async"
-                 onerror="this.closest('.econ-card').classList.add('no-img'); this.remove();">
-            <div class="econ-body">
-                <div class="econ-cat"><span class="icon-widget" aria-hidden="true" data-icon="${esc(c.icon)}"></span> ${esc(c.label)}</div>
-                <h3>${esc(c.title)}</h3>
-                ${c.summary ? `<p class="econ-impl">${esc(c.summary)}</p>` : ''}
-                <div class="econ-foot"><span class="econ-read">Read &rarr;</span></div>
-            </div>
-        </a>`).join('');
-        grid.querySelectorAll('.icon-widget[data-icon]').forEach(el => {
-            el.innerHTML = ENGINE_ICONS[el.dataset.icon] || '';
-        });
+    function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
+
+    // People Movers: headline-stated appointments and exits. An empty day says
+    // so in a slim panel rather than hiding the row.
+    function renderMovers(moves) {
+        const row = document.getElementById('moversRow');
+        if (!row) return;
+        document.getElementById('moversCount').textContent = plural(moves.length, 'move', 'moves') + " in today's scan";
+        row.innerHTML = moves.length ? moves.map(m => `
+            <a class="move-card" href="${esc(m.url)}" target="_blank" rel="noopener">
+                <span class="move-type${m.kind === 'exit' ? ' exit' : ''}">${esc(m.type)}</span>
+                <h4>${esc(m.title)}</h4>
+                <span class="row-meta">${esc(m.source)}${m.date ? ' &middot; ' + esc(m.date) : ''}</span>
+            </a>`).join('')
+            : `<div class="row-empty">No appointments or exits in today's scan.</div>`;
+    }
+
+    // Leaders on Record: verbatim quotes, each linked to where it was
+    // published, with the watchlist beneath so a sparse day still says who
+    // is being listened to.
+    function renderRecord(record) {
+        const row = document.getElementById('recordRow');
+        if (!row) return;
+        const quotes = record.quotes || [];
+        document.getElementById('recordCount').textContent =
+            plural(quotes.length, 'quote', 'quotes') + ` · last ${record.window_days || 14} days`;
+        row.innerHTML = quotes.length ? quotes.map(q => `
+            <a class="quote-card" href="${esc(q.url)}" target="_blank" rel="noopener">
+                <blockquote>&ldquo;${esc(q.quote)}&rdquo;</blockquote>
+                <div class="quote-who">${esc(q.leader)} <span>&middot; ${esc(q.company)}</span></div>
+                <span class="row-meta">${esc(q.source)}${q.date ? ' &middot; ' + esc(q.date) : ''} &middot; read source &rarr;</span>
+            </a>`).join('')
+            : `<div class="row-empty">No verbatim quotes in the last ${record.window_days || 14} days.</div>`;
+        const leaders = record.leaders || [];
+        document.getElementById('recordListening').innerHTML = leaders.length
+            ? '<span class="listening-label">Listening to</span>' + leaders.map(l =>
+                `<span class="listening-chip">${esc(l.name)} <i>${esc(l.company)}</i></span>`).join('')
+            : '';
     }
 
     function renderPulseCards(cards) {
@@ -1208,7 +1271,7 @@ a { color: inherit; }
         // Cloning is what makes the loop seamless, but with only a couple of
         // cards the duplicate sits in plain view and reads as a bug. Below
         // that, leave the row static — it fits on screen anyway.
-        if (track.scrollWidth <= viewport.clientWidth) return;
+        if (track.scrollWidth <= viewport.clientWidth + 1) return;
         const originalWidth = track.scrollWidth;
         track.innerHTML += track.innerHTML;
 
@@ -1228,6 +1291,48 @@ a { color: inherit; }
         ['mouseleave', 'touchend', 'mouseup'].forEach(evt =>
             viewport.addEventListener(evt, () => { paused = false; }));
     }
+
+    // Engine tiles: the row drifts slowly back and forth so every domain passes
+    // by, and yields to the reader — it stops while hovered, focused or being
+    // dragged (pin/hide/reorder still work) and pauses after touch or wheel.
+    // Ping-pong rather than a cloned loop: clones would duplicate data-ids the
+    // personalization code relies on.
+    function startRibbonDrift() {
+        const rib = document.getElementById('ribbon');
+        if (!rib || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+        const SPEED = 22; // px per second
+        let dir = 1, pos = rib.scrollLeft, applied = pos, held = 0, last = 0, onScreen = true;
+        let pauseUntil = performance.now() + 1500;
+        const hold = () => { held++; };
+        const release = () => { held = Math.max(0, held - 1); pauseUntil = performance.now() + 1500; };
+        const nudge = ms => () => { pauseUntil = performance.now() + ms; };
+        rib.addEventListener('mouseenter', hold); rib.addEventListener('mouseleave', release);
+        rib.addEventListener('focusin', hold); rib.addEventListener('focusout', release);
+        rib.addEventListener('dragstart', hold); rib.addEventListener('dragend', release);
+        rib.addEventListener('touchstart', nudge(6000), { passive: true });
+        rib.addEventListener('wheel', nudge(4000), { passive: true });
+        if (window.IntersectionObserver) {
+            new IntersectionObserver(es => { onScreen = es[0].isIntersecting; }).observe(rib);
+        }
+        function step(now) {
+            const dt = last ? Math.min(now - last, 50) : 16;
+            last = now;
+            if (!held && onScreen && !document.hidden && now > pauseUntil) {
+                const max = rib.scrollWidth - rib.clientWidth;
+                // The browser rounds scrollLeft, so compare with what it last
+                // applied, not our fractional position, to spot a reader's scroll.
+                if (Math.abs(rib.scrollLeft - applied) > 1) pos = rib.scrollLeft;
+                pos += dir * SPEED * dt / 1000;
+                if (pos >= max) { pos = max; dir = -1; pauseUntil = now + 1800; }
+                if (pos <= 0) { pos = 0; dir = 1; pauseUntil = now + 1800; }
+                rib.scrollLeft = pos;
+                applied = rib.scrollLeft;
+            }
+            requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
+    startRibbonDrift();
 
     // Personalizable Intelligence Bar: pin / hide / drag-reorder, persisted to localStorage
     (function() {

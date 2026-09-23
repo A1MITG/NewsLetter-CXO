@@ -15,6 +15,7 @@ import pytest
 # network or race the cache file. Set before app.main is ever imported.
 os.environ.setdefault("BACKGROUND_REFRESH", "0")
 os.environ.setdefault("FETCH_ARTICLE_IMAGES", "0")
+os.environ.setdefault("FETCH_LEADER_QUOTES", "0")
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CACHE = ROOT / "instance" / "articles_cache.json"

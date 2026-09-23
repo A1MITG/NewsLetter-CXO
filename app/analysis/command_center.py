@@ -39,12 +39,9 @@ COMING_SOON_NOTE = (
 )
 
 
-# The three lead cards under "Global Situational Awareness", in page order.
-HERO_ENGINES = (
-    ('global', 'Global Affairs', 'global'),
-    ('economy', 'Economy, Business & Markets', 'economy'),
-    ('ai', 'AI, Technology & Innovation', 'ai'),
-)
+# Featured Analysis priority: the audience's own sectors first (GCC, then
+# Insurance, which covers insurtech), otherwise the biggest global story.
+FEATURED_ORDER = ('gcc', 'insurance', 'global')
 
 
 # Words that are never part of a person's name. The Sprint 5 extractor keys
@@ -152,8 +149,25 @@ def _is_the_subject(name, title):
     return re.search(pattern, title.lower()) is not None
 
 
-def build_pulse_cards(current_articles, limit=8):
-    """Executive Pulse: leaders with genuine coverage in today's corpus.
+# Executive Pulse is for business leaders, so the role that qualifies a card
+# must be a corporate one. A bare "president" is not enough on its own — it
+# is how "President Donald Trump" in a summary reached the row — and the
+# political titles _PULSE_ROLE also matches (governor, minister, secretary)
+# never qualify here.
+_CORPORATE_ROLE = re.compile(
+    r"\b(?:chief\s+\w+(?:\s+\w+)?\s+officer|chief\s+executive|managing\s+director|"
+    r"chairman|chairwoman|chairperson|chair|ceo|cfo|cto|coo|cio|cro|co-founder|founder)\b",
+    re.IGNORECASE,
+)
+
+
+def _mentions_surname(name, texts):
+    surname = r"\b" + re.escape(name.split()[-1].lower()) + r"\b"
+    return any(re.search(surname, t.lower()) for t in texts)
+
+
+def build_pulse_cards(current_articles, limit=8, exclude_urls=(), exclude_names=(), exclude_text=()):
+    """Executive Pulse: business leaders who are the subject of today's news.
 
     Was four hardcoded cards — name, photo and hand-written commentary baked
     into the HTML, each stamped "today" while pointing at July 2026 stories.
@@ -162,22 +176,30 @@ def build_pulse_cards(current_articles, limit=8):
     tiles: a leader story worth showing here often is not the top-scoring
     article in its Signal.
 
-    A card is only built when the headline itself names an executive next to a
-    role term AND the article carries a real photograph, because the layout
-    puts the person's name over the image as the subject of the story. No qualifying leader today means an empty row, which is the
+    A card is only built when the story names an executive in a corporate role
+    AND the headline is about them AND the article carries a real photograph,
+    because the layout puts the person's name over the image as the subject of
+    the story. No qualifying leader today means an empty row, which is the
     honest outcome the section's own note already promises.
+
+    Each person appears once on the page, in the most specific row: the
+    exclude_* arguments carry what People Movers (its stories and headlines)
+    and Leaders on Record (its leaders) already show. See build_people_rows.
     """
     from ..intelligence.entities import extract
     from ..intelligence.freshness import classify
     from ..intelligence.normalize import parse_date
 
-    seen_names = set()
+    seen_names = {n.lower() for n in exclude_names}
+    skip_urls = set(exclude_urls)
     cards = []
     for raw in current_articles:
         # The caller passes the raw corpus, which still holds whatever a feed
         # served; gate here so a dead feed cannot put a years-old leader story
         # under a "today" stamp.
         if not classify(parse_date(raw.get('date'))).get('is_current'):
+            continue
+        if raw.get('url', '') in skip_urls:
             continue
         image = (raw.get('image') or '').strip()
         if not image.startswith('http'):
@@ -191,14 +213,16 @@ def build_pulse_cards(current_articles, limit=8):
         # below is what keeps an incidental mention out.
         found = extract(title, raw.get('summary', ''))
         candidates = [(p.get('value', '').strip(), p.get('role', ''))
-                      for p in found.get('executives', [])]
-        candidates += [(n, '') for n in _names_from_headline(title)]
+                      for p in found.get('executives', [])
+                      if _CORPORATE_ROLE.search(p.get('role', '') or '')]
+        if _CORPORATE_ROLE.search(title):
+            candidates += [(n, '') for n in _names_from_headline(title)]
         for name, role in candidates:
             if not name or not _looks_like_a_person(name):
                 continue
             if not _is_the_subject(name, title):
                 continue
-            if name.lower() in seen_names:
+            if name.lower() in seen_names or _mentions_surname(name, exclude_text):
                 continue
             seen_names.add(name.lower())
             cards.append({
@@ -224,49 +248,96 @@ def _publisher(url):
     return host.replace('www.', '').split('.')[0]
 
 
-def build_hero_cards(engine_data, articles_by_title):
-    """Top current story per lead engine, for the hero row.
+_MOVE_LABELS = {'EXECUTIVE_APPOINTMENT': 'Appointed', 'EXECUTIVE_EXIT': 'Steps down'}
+_APPOINT_WORDS = re.compile(r"\b(?:named|names|appoint\w*|promot\w*|joins|succeed\w*|elected)\b", re.IGNORECASE)
 
-    These three cards were hardcoded HTML with base64 images and hand-written
-    commentary, so they stayed frozen on a July 2026 story while the tiles
-    below them moved on. An image is required: the card design is image-led
-    and renders badly without one, so we take the first scored article that
-    has a usable one rather than showing an empty frame.
+
+def build_movers(current_articles, limit=8):
+    """People Movers: appointments and exits that today's headlines state.
+
+    The Sprint 6 event detector finds the candidates; this row additionally
+    requires the detector's evidence to sit in the headline. On its own the
+    detector also fires on a summary such as "the lawsuit names OpenAI and its
+    CEO", which is not a move, and a row called People Movers has to be right
+    every time it shows a card.
     """
-    cards = []
-    for engine_id, label, icon in HERO_ENGINES:
-        engine = engine_data.get(engine_id) or {}
-        for article in engine.get('articles', []):
-            raw = articles_by_title.get(article['title'], {})
-            image = (raw.get('image') or '').strip()
-            if not image.startswith('http'):
-                continue
-            cards.append({
-                'engine': engine_id,
-                'label': label,
-                'icon': icon,
-                'title': article['title'],
-                'url': article['url'],
-                'image': image,
-                'summary': (raw.get('summary') or '').strip()[:220],
-            })
-            break
-    return cards
+    from ..intelligence import events
+    from ..intelligence.freshness import classify
+    from ..intelligence.normalize import parse_date, publisher_for
+
+    moves, seen = [], set()
+    for raw in current_articles:
+        when = parse_date(raw.get('date'))
+        if not classify(when).get('is_current'):
+            continue
+        title = (raw.get('title') or '').strip()
+        url = raw.get('url', '')
+        if not title or not url or url in seen:
+            continue
+        found = [e for e in events.detect(title, raw.get('summary', ''))
+                 if e['type'] in _MOVE_LABELS and any(x['where'] == 'title' for x in e['evidence'])]
+        if not found:
+            continue
+        types = {e['type'] for e in found}
+        # "X named president as Y steps down" is one change, not only an exit.
+        if 'EXECUTIVE_EXIT' in types and _APPOINT_WORDS.search(title):
+            types.add('EXECUTIVE_APPOINTMENT')
+        label = 'Leadership change' if len(types) > 1 else _MOVE_LABELS[next(iter(types))]
+        seen.add(url)
+        moves.append({
+            'title': title,
+            'url': url,
+            'type': label,
+            'kind': 'exit' if label == 'Steps down' else 'appointment',
+            'source': publisher_for(url.split('/')[2]) if url.count('/') >= 2 else '',
+            'date': when.strftime('%d %b') if when else '',
+            'ts': when.timestamp() if when else 0,
+        })
+    moves.sort(key=lambda m: m['ts'], reverse=True)
+    return moves[:limit]
 
 
-def build_featured(hero_cards, engine_data, articles_by_title):
+def build_record(quote_set, movers):
+    """Leaders on Record, minus anyone People Movers already shows.
+
+    ``quote_set`` is app.scraper.leader_quotes.get_leader_quotes(). A move is
+    the more specific fact about a person, so it wins.
+    """
+    titles = [m['title'] for m in movers]
+    record = dict(quote_set)
+    record['quotes'] = [q for q in quote_set.get('quotes', [])
+                        if not _mentions_surname(q['leader'], titles)]
+    return record
+
+
+def build_people_rows(current_articles, quote_set, pulse_limit=8):
+    """The three people rows, each person shown once, in the most specific row.
+
+    Precedence is People Movers > Leaders on Record > Executive Pulse: a move
+    is a fact about the person, a quote is their own voice, and Pulse is the
+    general "in the news" catch-all, so it takes whoever the others did not.
+    """
+    movers = build_movers(current_articles)
+    record = build_record(quote_set, movers)
+    pulse = build_pulse_cards(
+        current_articles, limit=pulse_limit,
+        exclude_urls={m['url'] for m in movers},
+        exclude_names={q['leader'] for q in record['quotes']},
+        exclude_text=[m['title'] for m in movers],
+    )
+    return {'_movers': movers, '_record': record, '_pulse': pulse}
+
+
+def build_featured(engine_data, articles_by_title):
     """The single large Featured Analysis card.
 
-    Was one hardcoded article (a July 2026 GCC office-leasing piece). Takes
-    the best current story not already used in the hero row, so the page never
-    shows the same headline twice.
+    Was one hardcoded article (a July 2026 GCC office-leasing piece). Takes the
+    first current story with a picture in FEATURED_ORDER: GCC, then Insurance,
+    otherwise the top Global Affairs story.
     """
-    used = {c['url'] for c in hero_cards}
-    for engine_id in ('gcc', 'insurance', 'economy', 'global', 'ai'):
+    for engine_id in FEATURED_ORDER:
         engine = engine_data.get(engine_id) or {}
         for article in engine.get('articles', []):
-            if article['url'] in used:
-                continue
             raw = articles_by_title.get(article['title'], {})
             image = (raw.get('image') or '').strip()
             if not image.startswith('http'):
@@ -284,7 +355,7 @@ def build_featured(hero_cards, engine_data, articles_by_title):
 def _article_image(raw):
     """An article's own image, or None.
 
-    Only absolute http(s) urls qualify — the same test the hero, featured and
+    Only absolute http(s) urls qualify — the same test the featured and
     Pulse builders apply. A relative path or a scraper placeholder would
     render as a broken frame, and the tile's vector is the better answer.
     """
@@ -296,7 +367,7 @@ def build_engine_data(signals_data, articles_by_title=None):
     """Map a synthesize_signals() result onto the Command Center tile contract.
 
     ``articles_by_title`` is the raw corpus keyed by title, the same map the
-    hero/featured builders already take. Passing it attaches each article's
+    featured builder already takes. Passing it attaches each article's
     own image so a tile can show the picture belonging to the headline it is
     currently cycling, instead of one baked-in photo sitting under all five.
     It stays optional: callers that only need titles and urls (and the tests

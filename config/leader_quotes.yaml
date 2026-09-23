@@ -1,0 +1,68 @@
+# Leaders on Record — who is listened to, and where.
+#
+# A quote reaches the page only when it sits inside quotation marks in a
+# published article AND one of these leaders is named as the speaker right
+# beside it ("... said Jensen Huang", "Altman said: ..."). Nothing is
+# paraphrased or generated. See app/scraper/leader_quotes.py.
+#
+# Company only, never a job title: titles change, and a wrong one would be a
+# factual error printed under someone's name.
+
+window_days: 14          # how far back quotes are kept
+max_per_leader: 2
+max_chars: 280           # longer quotes are excerpted at a sentence, marked with …
+refresh_hours: 6         # how long a fetched set stays fresh
+
+leaders:
+  - { name: Sam Altman,         company: OpenAI }
+  - { name: Greg Brockman,      company: OpenAI }
+  - { name: Dario Amodei,       company: Anthropic }
+  - { name: Daniela Amodei,     company: Anthropic }
+  - { name: Mike Krieger,       company: Anthropic }
+  - { name: Sundar Pichai,      company: Google }
+  - { name: Demis Hassabis,     company: Google DeepMind }
+  - { name: Koray Kavukcuoglu,  company: Google }
+  - { name: Jensen Huang,       company: NVIDIA }
+  - { name: Lisa Su,            company: AMD }
+  - { name: Satya Nadella,      company: Microsoft }
+  - { name: Mustafa Suleyman,   company: Microsoft AI }
+  - { name: Kevin Scott,        company: Microsoft }
+  - { name: Mark Zuckerberg,    company: Meta }
+  - { name: Alexandr Wang,      company: Meta }
+  - { name: Liang Wenfeng,      company: DeepSeek }
+  - { name: Yang Zhilin,        company: Moonshot AI (Kimi) }
+  - { name: Arthur Mensch,      company: Mistral AI }
+  - { name: Aravind Srinivas,   company: Perplexity }
+
+# Company newsrooms and blogs: every recent post is read.
+newsrooms:
+  OpenAI: https://openai.com/news/rss.xml
+  Google DeepMind: https://deepmind.google/blog/rss.xml
+  Google: https://blog.google/technology/ai/rss/
+  NVIDIA Newsroom: https://nvidianews.nvidia.com/releases.xml
+  NVIDIA Blog: https://blogs.nvidia.com/feed/
+  Microsoft: https://blogs.microsoft.com/feed/
+  Meta: https://about.fb.com/feed/
+
+# Technology press: read only when an item names a watched leader or company.
+# Fortune's section feeds return 404, so its main feed is used. Axios article
+# pages come back empty to a script, but its feed carries each article's full
+# text, which is read instead.
+press:
+  TechCrunch: https://techcrunch.com/category/artificial-intelligence/feed/
+  The Verge: https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+  CNBC: https://www.cnbc.com/id/19854910/device/rss/rss.html
+  ET Tech: https://economictimes.indiatimes.com/tech/rssfeeds/13357270.cms
+  Wired: https://www.wired.com/feed/tag/ai/latest/rss
+  MIT Technology Review: https://www.technologyreview.com/topic/artificial-intelligence/feed
+  Fortune: https://fortune.com/feed/
+  Axios: https://api.axios.com/feed/
+
+# Anthropic publishes no feed; its news page is read directly.
+anthropic_news: https://www.anthropic.com/news
+
+# Feeds carry each other's posts (NVIDIA's newsroom feed includes blog posts),
+# so a card names the site a quote was actually published on.
+source_by_host:
+  blogs.nvidia.com: NVIDIA Blog
+  nvidianews.nvidia.com: NVIDIA Newsroom

@@ -102,11 +102,12 @@ if __name__ == '__main__':
     unittest.main()
 
 
-class TestHeroCardsAreLive(unittest.TestCase):
-    """The lead row under "Global Situational Awareness".
+class TestPageRows(unittest.TestCase):
+    """The rows under the engine tiles, in their agreed order.
 
-    It was three hardcoded <a> cards with base64 images, so it stayed frozen
-    on July 2026 stories while the live tiles below it moved on.
+    The Global Affairs / Economy / AI card row that used to sit here repeated
+    three engines already in the tile row, so it was removed; its old
+    hardcoded July-2026 stories must not come back with it.
     """
 
     @classmethod
@@ -115,31 +116,29 @@ class TestHeroCardsAreLive(unittest.TestCase):
         cls.payload = client.get('/api/command-center').get_json()
         cls.page = client.get('/').get_data(as_text=True)
 
-    def test_endpoint_returns_hero_cards(self):
-        hero = self.payload.get('_hero')
-        self.assertIsNotNone(hero, 'no _hero in payload')
-        self.assertTrue(hero, 'hero row would render empty')
+    def test_rows_appear_in_the_agreed_order(self):
+        order = ['id="ribbon"', 'id="featuredSlot"', 'id="moversRow"',
+                 'id="pulseSection"', 'id="recordRow"']
+        positions = [self.page.index(marker) for marker in order]
+        self.assertEqual(positions, sorted(positions))
 
-    def test_each_card_has_what_the_layout_needs(self):
-        for card in self.payload['_hero']:
-            for field in ('title', 'url', 'image', 'label', 'icon'):
-                self.assertTrue(card.get(field), f'card missing {field}')
-            self.assertTrue(card['url'].startswith('http'))
-            self.assertTrue(card['image'].startswith('http'))
-
-    def test_cards_follow_the_fixed_page_order(self):
-        order = [c['engine'] for c in self.payload['_hero']]
-        self.assertEqual(order, [e for e in ('global', 'economy', 'ai')
-                                 if e in order])
-
-    def test_no_hardcoded_cards_remain_in_the_page(self):
-        """The old cards were frozen July-2026 stories baked into the HTML."""
-        self.assertIn('id="econGrid"', self.page)
+    def test_repeated_engine_row_is_gone(self):
+        self.assertNotIn('id="econGrid"', self.page)
+        self.assertNotIn('_hero', self.payload)
         self.assertNotIn('War Risk Insurance Surges for Southern Red Sea', self.page)
         self.assertNotIn('Anthropic May Require All Employees', self.page)
 
-    def test_hero_is_not_treated_as_an_engine(self):
-        self.assertNotIn('articles', self.payload['_hero'][0])
+    def test_endpoint_serves_the_people_rows(self):
+        self.assertIsInstance(self.payload.get('_movers'), list)
+        record = self.payload.get('_record')
+        self.assertIsInstance(record, dict)
+        self.assertIsInstance(record.get('quotes'), list)
+        self.assertTrue(record.get('leaders'), 'Leaders on Record has no watchlist')
+
+    def test_people_rows_are_not_treated_as_engines(self):
+        """The page peels the _-prefixed keys off before ENGINE_DATA, or the
+        ticker and tile code would iterate over them as domains."""
+        self.assertIn('const { _meta, _featured, _movers, _pulse, _record, ...engines } = data;', self.page)
 
 
 class TestFeaturedIsLive(unittest.TestCase):
@@ -159,9 +158,11 @@ class TestFeaturedIsLive(unittest.TestCase):
         for field in ('title', 'url', 'image'):
             self.assertTrue(f.get(field), f'featured missing {field}')
 
-    def test_featured_does_not_repeat_a_hero_headline(self):
-        hero_urls = {c['url'] for c in self.payload['_hero']}
-        self.assertNotIn(self.payload['_featured']['url'], hero_urls)
+    def test_featured_comes_from_the_priority_engines(self):
+        """GCC, then Insurance, otherwise the top Global Affairs story."""
+        from app.analysis.command_center import FEATURED_ORDER
+        urls = {a['url'] for e in FEATURED_ORDER for a in self.payload.get(e, {}).get('articles', [])}
+        self.assertIn(self.payload['_featured']['url'], urls)
 
     def test_no_hardcoded_featured_remains(self):
         self.assertIn('id="featuredSlot"', self.page)
@@ -169,6 +170,6 @@ class TestFeaturedIsLive(unittest.TestCase):
 
     def test_page_structure_survived_the_swap(self):
         """The hardcoded blocks were spliced out; the rest must be intact."""
-        for marker in ('id="econGrid"', 'class="pipeline"', 'class="why"',
+        for marker in ('id="moversRow"', 'id="recordRow"', 'class="pipeline"', 'class="why"',
                        'class="closer"', 'id="founder"', '</nav>'):
             self.assertIn(marker, self.page, f'{marker} lost from the page')
