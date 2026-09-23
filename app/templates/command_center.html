@@ -1339,6 +1339,10 @@ a { color: inherit; }
         viewport.scrollLeft = 0;
         const cards = Array.from(track.children);
         if (!cards.length) return;
+        // Not laid out yet (a hidden or not-yet-sized tab reports width 0):
+        // at 0 everything "overflows", so decide nothing and let the resize
+        // that follows when the page gets its width do it.
+        if (!viewport.clientWidth) return;
         const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
         const basis = parseFloat(getComputedStyle(cards[0]).flexBasis) || cards[0].getBoundingClientRect().width;
         if (cards.length * basis + (cards.length - 1) * gap <= viewport.clientWidth) return;
