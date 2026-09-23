@@ -2,6 +2,7 @@
 import logging
 from flask import Blueprint, jsonify, request
 from ..scraper.store import get_articles, get_cache_date, cache_age_minutes
+from ..scraper.article_images import fill_signal_images
 from ..analysis.synthesis import synthesize_articles
 from ..analysis.signals import synthesize_signals
 from ..analysis.command_center import (build_engine_data, build_featured, build_hero_cards,
@@ -56,6 +57,7 @@ def get_command_center():
         signals_data = synthesize_signals(scraped_articles,
                                           data_date=get_cache_date())
         by_title = {a.get('title'): a for a in scraped_articles}
+        fill_signal_images(signals_data, by_title)
         payload = build_engine_data(signals_data, by_title)
         payload['_hero'] = build_hero_cards(payload, by_title)
         payload['_featured'] = build_featured(payload['_hero'], payload, by_title)

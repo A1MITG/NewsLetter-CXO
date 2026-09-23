@@ -26,6 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.scraper.store import get_articles, get_cache_date
+from app.scraper.article_images import fill_signal_images
 from app.analysis.signals import synthesize_signals
 from app.analysis.command_center import (build_engine_data, build_featured, build_hero_cards,
                                       build_pulse_cards)
@@ -59,6 +60,7 @@ def main(refresh=False):
     by_name = {s['name']: s for s in signals_data['signals']}
 
     by_title = {a.get('title'): a for a in articles}
+    fill_signal_images(signals_data, by_title)
     engine_data = build_engine_data(signals_data, by_title)
     engine_data['_hero'] = build_hero_cards(engine_data, by_title)
     engine_data['_featured'] = build_featured(
