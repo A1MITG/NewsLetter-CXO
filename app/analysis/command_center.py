@@ -18,11 +18,13 @@ SIGNAL_TO_ENGINE = {
     'Signal AI': ('ai', 'AI, Technology & Innovation'),
     'Signal GCC': ('gcc', 'GCC & Enterprise Technology'),
     'Signal Insurance': ('insurance', 'Insurance & Financial Services'),
+    # Tile-only signals (signals.TILE_SIGNALS): scored only for the Command
+    # Center, which calls synthesize_signals(include_tile_signals=True).
+    'Signal Banking': ('banking', 'Banking'),
 }
 
 # Engines with no scoring logic yet — written out honestly, not fabricated.
 COMING_SOON_ENGINES = {
-    'banking': 'Banking',
     'manufacturing': 'Manufacturing',
     'energy': 'Energy',
     'defence': 'Defence',

@@ -55,7 +55,8 @@ def get_command_center():
         logger.info("Serving %d articles for command center (daily cache).",
                     len(scraped_articles))
         signals_data = synthesize_signals(scraped_articles,
-                                          data_date=get_cache_date())
+                                          data_date=get_cache_date(),
+                                          include_tile_signals=True)
         by_title = {a.get('title'): a for a in scraped_articles}
         fill_signal_images(signals_data, by_title)
         payload = build_engine_data(signals_data, by_title)

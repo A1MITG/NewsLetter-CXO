@@ -4,11 +4,12 @@
 Run daily (alongside scripts/build_static_signals.py) to write:
     public/command_center_data.json
 
-Maps the 6 real Signal categories from app/analysis/signals.py onto the
-Command Center's existing engine ids. The other 9 tiles (Banking,
-Manufacturing, Energy, Defence, Cyber, Supply Chain, Healthcare, Telecom,
-Climate) have no scoring engine behind them yet, so they're written out
-honestly as comingSoon rather than fabricated content.
+Maps the scored Signal categories from app/analysis/signals.py onto the
+Command Center's engine ids: the Signals page's six plus the tile-only
+domains in signals.TILE_SIGNALS (Banking first, added one at a time). Tiles
+with no scoring engine behind them yet are listed in
+command_center.COMING_SOON_ENGINES and written out honestly as comingSoon
+rather than fabricated content.
 
 Signal Executive is intentionally left out of this mapping — the Command
 Center layout has no tile for it.
@@ -56,7 +57,9 @@ def main(refresh=False):
                 len(articles), data_date or "undated",
                 " (re-scraped)" if refresh else "")
 
-    signals_data = synthesize_signals(articles, data_date=data_date)
+    # The Command Center also scores its tile-only domains (Banking, ...);
+    # the Signals page build does not, and keeps its six.
+    signals_data = synthesize_signals(articles, data_date=data_date, include_tile_signals=True)
     by_name = {s['name']: s for s in signals_data['signals']}
 
     by_title = {a.get('title'): a for a in articles}

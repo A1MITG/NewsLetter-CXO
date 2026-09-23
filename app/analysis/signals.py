@@ -34,6 +34,16 @@ SIGNALS = [
      'audience': 'Senior Leaders'},
 ]
 
+# Domains that exist only as Command Center tiles. The Signals page keeps the
+# six above, and classifies exactly as before: these join the competition for
+# an article only when a caller passes include_tile_signals=True. Added one
+# at a time, each replacing a "coming soon" tile.
+TILE_SIGNALS = [
+    {'name': 'Signal Banking', 'purpose': 'Banks · Lending · Payments · Central Banks',
+     'audience': 'BFSI'},
+]
+_TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
+
 # --- Signal GCC: faceted evidence -----------------------------------------
 #
 # GCC is the one Signal where a flat keyword bag kept misfiring, because the
@@ -242,10 +252,48 @@ KEYWORDS = {
         'board': 1, 'executive': 1, 'executives': 1, 'governance': 1,
         'names': 1,
     },
+    # Tile-only (see TILE_SIGNALS). First draft, 2026-09-23: weights follow
+    # the other signals' scale (4 decisive, 3 strong, 2 medium, 1 weak) and
+    # are expected to be tuned in review.
+    'Signal Banking': {
+        'nbfc': 4, 'nbfcs': 4, 'non-performing assets': 4, 'npa': 4, 'npas': 4,
+        'bad loans': 4, 'repo rate': 4, 'basel': 4, 'neobank': 4,
+        'payments bank': 4, 'microfinance': 4, 'digital lending': 4,
+        'cooperative bank': 4, 'co-operative bank': 4, 'banking sector': 4,
+        'monetary policy committee': 4, 'vrrr': 4,
+        'banking': 3, 'banker': 3, 'bankers': 3, 'lender': 3, 'lenders': 3,
+        'rbi': 3, 'reserve bank': 3, 'central bank': 3, 'federal reserve': 3,
+        'monetary policy': 3, 'rate cut': 3, 'rate hike': 3, 'fintech': 3,
+        'upi': 3, 'credit card': 3, 'mortgage': 3, 'mortgages': 3,
+        'home loan': 3, 'kyc': 3, 'money laundering': 3,
+        'sbi': 3, 'state bank of india': 3, 'hdfc bank': 3, 'icici bank': 3,
+        'axis bank': 3, 'kotak mahindra bank': 3, 'jpmorgan': 3,
+        'goldman sachs': 3, 'citigroup': 3, 'wells fargo': 3,
+        'bank of america': 3, 'hsbc': 3, 'barclays': 3,
+        'bank': 2, 'banks': 2, 'loan': 2, 'loans': 2, 'lending': 2,
+        'deposit': 2, 'deposits': 2, 'payments': 2, 'liquidity': 2,
+        'interest rate': 2, 'interest rates': 2,
+        'credit': 1,
+    },
+}
+
+# Phrases that contain a signal's keyword but are not about that signal. They
+# are blanked out of the text before that signal (and only that signal) is
+# scored: "West Bank" is geopolitics, "food bank" is charity, "gold deposits"
+# are geology — none of them is banking.
+NEUTRALIZE = {
+    'Signal Banking': re.compile(
+        r"\b(?:west bank|world bank|food banks?|blood banks?|sperm banks?|seed banks?|"
+        r"piggy banks?|river ?banks?|memory banks?|data banks?|power banks?|"
+        r"(?:gold|mineral|lithium|oil|gas|copper|coal|rare earth) deposits?)\b"
+    ),
 }
 
 # Most specific first: on tied scores, the article lands in the earlier signal.
-PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal AI',
+# Tile-only domains sit after the audience's core (GCC, Insurance) and ahead
+# of the broad signals, so a banking story on a tie lands in Banking rather
+# than Business.
+PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal AI',
             'Signal Global', 'Signal Executive', 'Signal Business']
 
 THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
@@ -370,11 +418,15 @@ def score_signals(title, summary=''):
     summary = _normalize(summary)
     scores = {}
     for name, patterns in _COMPILED.items():
+        t, s = title, summary
+        blank = NEUTRALIZE.get(name)
+        if blank:
+            t, s = blank.sub(' ', t), blank.sub(' ', s)
         total = 0
         for regex, weight in patterns:
-            if regex.search(title):
+            if regex.search(t):
                 total += weight * TITLE_MULTIPLIER
-            elif summary and regex.search(summary):
+            elif s and regex.search(s):
                 total += weight
         scores[name] = total
 
@@ -395,17 +447,21 @@ def score_signals(title, summary=''):
     return scores
 
 
-def classify_article(title, summary=''):
+def classify_article(title, summary='', include_tile_signals=False):
     """Return (signal name, score), or None when nothing clears its floor.
 
     Each signal is tested against its own floor before the winner is picked,
     rather than picking the winner and then testing it. Otherwise a signal
     carrying a higher floor could take the article on score and then fail its
     own bar, dropping an article another signal would have classified.
+
+    Tile-only signals (TILE_SIGNALS) compete only when include_tile_signals is
+    set, so the Signals page's six classify exactly as they did before.
     """
     scores = score_signals(title, summary)
     eligible = [name for name in PRIORITY
-                if scores[name] >= SIGNAL_FLOORS.get(name, THRESHOLD)]
+                if (include_tile_signals or name not in _TILE_NAMES)
+                and scores[name] >= SIGNAL_FLOORS.get(name, THRESHOLD)]
     if not eligible:
         return None
     # max() keeps the first maximum, so PRIORITY still breaks ties.
@@ -434,7 +490,7 @@ def _is_current(article):
     return classify_freshness(parse_date(article.get('date'))).get('is_current', False)
 
 
-def synthesize_signals(articles, data_date=None, require_current=True):
+def synthesize_signals(articles, data_date=None, require_current=True, include_tile_signals=False):
     """Group scraped articles under the six Signals, strongest evidence first.
 
     ``require_current`` applies the Sprint 3 freshness gate: anything older
@@ -442,9 +498,14 @@ def synthesize_signals(articles, data_date=None, require_current=True):
     publication date, is excluded. Without it a feed that goes stale upstream
     (as moneycontrol.com did, serving April 2024 items under HTTP 200) puts
     multi-year-old stories on a page stamped with today's date.
+
+    ``include_tile_signals`` adds the Command Center's tile-only domains
+    (TILE_SIGNALS) to both the competition and the result. The Signals page
+    leaves it off and keeps its six.
     """
+    listed = SIGNALS + (TILE_SIGNALS if include_tile_signals else [])
     seen_titles = set()
-    grouped = {s['name']: [] for s in SIGNALS}
+    grouped = {s['name']: [] for s in listed}
     unclassified = 0
     stale = 0
     for article in articles:
@@ -457,7 +518,7 @@ def synthesize_signals(articles, data_date=None, require_current=True):
         if require_current and not _is_current(article):
             stale += 1
             continue
-        result = classify_article(title, article.get('summary', ''))
+        result = classify_article(title, article.get('summary', ''), include_tile_signals)
         if result is None:
             unclassified += 1
             continue
@@ -488,6 +549,6 @@ def synthesize_signals(articles, data_date=None, require_current=True):
                 'audience': s['audience'],
                 'articles': grouped[s['name']],
             }
-            for s in SIGNALS
+            for s in listed
         ],
     }
