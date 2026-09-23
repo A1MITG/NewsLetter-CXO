@@ -4,7 +4,7 @@ A breakpoint (BP) is a commit you can safely return to. This register lists ever
 one, what it changed, how far it has travelled (local → committed → pushed →
 live), and the exact command to roll it back.
 
-*Last updated: 2026-09-24 (BP-19 live) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
+*Last updated: 2026-09-24 (BP-23 live) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
 (GitHub now redirects it to `A1MITG/SYGNALZ`).*
 
 ---
@@ -27,6 +27,10 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 
 | BP | Commit | Date (IST) | Stage | Change | What it did | Roll back with |
 |---|---|---|---|---|---|---|
+| BP-23 | `6626dd1` | 2026-09-24 00:37 | **Live** | ManufacturingTile | The last "coming soon" tile made live, with the same rules as Defence (headline required, floor 5; "plant", "production", "PMI" at 2). Power plants and oil production stay with Energy; film "production", Palantir Foundry, "manufacturing consent" are blanked. Placed after Supply Chain, ahead of AI. Holds 8 stories on 2026-09-24. No tile is "coming soon" any more. First-draft rubric. Tests: `tests/test_manufacturing_tile.py`. Live as `signals-deploy` `767ebfb`. | `git revert 6626dd1`, then rebuild and republish |
+| BP-22 | `d5eb27d` | 2026-09-24 00:32 | **Live** | SupplyChainTile | Eighth tile made live, same rules (headline required, floor 5; "shortage", "port", "bottleneck", "UPS" at 2). The context rule: a housing, talent, water or cash "shortage" is not supply chain (a truck-driver shortage is). Software supply-chain attacks stay with Cyber; freight insurance with Insurance; India's UPS pension scheme is blanked. Holds 8 stories on 2026-09-24; FedEx's and Old Dominion's rate increases leave Banking and Global. Tests: `tests/test_supply_chain_tile.py`. Live as `signals-deploy` `767ebfb`. | `git revert d5eb27d` (after BP-23 if reverting both), then rebuild and republish |
+| BP-21 | `12db981` | 2026-09-24 00:29 | **Live** | TelecomTile | Seventh tile made live, same rules (headline required, floor 5; "subscribers", "satellite", "ITU" at 2). Data centres count (the tile is Telecom & Digital Infrastructure). Airtel Money, Jio Financial, JioBlackRock and JioHotstar are blanked; Defence now blanks "submarine cable". The scraper drops Mobile World Live's French and Spanish republications. Holds 8 stories on 2026-09-24. Tests: `tests/test_telecom_tile.py`. Live as `signals-deploy` `767ebfb`. | `git revert 12db981` (after BP-22/23), then rebuild and republish |
+| BP-20 | `393bb4d` | 2026-09-24 00:25 | **Live** | DomainFeeds | Trade-press feeds for the last three tiles: ET Telecom, RCR Wireless, Mobile World Live; Supply Chain Dive, The Loadstar, FreightWaves; Manufacturing Dive, ET Manufacturing (all tier 2 in `config/sources.yaml`). The scrape grows from 370 to about 500 articles; existing tiles only gain. Titles are unescaped once more (ET Telecom double-escapes "&amp;"). | `git revert 393bb4d` (after BP-21 to BP-23, which depend on it), then rescrape, rebuild and republish |
 | BP-19 | `16f2d16` | 2026-09-24 00:05 | **Live** | ClimateTile | Sixth "coming soon" tile made live, with the same rules as Defence: the headline must name it, and bare "storm", "flood", "monsoon" and "rainfall" sit at 2 with a Climate floor of 5. Renewables and power stay with Energy; insured losses and cat bonds stay with Insurance. `NEUTRALIZE`: the business, political and investment "climate"; metaphorical storms, floods, droughts ("London's listing drought") and landslides; Cyber's Salt and Volt Typhoon hacker groups. Placed after Cyber, ahead of AI. Holds 8 stories on the 2026-09-23 scan, mostly extreme weather; Executive gives up a wildfire-liability story (7 to 6). First-draft rubric. Tests: `tests/test_climate_tile.py`. Live as `signals-deploy` `5449bb4`. | `git revert 16f2d16`, then rebuild and republish |
 | BP-18 | `d62ee64` | 2026-09-23 23:58 | **Live** | CyberTile | Fifth "coming soon" tile made live, with the same rules as Defence: the headline must name it, and bare "privacy", "breach", "scam" and "hack" sit at 2 with a Cyber floor of 5. `NEUTRALIZE`: cyber insurance (cover, underwriting, claims, cat bonds, which are Insurance's), "Cyber Monday", "life hacks", "breach of contract", "Trojan horse". Takes "cyber defence", which Defence already blanks. Unambiguous names only ("Palo Alto Networks"; no "Wiz" or "Tenable"). Placed after Healthcare, ahead of AI. Holds 5 stories on 2026-09-23, 4 of them from AI's overflow; every other tile keeps its count. First-draft rubric. Tests: `tests/test_cyber_tile.py`. Live as `signals-deploy` `6461974`. | `git revert d62ee64`, then rebuild and republish |
 | BP-17 | `936d870` | 2026-09-23 23:41 | **Live** | HealthcareTile | Fourth "coming soon" tile made live, with the same rules as Defence: the headline must name it, and bare "medical", "drug" and "patients" sit at 2 with a Healthcare floor of 5. `NEUTRALIZE`: health insurance, health insurers and COVID insurance claims (Insurance's), drug crime, computer viruses, "financial health", "pandemic-era" loans and metaphors. Unambiguous names only ("World Health Organization", not "WHO"). Placed after Defence, ahead of AI. Holds 2 stories on 2026-09-23, neither taken from another tile. First-draft rubric. Tests: `tests/test_healthcare_tile.py`. Live as `signals-deploy` `4dc164f`. | `git revert 936d870`, then rebuild and republish |
@@ -48,7 +52,7 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 | BP-01 | `d82d6d6` | 2026-09-21 16:58 | **Live** | GCCFix | "India"/"Indian" alone no longer classify a story as Signal GCC. Affects which stories reach the live GCC tile. | `git revert d82d6d6`, then rebuild data and republish |
 
 **Dependencies to respect when rolling back**
-- **Revert newest first.** BP-02/03, BP-04, BP-06, BP-08 and BP-10 to BP-19 all touch the Command Center page (`command_center_source.html`, the template, `public/`). Reverting an older one on its own will likely conflict.
+- **Revert newest first.** BP-02/03, BP-04, BP-06, BP-08 and BP-10 to BP-23 all touch the Command Center page (`command_center_source.html`, the template, `public/`). Reverting an older one on its own will likely conflict.
 - BP-02 and BP-03 go together; reverting only one leaves the source template and the generated page out of step.
 - BP-04 and BP-01 both change the GCC rules in `app/analysis/signals.py`. Revert BP-04 first if you revert both.
 - Reverting a **Live** breakpoint doesn't change the website until `signals-deploy` is republished: run the *Build Signals* workflow, or push a rebuilt tree.
@@ -75,8 +79,9 @@ The workflow force-pushes this branch daily, so its history is short. Keep this 
 
 | Live state | Commit | Published | What visitors saw |
 |---|---|---|---|
-| **Current** | `5449bb4` | 2026-09-24 00:06 | BP-19: Climate tile live (11 live tiles, 3 coming soon) |
-| Previous | `6461974` | 2026-09-23 23:58 | BP-18: Cyber tile live (10 live tiles, 4 coming soon) |
+| **Current** | `767ebfb` | 2026-09-24 00:37 | BP-20 to BP-23: Telecom, Supply Chain and Manufacturing tiles live, with their new feeds (all 14 tiles live) |
+| Previous | `5449bb4` | 2026-09-24 00:06 | BP-19: Climate tile live (11 live tiles, 3 coming soon) |
+| Earlier | `6461974` | 2026-09-23 23:58 | BP-18: Cyber tile live (10 live tiles, 4 coming soon) |
 | Earlier | `4dc164f` | 2026-09-23 23:41 | BP-17: Healthcare tile live (9 live tiles, 5 coming soon) |
 | Earlier | `07629b2` | 2026-09-23 23:29 | BP-16: Pulse zero-width guard, on top of the BP-15 Defence tile (8 live tiles) |
 | Earlier | `3748930` | 2026-09-23 23:23 | BP-15: Defence tile live |
