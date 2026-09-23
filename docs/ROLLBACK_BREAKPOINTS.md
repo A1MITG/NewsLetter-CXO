@@ -4,7 +4,7 @@ A breakpoint (BP) is a commit you can safely return to. This register lists ever
 one, what it changed, how far it has travelled (local → committed → pushed →
 live), and the exact command to roll it back.
 
-*Last updated: 2026-09-23 (BP-14 live) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
+*Last updated: 2026-09-23 (BP-16 live) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
 (GitHub now redirects it to `A1MITG/SYGNALZ`).*
 
 ---
@@ -27,6 +27,8 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 
 | BP | Commit | Date (IST) | Stage | Change | What it did | Roll back with |
 |---|---|---|---|---|---|---|
+| BP-16 | `6440fa8` | 2026-09-23 23:29 | **Live** | PulseZeroWidth | Fix found while checking BP-15: a tab laid out at zero width (e.g. a hidden pane) showed Pulse's 2 leaders 4 times, because at width 0 every card "overflows". The loop now decides nothing until the row has a width and waits for the resize. Live as `signals-deploy` `07629b2`. | `git revert 6440fa8`, then rebuild and republish |
+| BP-15 | `1f9d1f8` | 2026-09-23 23:23 | **Live** | DefenceTile | Third "coming soon" tile made live, with the same rules as Energy. `NEUTRALIZE`: sport ("title defence"), law ("defence lawyers", "self-defence"), metaphor ("army of", "secret weapon"), "Air Force One", veterans' personal stories, and cyber defence (Cyber's). Bare "defence" and "drone" at 2 with a Defence floor of 5 (`SIGNAL_FLOORS`), so neither qualifies alone. Placed after Energy, ahead of Global. Holds 4 stories on 2026-09-23. First-draft rubric. Tests: `tests/test_defence_tile.py`. Live as `signals-deploy` `3748930`. | `git revert 1f9d1f8` (after BP-16 if reverting both), then rebuild and republish |
 | BP-14 | `eab25b1` | 2026-09-23 22:36 | **Live** | EnergyTile | Second "coming soon" tile made live, with the Banking review's rules built in: `TITLE_REQUIRED`, `NEUTRALIZE` (kitchen oils, tear gas, greenhouse gas, nuclear weapons and talks, shell companies, solar eclipses, energy drinks), companies in unambiguous forms only ("Shell plc", "BP plc"), and Indian-market terms (OMCs, LPG, CBG, discoms). Placed after Banking in `PRIORITY`. Holds 8 stories on 2026-09-23, none taken from another tile's top 8. First-draft rubric. Tests: `tests/test_energy_tile.py`. Live as `signals-deploy` `ee0f4cd`. | `git revert eab25b1`, then rebuild and republish |
 | BP-13 | `6446cfb` | 2026-09-23 21:30 | **Live** | BankingRubric | Banking rubric review: `TITLE_REQUIRED` (the headline must carry a Banking keyword); `NEUTRALIZE` gains "banks on" as a verb and bank-branded insurers, fund houses and brokers (SBI Life, ICICI Lombard, HDFC AMC, Lloyd's…); bank results, payment-rail and central-bank vocabulary; 64 banks by name (19 Indian, 11 US, 18 European/UK, 16 Asia-Pacific/Middle East/Canada); investment banks at 2. Removes four false positives from the 2026-09-23 pool. Live as `signals-deploy` `582440a`. | `git revert 6446cfb` (after BP-14 if reverting both), then rebuild and republish |
 | BP-12 | `3caca00` | 2026-09-23 20:38 | **Live** | PulseLoop | Fix for BP-10: Executive Pulse showed its 2 leaders twice on the live site. The loop now decides from the cards' natural width (flex-basis + gaps) rather than rounded scrollWidth, and re-decides on resize from the original cards. Live as `signals-deploy` `c367713`. | `git revert 3caca00`, then rebuild and republish |
@@ -43,7 +45,7 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 | BP-01 | `d82d6d6` | 2026-09-21 16:58 | **Live** | GCCFix | "India"/"Indian" alone no longer classify a story as Signal GCC. Affects which stories reach the live GCC tile. | `git revert d82d6d6`, then rebuild data and republish |
 
 **Dependencies to respect when rolling back**
-- **Revert newest first.** BP-02/03, BP-04, BP-06, BP-08 and BP-10 to BP-14 all touch the Command Center page (`command_center_source.html`, the template, `public/`). Reverting an older one on its own will likely conflict.
+- **Revert newest first.** BP-02/03, BP-04, BP-06, BP-08 and BP-10 to BP-16 all touch the Command Center page (`command_center_source.html`, the template, `public/`). Reverting an older one on its own will likely conflict.
 - BP-02 and BP-03 go together; reverting only one leaves the source template and the generated page out of step.
 - BP-04 and BP-01 both change the GCC rules in `app/analysis/signals.py`. Revert BP-04 first if you revert both.
 - Reverting a **Live** breakpoint doesn't change the website until `signals-deploy` is republished: run the *Build Signals* workflow, or push a rebuilt tree.
@@ -70,8 +72,10 @@ The workflow force-pushes this branch daily, so its history is short. Keep this 
 
 | Live state | Commit | Published | What visitors saw |
 |---|---|---|---|
-| **Current** | `ee0f4cd` | 2026-09-23 22:36 | BP-14: Energy tile live (7 live tiles) |
-| Previous | `582440a` | 2026-09-23 22:28 | BP-13: Banking rubric review |
+| **Current** | `07629b2` | 2026-09-23 23:29 | BP-16: Pulse zero-width guard, on top of the BP-15 Defence tile (8 live tiles) |
+| Previous | `3748930` | 2026-09-23 23:23 | BP-15: Defence tile live |
+| Earlier | `ee0f4cd` | 2026-09-23 22:36 | BP-14: Energy tile live (7 live tiles) |
+| Earlier | `582440a` | 2026-09-23 22:28 | BP-13: Banking rubric review |
 | Earlier | `c367713` | 2026-09-23 20:38 | BP-12: Executive Pulse loop fix, on top of the BP-11 Banking tile |
 | Earlier | `bc4845d` | 2026-09-23 20:29 | BP-11: Banking tile live; Pulse could still show duplicate cards |
 | Earlier | `104a533` | 2026-09-23 20:09 | BP-10 layout: engines → Featured → People Movers → Executive Pulse → Leaders on Record; Signals at `/signals` |
