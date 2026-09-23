@@ -1,24 +1,61 @@
 # app/analysis/signals.py
-"""Classify scraped articles into the six launch Signals (Phase 1).
+"""Signals: which Signal each news article belongs to.
 
-Scoring framework
------------------
-Every keyword carries an evidence weight: 4 = definitive phrase, 3 = strong
-term, 2 = medium, 1 = weak/contextual. An article's score for a signal is the
-sum of the weights of matched keywords (whole-word matches only), with title
-matches counting double. An article is classified only when its best score
-reaches THRESHOLD — weak hits alone (e.g. "India" inside "Air India") can
-never force-fit an article into a bucket. Ties resolve toward the more
-specific signal (PRIORITY order). Articles that clear the bar nowhere are
-left unclassified and dropped from the view rather than misfiled.
+The file reads top to bottom:
+
+  1. THE SIGNALS   The fifteen Signals, where each one appears, and the order
+                   that settles a tie.
+  2. SHARED RULES  The numbers every Signal uses.
+  3. THE RUBRICS   One rubric per Signal: its keywords and their points, the
+                   phrases it ignores, and its two settings.
+  4. MACHINERY     The code that applies the rubrics. Changing a rubric never
+                   needs a change there.
+
+How an article is scored
+------------------------
+For each Signal, on the article's headline and summary:
+
+  a. Phrases on the Signal's ignore list are blanked out first. "West Bank"
+     is not banking, "title defence" is not the army.
+  b. Every keyword found adds its points (whole words only):
+         4 = decisive    3 = strong    2 = supporting    1 = context
+     A keyword in the headline counts double.
+  c. If the rubric has headline_must_match=True and no keyword is in the
+     headline, the score is 0: a summary can add weight but cannot qualify a
+     story alone.
+
+The article goes to the highest-scoring Signal whose score reaches that
+Signal's min_score. A tie goes to the Signal listed first in PRIORITY. An
+article that reaches no Signal's min_score is left out rather than misfiled.
+Each Signal then keeps its best MAX_PER_SIGNAL articles, skipping any headline
+that retells a story already kept.
+
+Editing a rubric
+----------------
+  * Add a keyword: add  'phrase': points  to the rubric's keywords, in lower
+    case. Pick the points by how sure the word alone makes you (see above).
+  * Stop a phrase from counting: add it to the rubric's ignore list. Each
+    line is one phrase; (a|b) means "a or b", s? means "optional s".
+  * A Signal picking up noise: set headline_must_match=True, and raise
+    min_score to 5 so that one 2-point word in a headline (2 x 2 = 4) cannot
+    qualify a story alone, while one 3-point word (3 x 2 = 6) still can.
+  * Test the change: tests/test_<signal>_tile.py hold real headlines that
+    must land, and lookalikes that must not.
 """
 import re
+from dataclasses import dataclass
 from datetime import datetime
 
 from ..intelligence.freshness import classify as classify_freshness
 from ..intelligence.normalize import parse_date
 
-# Display order = the SIGNAL masthead hierarchy.
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 1. THE SIGNALS
+# ═════════════════════════════════════════════════════════════════════════════
+
+# The six on the Signals page, in masthead order. The Command Center shows
+# them too.
 SIGNALS = [
     {'name': 'Signal Global', 'purpose': 'Geopolitics · Trade · Defence',
      'audience': 'Executives & Policy'},
@@ -34,10 +71,9 @@ SIGNALS = [
      'audience': 'Senior Leaders'},
 ]
 
-# Domains that exist only as Command Center tiles. The Signals page keeps the
-# six above, and classifies exactly as before: these join the competition for
-# an article only when a caller passes include_tile_signals=True. Added one
-# at a time, each replacing a "coming soon" tile.
+# Nine more that exist only as Command Center tiles. They compete for an
+# article only when the caller passes include_tile_signals=True, so the
+# Signals page classifies exactly as it would without them.
 TILE_SIGNALS = [
     {'name': 'Signal Banking', 'purpose': 'Banks · Lending · Payments · Central Banks',
      'audience': 'BFSI'},
@@ -47,20 +83,138 @@ TILE_SIGNALS = [
      'audience': 'Defence & Policy'},
     {'name': 'Signal Healthcare', 'purpose': 'Hospitals · Pharma · Medtech · Public Health',
      'audience': 'Healthcare & Life Sciences'},
-    {'name': 'Signal Cyber', 'purpose': 'Cyber Attacks · Data Breaches · Security Industry · Data Protection',
+    {'name': 'Signal Cyber',
+     'purpose': 'Cyber Attacks · Data Breaches · Security Industry · Data Protection',
      'audience': 'CISO & Risk'},
-    {'name': 'Signal Climate', 'purpose': 'Climate Change · Extreme Weather · Emissions · Sustainability',
+    {'name': 'Signal Climate',
+     'purpose': 'Climate Change · Extreme Weather · Emissions · Sustainability',
      'audience': 'Sustainability & Risk'},
     {'name': 'Signal Telecom', 'purpose': 'Operators · Networks · Spectrum · Data Centres',
      'audience': 'Telecom & Digital Infrastructure'},
     {'name': 'Signal Supply Chain', 'purpose': 'Shipping · Freight · Logistics · Sourcing',
      'audience': 'Operations & Procurement'},
-    {'name': 'Signal Manufacturing', 'purpose': 'Factories · Industrial Output · Autos & Electronics · Industrial Policy',
+    {'name': 'Signal Manufacturing',
+     'purpose': 'Factories · Industrial Output · Autos & Electronics · Industrial Policy',
      'audience': 'Manufacturing & Industry'},
 ]
-_TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
 
-# --- Signal GCC: faceted evidence -----------------------------------------
+# Who wins a tie: the Signal listed first. Most specific first. The
+# audience's core (GCC, Insurance) leads, the tile domains follow, and the
+# broad Signals come last, so a banking story on a tie lands in Banking
+# rather than Business.
+PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal Energy',
+            'Signal Defence', 'Signal Healthcare', 'Signal Cyber', 'Signal Climate',
+            'Signal Telecom', 'Signal Supply Chain', 'Signal Manufacturing',
+            'Signal AI', 'Signal Global', 'Signal Executive', 'Signal Business']
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 2. SHARED RULES
+# ═════════════════════════════════════════════════════════════════════════════
+
+THRESHOLD = 3         # the usual min_score: weak hits alone ("india") never reach it
+TITLE_MULTIPLIER = 2  # a keyword in the headline counts double
+MAX_PER_SIGNAL = 8    # articles kept per Signal (a tile cycles the top 5)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 3. THE RUBRICS
+# ═════════════════════════════════════════════════════════════════════════════
+
+@dataclass(frozen=True)
+class Rubric:
+    """Everything that decides whether an article belongs to one Signal."""
+    headline_must_match: bool  # True: no keyword in the headline, no score
+    min_score: int             # the score an article needs to qualify
+    keywords: dict             # phrase -> points, 1 to 4
+    ignore: tuple = ()         # phrases blanked out before scoring
+
+    def __post_init__(self):
+        # Articles are lower-cased before matching, so an upper-case keyword
+        # would silently never match. Fail loudly instead.
+        for phrase, points in self.keywords.items():
+            if phrase != phrase.lower() or points not in (1, 2, 3, 4):
+                raise ValueError(f'Rubric keyword {phrase!r}: {points!r} -- keywords must be '
+                                 'lower case and worth 1, 2, 3 or 4 points')
+        for phrase in self.ignore:
+            if phrase != phrase.lower():
+                raise ValueError(f'Rubric ignore phrase {phrase!r} must be lower case')
+
+
+# ── Signal Global ─────────────────────────────── Signals page and Command Center
+# Geopolitics, trade and war in general. Armed forces and weapons as such are
+# Defence's (a tile). "GCC" next to Gulf words (Saudi, UAE, Dubai...) means
+# the Gulf Cooperation Council: that evidence is moved here from Signal GCC
+# (see score_signals).
+GLOBAL = Rubric(
+    headline_must_match=False,
+    min_score=3,
+    keywords={
+        'geopolitical': 4, 'geopolitics': 4, 'energy security': 4,
+        'trade war': 4, 'strait of hormuz': 4,
+        'tariff': 3, 'tariffs': 3, 'sanctions': 3, 'nato': 3, 'ceasefire': 3,
+        'diplomacy': 3, 'diplomatic': 3,
+        'defence': 2, 'defense': 2, 'military': 2, 'war': 2, 'conflict': 2,
+        'summit': 2, 'opec': 2, 'pentagon': 2, 'white house': 2,
+        'g7': 2, 'g20': 2, 'election': 2, 'tensions': 1,
+        'houthi': 3, 'red sea': 2,
+        'trade': 1, 'oil': 1, 'border': 1, 'iran': 1, 'china': 1, 'russia': 1,
+        'ukraine': 1, 'israel': 1, 'taiwan': 1, 'middle east': 1, 'gaza': 1,
+        'palestine': 1,
+        # Political/government leadership changes — a minister or head of
+        # government resigning is geopolitical/domestic-policy news, not a
+        # corporate "Signal Executive" story, so it lives here instead.
+        'minister resigns': 4, 'resigns as minister': 4,
+        'cabinet reshuffle': 4, 'steps down as minister': 3,
+        'prime minister resigns': 4, 'pm resigns': 4,
+        'cabinet minister': 2,
+        'union minister': 1, 'chief minister': 1, 'prime minister': 1,
+    },
+    ignore=(),
+)
+
+# ── Signal Business ───────────────────────────── Signals page and Command Center
+# Deals, markets and company results: the broadest Signal, last in PRIORITY.
+BUSINESS = Rubric(
+    headline_must_match=False,
+    min_score=3,
+    keywords={
+        'ipo': 3, 'ipos': 3, 'merger': 3, 'mergers': 3, 'acquisition': 3,
+        'acquisitions': 3, 'earnings': 3, 'm&a': 3, 'outstanding shares': 3,
+        'stake sale': 3,
+        'private equity': 3, 'venture capital': 3, 'takeover': 3, 'buyout': 3,
+        'startup': 2, 'investment': 2, 'investor': 2, 'revenue': 2,
+        'profit': 2, 'valuation': 2, 'stocks': 2, 'stock': 2, 'funding': 2,
+        'shareholders': 2, 'fdi': 2,
+        'market': 1, 'markets': 1, 'strategy': 1, 'growth': 1, 'capital': 1,
+        'deal': 1, 'business': 1, 'shares': 1,
+    },
+    ignore=(),
+)
+
+# ── Signal AI ─────────────────────────────────── Signals page and Command Center
+AI = Rubric(
+    headline_must_match=False,
+    min_score=3,
+    keywords={
+        'generative ai': 4, 'genai': 4, 'artificial intelligence': 4,
+        'machine learning': 4, 'deep learning': 4, 'large language model': 4,
+        'llm': 4, 'agentic ai': 4,
+        'openai': 3, 'anthropic': 3, 'chatgpt': 3, 'copilot': 3, 'gemini': 3,
+        'robotics': 3, 'automation': 3, 'chatbot': 3, 'agentic': 3,
+        'robotaxi': 3, 'driverless': 3, 'self-driving': 3,
+        'ai-powered': 2, 'ai-driven': 2, 'neural': 2, 'robot': 2,
+        'algorithm': 2, 'ai': 2, 'autonomous': 2, 'data center': 2,
+        'data centers': 2, 'data centre': 2, 'nvidia': 2, 'xai': 3,
+    },
+    ignore=(),
+)
+
+# ── Signal GCC ────────────────────────────────── Signals page and Command Center
+# Scored by its own two-axis rule rather than a flat keyword sum: a story
+# needs a capability centre (ENTITY) AND something happening to it (ACTION).
+# The explanation and both axes follow; the rubric's keywords are the two axes
+# combined, for anything that reads KEYWORDS.
 #
 # GCC is the one Signal where a flat keyword bag kept misfiring, because the
 # vocabulary that surrounds a capability centre -- Indian city names, IT
@@ -180,10 +334,9 @@ GCC_CONTEXT = {
 def _gcc_vocabulary():
     """The flat {keyword: weight} table Signal GCC advertises.
 
-    Composed from the two axes so the vocabulary keeps exactly one home, as
-    this module's docstring requires. The real scoring is _score_gcc below --
-    this exists so anything reading KEYWORDS (app/intelligence/domains.py,
-    the tests) sees the same terms.
+    Composed from the two axes so the vocabulary keeps exactly one home.
+    The real scoring is _score_gcc below -- this exists so anything reading
+    KEYWORDS (app/intelligence/domains.py, the tests) sees the same terms.
     """
     vocab = dict(GCC_ENTITY)
     for weight, terms in GCC_ACTION.values():
@@ -192,51 +345,23 @@ def _gcc_vocabulary():
     return vocab
 
 
-KEYWORDS = {
-    'Signal AI': {
-        'generative ai': 4, 'genai': 4, 'artificial intelligence': 4,
-        'machine learning': 4, 'deep learning': 4, 'large language model': 4,
-        'llm': 4, 'agentic ai': 4,
-        'openai': 3, 'anthropic': 3, 'chatgpt': 3, 'copilot': 3, 'gemini': 3,
-        'robotics': 3, 'automation': 3, 'chatbot': 3, 'agentic': 3,
-        'robotaxi': 3, 'driverless': 3, 'self-driving': 3,
-        'ai-powered': 2, 'ai-driven': 2, 'neural': 2, 'robot': 2,
-        'algorithm': 2, 'ai': 2, 'autonomous': 2, 'data center': 2,
-        'data centers': 2, 'data centre': 2, 'nvidia': 2, 'xai': 3,
-    },
-    'Signal Business': {
-        'ipo': 3, 'ipos': 3, 'merger': 3, 'mergers': 3, 'acquisition': 3,
-        'acquisitions': 3, 'earnings': 3, 'm&a': 3, 'outstanding shares': 3,
-        'stake sale': 3,
-        'private equity': 3, 'venture capital': 3, 'takeover': 3, 'buyout': 3,
-        'startup': 2, 'investment': 2, 'investor': 2, 'revenue': 2,
-        'profit': 2, 'valuation': 2, 'stocks': 2, 'stock': 2, 'funding': 2,
-        'shareholders': 2, 'fdi': 2,
-        'market': 1, 'markets': 1, 'strategy': 1, 'growth': 1, 'capital': 1,
-        'deal': 1, 'business': 1, 'shares': 1,
-    },
-    'Signal Global': {
-        'geopolitical': 4, 'geopolitics': 4, 'energy security': 4,
-        'trade war': 4, 'strait of hormuz': 4,
-        'tariff': 3, 'tariffs': 3, 'sanctions': 3, 'nato': 3, 'ceasefire': 3,
-        'diplomacy': 3, 'diplomatic': 3,
-        'defence': 2, 'defense': 2, 'military': 2, 'war': 2, 'conflict': 2,
-        'summit': 2, 'opec': 2, 'pentagon': 2, 'white house': 2,
-        'g7': 2, 'g20': 2, 'election': 2, 'tensions': 1,
-        'houthi': 3, 'red sea': 2,
-        'trade': 1, 'oil': 1, 'border': 1, 'iran': 1, 'china': 1, 'russia': 1,
-        'ukraine': 1, 'israel': 1, 'taiwan': 1, 'middle east': 1, 'gaza': 1,
-        'palestine': 1,
-        # Political/government leadership changes — a minister or head of
-        # government resigning is geopolitical/domestic-policy news, not a
-        # corporate "Signal Executive" story, so it lives here instead.
-        'minister resigns': 4, 'resigns as minister': 4,
-        'cabinet reshuffle': 4, 'steps down as minister': 3,
-        'prime minister resigns': 4, 'pm resigns': 4,
-        'cabinet minister': 2,
-        'union minister': 1, 'chief minister': 1, 'prime minister': 1,
-    },
-    'Signal Insurance': {
+GCC = Rubric(
+    headline_must_match=False,
+    # 6, not 3: at 5 an IT-vendor services deal ("HCLTech bags AI-led IT
+    # transformation deal from M Group") clears both axes and reaches the
+    # tile -- a supplier story, not a capability-centre one.
+    min_score=6,
+    keywords=_gcc_vocabulary(),
+    ignore=(),
+)
+
+# ── Signal Insurance ──────────────────────────── Signals page and Command Center
+# The audience's core. Health, cyber, freight and catastrophe insurance all
+# stay here: the Healthcare, Cyber, Supply Chain and Climate tiles ignore them.
+INSURANCE = Rubric(
+    headline_must_match=False,
+    min_score=3,
+    keywords={
         'reinsurance': 4, 'insurtech': 4, 'underwriting': 4, 'actuarial': 4,
         'policyholder': 4, 'policyholders': 4, 'cat bond': 4, 'cat bonds': 4,
         'catastrophe bond': 4, "workers' compensation": 4,
@@ -250,8 +375,15 @@ KEYWORDS = {
         'renewals': 2, 'cyber risk': 2, 'liability': 2, 'indemnity': 2,
         'claims': 1, 'policy': 1, 'risk': 1,
     },
-    'Signal GCC': _gcc_vocabulary(),
-    'Signal Executive': {
+    ignore=(),
+)
+
+# ── Signal Executive ──────────────────────────── Signals page and Command Center
+# Corporate leadership. A minister resigning is Global's, not this.
+EXECUTIVE = Rubric(
+    headline_must_match=False,
+    min_score=3,
+    keywords={
         # 'people moves' is a generic trade-press section header, not
         # evidence of a specific significant move — kept at medium weight
         # so it doesn't alone stack with routine keyword matches (appoints,
@@ -268,12 +400,18 @@ KEYWORDS = {
         'board': 1, 'executive': 1, 'executives': 1, 'governance': 1,
         'names': 1,
     },
-    # Tile-only (see TILE_SIGNALS). Weights follow the other signals' scale
-    # (4 decisive, 3 strong, 2 medium, 1 weak). Reviewed 2026-09-23 against
-    # the live scan: the headline must also name Banking (TITLE_REQUIRED), so
-    # a bank that only appears in a summary — as a deal's broker, say — can
-    # add weight but never qualify a story on its own.
-    'Signal Banking': {
+    ignore=(),
+)
+
+# ── Signal Banking ────────────────────────────────────────── Command Center tile
+# Reviewed 2026-09-23 against the live scan. Because the headline must name
+# Banking, a bank that only appears in a summary -- as a deal's broker, say --
+# adds weight but never qualifies a story ("home loan" deep in a summary once
+# put an online-safety story here).
+BANKING = Rubric(
+    headline_must_match=True,
+    min_score=3,
+    keywords={
         # The business of banking
         'nbfc': 4, 'nbfcs': 4, 'non-performing assets': 4, 'npa': 4, 'npas': 4,
         'gross npa': 4, 'net npa': 4, 'bad loans': 4, 'stressed assets': 4,
@@ -342,12 +480,60 @@ KEYWORDS = {
         'ocbc': 3, 'uob': 3, 'emirates nbd': 3, 'first abu dhabi bank': 3,
         'qnb': 3, 'royal bank of canada': 3, 'td bank': 3, 'commonwealth bank': 3,
     },
-    # Tile-only. First draft 2026-09-23, built with the Banking review's
-    # lessons from the start: the headline must name it (TITLE_REQUIRED),
-    # everyday senses of its words are blanked (NEUTRALIZE), and companies
-    # appear only in unambiguous forms ("Shell plc", not "Shell"; "BP plc",
-    # not "BP", which is also basis points).
-    'Signal Energy': {
+    ignore=(
+        # Banks that are not banks
+        r"west bank",
+        r"world bank",
+        r"food banks?",
+        r"blood banks?",
+        r"sperm banks?",
+        r"seed banks?",
+        r"piggy banks?",
+        r"river ?banks?",
+        r"memory banks?",
+        r"data banks?",
+        r"power banks?",
+        # Deposits that are geology
+        r"(gold|mineral|lithium|oil|gas|copper|coal|rare earth) deposits?",
+        # "banks on" as a verb ("Snapdeal banks on Gen Z"); "banks on strike"
+        # or "banks on Sunday" are banking news, so they are kept.
+        r"(banks?|banking) on\b(?! (strike|holiday|alert|notice|monday|tuesday|"
+        r"wednesday|thursday|friday|saturday|sunday))",
+        # Insurers, fund houses and brokers that carry a bank's name belong
+        # with Insurance or markets. Longest names first, so "icici
+        # prudential amc" is blanked whole.
+        r"sbi life",
+        r"sbi general",
+        r"sbi mutual fund",
+        r"sbi funds management",
+        r"sbi cards?",
+        r"hdfc life",
+        r"hdfc ergo",
+        r"hdfc amc",
+        r"hdfc mutual fund",
+        r"hdfc securities",
+        r"icici prudential( amc| life| mutual fund)?",
+        r"icici lombard",
+        r"icici securities",
+        r"kotak life",
+        r"kotak general",
+        r"kotak mahindra amc",
+        r"kotak securities",
+        r"axis max life",
+        r"axis mutual fund",
+        r"axis securities",
+        r"bajaj allianz",
+        r"lloyd's( of london)?",
+    ),
+)
+
+# ── Signal Energy ─────────────────────────────────────────── Command Center tile
+# Companies in unambiguous forms only: "Shell plc", not "Shell"; "BP plc",
+# not "BP", which is also basis points.
+ENERGY = Rubric(
+    headline_must_match=True,
+    min_score=3,
+    keywords={
         # Oil and gas
         'crude oil': 4, 'oil prices': 4, 'oil price': 4, 'brent': 4, 'wti': 4,
         'opec': 4, 'lng': 4, 'natural gas': 4, 'refinery': 4, 'refineries': 4,
@@ -392,12 +578,38 @@ KEYWORDS = {
         'power grid corporation': 4, 'nhpc': 4, 'tata power': 4,
         'adani green': 4, 'adani power': 4, 'jsw energy': 4, 'oil india': 4,
     },
-    # Tile-only. First draft 2026-09-23, same review rules as Energy. Takes
-    # its stories mostly from Signal Global, which keeps diplomacy,
-    # ceasefires and "war" in general; Defence is armed forces, weapons and
-    # the defence industry. Companies in unambiguous forms only ("Dassault
-    # Aviation", not the software maker; "Hindustan Aeronautics", not "HAL").
-    'Signal Defence': {
+    ignore=(
+        # Oils and gases that are not fuel
+        r"(cooking|edible|palm|olive|vegetable|essential|coconut|mustard|castor|fish) oils?",
+        r"oil paint(ing)?s?",
+        r"oilseeds?",
+        r"tear gas",
+        r"greenhouse gas(es)?",  # Climate's
+        r"gas chambers?",
+        r"laughing gas",
+        # Nuclear weapons and diplomacy are Defence's and Global's
+        r"nuclear (weapons?|warheads?|missiles?|arsenal|bombs?|tests?|deal|talks|programme|"
+        r"program|threat)",
+        # Everyday senses
+        r"shell compan(y|ies)",
+        r"solar (system|eclipse|flares?)",
+        r"energy drinks?",
+        r"energy levels?",
+        r"power banks?",
+        r"superpowers?",
+        r"powerhouses?",
+    ),
+)
+
+# ── Signal Defence ────────────────────────────────────────── Command Center tile
+# Armed forces, weapons and the defence industry. Diplomacy, ceasefires and
+# "war" in general stay with Global. Companies in unambiguous forms only
+# ("Dassault Aviation", not the software maker; "Hindustan Aeronautics", not
+# "HAL").
+DEFENCE = Rubric(
+    headline_must_match=True,
+    min_score=5,
+    keywords={
         # Institutions and people
         'defence ministry': 4, 'ministry of defence': 4, 'defense department': 4,
         'department of defense': 4, 'pentagon': 4, 'armed forces': 4,
@@ -424,7 +636,7 @@ KEYWORDS = {
         's-400': 4, 'himars': 4, 'mq-9': 4,
         'weapons': 3, 'weapon': 3,
         # Bare "defence" and "drone" are weak on purpose: with the floor of
-        # 5 (SIGNAL_FLOORS) neither qualifies a headline alone, because
+        # 5 (min_score) neither qualifies a headline alone, because
         # "Chelsea's defence holds firm" and a delivery drone are not news
         # about armed forces.
         'defence': 2, 'defense': 2, 'drone': 2, 'drones': 2,
@@ -440,13 +652,37 @@ KEYWORDS = {
         'israel aerospace industries': 4, 'mbda': 4, 'hanwha aerospace': 4,
         'cochin shipyard': 3, 'thales': 3, 'saab': 3, 'kongsberg': 3,
     },
-    # Tile-only. First draft 2026-09-23, same review rules as Defence.
-    # Health insurance stays with Insurance, so health insurers
-    # (UnitedHealth, Humana, Aetna, Cigna) are left out. Names in unambiguous
-    # forms only: "World Health Organization", not "WHO" (the word "who");
-    # "European Medicines Agency", not "EMA"; "Eli Lilly", not "Lilly";
-    # "Abbott Laboratories", not "Abbott".
-    'Signal Healthcare': {
+    ignore=(
+        # Sport, law and metaphor
+        r"(title|world cup|trophy|championship|league|his|her|their|its) defen[cs]e",
+        r"defen[cs]e (lawyers?|counsel|attorneys?|team|solicitor|case)",
+        r"self-defen[cs]e",
+        r"in defen[cs]e of",
+        r"public defenders?",
+        r"army of",
+        r"salvation army",
+        r"navy blue",
+        r"old navy",
+        r"air force one",
+        r"secret weapons?",
+        # Other tiles' stories: cyber defence is Cyber's, a submarine cable
+        # is Telecom's
+        r"cyber ?defen[cs]e",
+        r"submarine cables?",
+        # Veterans' personal stories ("How did US Army veteran ... die?")
+        r"(army|navy|military|air force|marine|war) veterans?",
+    ),
+)
+
+# ── Signal Healthcare ─────────────────────────────────────── Command Center tile
+# Names in unambiguous forms only: "World Health Organization", not "WHO"
+# (the word "who"); "European Medicines Agency", not "EMA"; "Eli Lilly", not
+# "Lilly"; "Abbott Laboratories", not "Abbott". Health insurers (UnitedHealth,
+# Humana, Aetna, Cigna) are left out: health insurance is Insurance's.
+HEALTHCARE = Rubric(
+    headline_must_match=True,
+    min_score=5,
+    keywords={
         # Industry
         'healthcare': 4, 'health care': 4, 'pharmaceutical': 4,
         'pharmaceuticals': 4, 'drugmaker': 4, 'drugmakers': 4, 'biotech': 4,
@@ -467,7 +703,7 @@ KEYWORDS = {
         'hospital': 3, 'hospitals': 3, 'doctors': 3, 'nurses': 3, 'surgery': 3,
         'health system': 3,
         # Bare "medical", "drug", "patients" and "clinic" are weak on purpose:
-        # with the floor of 5 (SIGNAL_FLOORS) none qualifies a headline alone
+        # with the floor of 5 (min_score) none qualifies a headline alone
         # ("medical AI" is an AI story, "unpaid comp medical bills" an
         # insurance one).
         'medical': 2, 'patient': 2, 'patients': 2, 'clinic': 2, 'clinics': 2,
@@ -503,10 +739,41 @@ KEYWORDS = {
         'philips healthcare': 4,
         'bayer': 3,
     },
-    # Tile-only. First draft 2026-09-23, same review rules as Defence. Cyber
-    # insurance stays with Insurance (see NEUTRALIZE). Takes its stories
-    # mostly from AI, where "AI-powered cybersecurity" used to land.
-    'Signal Cyber': {
+    ignore=(
+        # Insurance's ("Judge rules for Sompo unit in COVID cover fight")
+        r"health (insurance|insurers?|cover(age)?|plans?)",
+        r"mediclaim",
+        r"medicare advantage",
+        r"covid(-19)? (cover|insurance|claims?|business interruption|losses|polic(y|ies))",
+        # Drug crime is Global's
+        r"drugs?[- ](trafficking|traffickers?|cartels?|busts?|lords?|smuggling|smugglers?|"
+        r"seizures?|seized|peddlers?|peddling|mules?|haul|rackets?|raids?|dealers?|dealing|"
+        r"money|cases?|syndicates?)",
+        r"war on drugs",
+        # Computer viruses are Cyber's
+        r"computer virus(es)?",
+        # Metaphors and the economy's "health"
+        r"(outbreak|epidemic) of (violence|fighting|war|protests|clashes|hostilities|fraud|"
+        r"layoffs|scams?)",
+        r"(financial|economic|fiscal|corporate|market|balance[- ]sheet) health",
+        r"health of the (economy|market|company)",
+        r"(post|pre)[- ](pandemic|covid)",
+        r"(pandemic|covid)[- ](era|lows?|highs?|levels?|peaks?|boom|recovery|stimulus|loans?|"
+        r"relief)",
+        r"spin doctors?",
+        r"retail therapy",
+        r"nurses (a|an|the|his|her|its|their|hopes|ambitions?|grudges?|wounds?)",
+    ),
+)
+
+# ── Signal Cyber ──────────────────────────────────────────── Command Center tile
+# Takes its stories mostly from AI, where "AI-powered cybersecurity" used to
+# land. Companies in unambiguous forms only ("Palo Alto Networks", not the
+# city; no "Wiz" or "Tenable", which are ordinary words).
+CYBER = Rubric(
+    headline_must_match=True,
+    min_score=5,
+    keywords={
         # Core
         'cybersecurity': 4, 'cyber security': 4, 'cyber-security': 4,
         'cyberattack': 4, 'cyberattacks': 4, 'cyber attack': 4, 'cyber attacks': 4,
@@ -525,7 +792,7 @@ KEYWORDS = {
         'digital arrest': 4,
         'hackers': 4, 'hacker': 4, 'hacked': 4, 'hacking': 3, 'scammers': 3,
         'deepfake': 3, 'deepfakes': 3, 'encryption': 3, 'firewall': 3,
-        # Weak on purpose: with the floor of 5 (SIGNAL_FLOORS) none qualifies
+        # Weak on purpose: with the floor of 5 (min_score) none qualifies
         # a headline alone ("Meta leans into AI amid privacy pushback" is an
         # AI story; "breach" and "scam" have everyday senses).
         'hack': 2, 'breach': 2, 'vulnerability': 2, 'vulnerabilities': 2,
@@ -544,11 +811,29 @@ KEYWORDS = {
         'darktrace': 4, 'rapid7': 4, 'proofpoint': 4, 'kaspersky': 4, 'sophos': 4,
         'trellix': 4, 'quick heal': 4, 'cloudflare': 3,
     },
-    # Tile-only. First draft 2026-09-24, same review rules as Defence.
-    # Renewables, power and the energy transition stay with Energy (which
-    # blanks "greenhouse gas" so it lands here); insured losses and cat bonds
-    # stay with Insurance (see NEUTRALIZE).
-    'Signal Climate': {
+    ignore=(
+        # Cyber insurance is Insurance's
+        r"cyber([- ]?security)? (insurance|insurers?|cover(age)?|polic(y|ies)|underwriting|"
+        r"underwriters?|reinsurance|premiums?|claims?|market|pricing|losses|"
+        r"cat(astrophe)?( bonds?)?)",
+        r"cyber risks? (insurance|cover|pricing|models?|modell?ing|underwriting|transfer)",
+        # Everyday senses
+        r"cyber monday",
+        r"life ?hacks?",
+        r"growth hack(s|ing|ers?)?",
+        r"breach(es|ed)? of (contract|trust|duty|promise|privilege|ceasefire|covenants?|"
+        r"conduct|code|the peace|rules)",
+        r"trojan horse",
+    ),
+)
+
+# ── Signal Climate ────────────────────────────────────────── Command Center tile
+# Renewables, power and the energy transition are Energy's (which ignores
+# "greenhouse gas" so that it lands here).
+CLIMATE = Rubric(
+    headline_must_match=True,
+    min_score=5,
+    keywords={
         # Core
         'climate change': 4, 'global warming': 4, 'climate crisis': 4,
         'climate action': 4, 'climate finance': 4, 'climate targets': 4,
@@ -572,7 +857,7 @@ KEYWORDS = {
         'sea level': 4, 'sea levels': 4, 'sea-level rise': 4, 'glacier': 4,
         'glaciers': 4, 'coral bleaching': 4,
         'flooding': 3, 'drought': 3, 'landslide': 3, 'landslides': 3,
-        # Weak on purpose: with the floor of 5 (SIGNAL_FLOORS) none qualifies
+        # Weak on purpose: with the floor of 5 (min_score) none qualifies
         # a headline alone.
         'flood': 2, 'storm': 2, 'monsoon': 2, 'rainfall': 2,
         # Environment and sustainability
@@ -586,12 +871,45 @@ KEYWORDS = {
         'pollution': 3, 'sustainability': 3, 'recycling': 3, 'epa': 3,
         'environmental': 2, 'sustainable': 2, 'wildlife': 2,
     },
-    # Tile-only. First draft 2026-09-24, same review rules as Defence, fed
-    # mainly by the telecom trade press added that day (ET Telecom, RCR
-    # Wireless, Mobile World Live). The tile is "Telecom & Digital
-    # Infrastructure", so data centres count. Airtel Money and Jio Financial
-    # are fintech and markets stories, not telecom (see NEUTRALIZE).
-    'Signal Telecom': {
+    ignore=(
+        # The business, political and investment "climate"
+        r"(political|business|investment|economic|regulatory|market|geopolitical|policy|"
+        r"funding|financial|trade|social|current|tough|hostile|operating|lending|credit|"
+        r"deal|ipo) climate",
+        r"climate of (fear|uncertainty|distrust|mistrust|hostility|impunity|suspicion)",
+        # Cyber's hacker groups named after typhoons
+        r"(salt|volt|flax|linen|silk) typhoon",
+        # Metaphorical carbon, storms, floods, droughts and landslides
+        # ("London's listing drought" reached the draft tile)
+        r"carbon (copy|copies|fibre|fiber|dating|steel)",
+        r"(perfect|political|media|social media|twitter|diplomatic) storm",
+        r"storm of",
+        r"storm(s|ed|ing)? (into|out|off|to|back|past|through)",
+        r"(takes?|took|taking|taken) .{1,20} by storm",
+        r"flood(s|ed|ing)? (of|the market|the zone|in)",
+        r"(trophy|title|goal|ipo|listings?|deal|funding|hiring|win|scoring|medal|run|"
+        r"investment|profit|earnings|dividend|m&a|merger) drought",
+        r"landslide (victory|win|wins|majority|mandate|defeat|election)",
+        r"(debt|fiscal|financial|business|long-term) sustainability",
+        r"monsoon session",
+        # Insured losses and cat bonds are Insurance's ("Hurricane Polo could
+        # trigger $175M Mexico cat bond")
+        r"(insured|catastrophe|cat|nat ?cat) (losses|loss|claims|bonds?|exposure)",
+        r"(flood|storm|hurricane|wildfire|cyclone|weather) (insurance|insurers?|cover|claims|"
+        r"reinsurance|losses|premiums?)",
+        r"cat bonds?",
+        r"catastrophe bonds?",
+    ),
+)
+
+# ── Signal Telecom ────────────────────────────────────────── Command Center tile
+# The tile is "Telecom & Digital Infrastructure", so data centres count. Fed
+# mainly by the telecom trade press (ET Telecom, RCR Wireless, Mobile World
+# Live).
+TELECOM = Rubric(
+    headline_must_match=True,
+    min_score=5,
+    keywords={
         # Industry
         'telecom': 4, 'telecoms': 4, 'telecommunications': 4, 'telco': 4,
         'telcos': 4, 'mobile operator': 4, 'mobile operators': 4,
@@ -611,7 +929,7 @@ KEYWORDS = {
         '4g': 3, 'lte': 3, 'wi-fi': 3, 'wifi': 3, 'roaming': 3, 'sim card': 3,
         'sim cards': 3, 'hyperscale': 3, 'colocation': 3, 'low earth orbit': 3,
         'fibre': 3, 'fiber': 3, 'internet outage': 3,
-        # Weak on purpose: with the floor of 5 (SIGNAL_FLOORS) none qualifies
+        # Weak on purpose: with the floor of 5 (min_score) none qualifies
         # a headline alone ("subscribers" of a newsletter, a spy "satellite",
         # the UN's "ITU" launching an AI course).
         'subscribers': 2, 'subscriber': 2, 'satellite': 2, 'connectivity': 2,
@@ -637,12 +955,31 @@ KEYWORDS = {
         'charter communications': 4,
         'huawei': 3, 'ntt': 3, 'comcast': 3, 'kuiper': 3,
     },
-    # Tile-only. First draft 2026-09-24, same review rules as Defence, fed
-    # mainly by the logistics trade press added that day (Supply Chain Dive,
-    # The Loadstar, FreightWaves). Everyday shortages (housing, talent,
-    # water) are not supply chain; software "supply-chain attacks" are
-    # Cyber's; freight insurance is Insurance's (see NEUTRALIZE).
-    'Signal Supply Chain': {
+    ignore=(
+        # Other senses of "spectrum" and "fibre"
+        r"(political|autism|autistic|broad|wide|whole|entire|full|other end of the) spectrum",
+        r"broad-spectrum",
+        r"spectrum of",
+        r"across the (political )?spectrum",
+        r"(dietary|high|low|soluble|insoluble|carbon|glass)[- ]fib(re|er)",
+        r"fib(re|er) (diet|intake|supplements?)",
+        # Telecom groups' fintech and media arms: markets and media stories
+        r"jio financial( services)?",
+        r"jio ?blackrock",
+        r"jio ?hotstar",
+        r"airtel money",
+        # Subscribers to things that are not phone plans
+        r"(newsletter|youtube|channel|streaming|netflix|podcast|substack) subscribers?",
+    ),
+)
+
+# ── Signal Supply Chain ───────────────────────────────────── Command Center tile
+# Fed mainly by the logistics trade press (Supply Chain Dive, The Loadstar,
+# FreightWaves).
+SUPPLY_CHAIN = Rubric(
+    headline_must_match=True,
+    min_score=5,
+    keywords={
         # Core
         'supply chain': 4, 'supply chains': 4, 'supply-chain': 4, 'logistics': 4,
         'freight': 4, 'nearshoring': 4, 'reshoring': 4, 'friend-shoring': 4,
@@ -668,7 +1005,7 @@ KEYWORDS = {
         'distribution centres': 4, 'distribution centers': 4,
         'warehouse': 3, 'warehouses': 3, 'fulfilment': 3, 'fulfillment': 3,
         'de minimis': 3,
-        # Weak on purpose: with the floor of 5 (SIGNAL_FLOORS) none qualifies
+        # Weak on purpose: with the floor of 5 (min_score) none qualifies
         # a headline alone ("Founder mode: stay hands-on, not the
         # bottleneck"; India's UPS pension scheme).
         'port': 2, 'vessel': 2, 'vessels': 2, 'containers': 2, 'shortage': 2,
@@ -684,12 +1021,36 @@ KEYWORDS = {
         'allcargo': 4, 'tci express': 4, 'mahindra logistics': 4,
         'zim': 3,
     },
-    # Tile-only. First draft 2026-09-24, same review rules as Defence, fed
-    # mainly by the manufacturing trade press added that day (Manufacturing
-    # Dive, ET Manufacturing). Power plants and oil production are Energy's;
-    # film "production" and Palantir's "Foundry" are nobody's (see
-    # NEUTRALIZE).
-    'Signal Manufacturing': {
+    ignore=(
+        # The context rule: a shortage of housing, talent or water is not a
+        # supply-chain story. (A truck-driver shortage is, so it stays.)
+        r"(housing|home|homes|talent|skills?|teacher|nurse|doctor|water|blood|organ|cash|"
+        r"liquidity|dollar|rain(fall)?|seat|staff(ing)?) shortages?",
+        r"(housing|home|homes) inventor(y|ies)",
+        # Software supply-chain attacks are Cyber's
+        r"(software |open[- ]source )?supply[- ]chains? (attacks?|hacks?|compromise|"
+        r"breach(es)?)",
+        # Freight insurance is Insurance's
+        r"(trucking|freight|cargo|fleet|marine|shipping|logistics) insurance",
+        # India's UPS is the Unified Pension Scheme
+        r"ups pension",
+        r"unified pension",
+        # Everyday senses
+        r"free shipping",
+        r"ups and downs",
+        r"cargo (pants|shorts|cult)",
+        r"port of call",
+        r"(energy|power|gas|electricity) suppliers?",
+    ),
+)
+
+# ── Signal Manufacturing ──────────────────────────────────── Command Center tile
+# Fed mainly by the manufacturing trade press (Manufacturing Dive, ET
+# Manufacturing).
+MANUFACTURING = Rubric(
+    headline_must_match=True,
+    min_score=5,
+    keywords={
         # Core
         'manufacturing': 4, 'factory': 4, 'factories': 4, 'manufacturing plant': 4,
         'production line': 4, 'production lines': 4, 'assembly line': 4,
@@ -710,7 +1071,7 @@ KEYWORDS = {
         'carmaker': 3, 'carmakers': 3, 'steel': 3, 'cement': 3, 'textiles': 3,
         'textile': 3, 'shipyard': 3, '3d printing': 3, 'greenfield': 3,
         'capacity expansion': 3,
-        # Weak on purpose: with the floor of 5 (SIGNAL_FLOORS) none qualifies
+        # Weak on purpose: with the floor of 5 (min_score) none qualifies
         # a headline alone ("plant" is also a verb, "production" also film).
         'plant': 2, 'plants': 2, 'production': 2, 'pmi': 2, 'aluminium': 2,
         'aluminum': 2, 'chemicals': 2, 'garment': 2, 'capex': 2, 'brownfield': 2,
@@ -727,179 +1088,64 @@ KEYWORDS = {
         'hyundai motor': 3, 'toyota': 3, 'volkswagen': 3, 'boeing': 3,
         'airbus': 3, 'vedanta': 3,
     },
+    ignore=(
+        # Plants that are not factories (power plants are Energy's)
+        r"plant-based",
+        r"plant (a|the|trees|seeds)",
+        r"(power|nuclear|coal|gas|solar|desalination|sewage|treatment|water) plants?",
+        # Production that is not manufacturing (oil and gas are Energy's)
+        r"(oil|gas|crude|lng|coal|power|electricity|solar|wind|energy) production",
+        r"(film|movie|tv|television|music|theatre|theater|stage|content|video) productions?",
+        # Metaphors and names
+        r"manufactur(ing|ed) (consent|dissent|evidence|outrage|crisis|crises)",
+        r"factory reset",
+        r"cheesecake factory",
+        r"troll factory",
+        r"dream factory",
+        r"palantir foundry",
+        r"nerves of steel",
+        r"man of steel",
+        r"(services|composite) pmi",
+    ),
+)
+
+# Every rubric, by Signal name, in the order listed in section 1.
+RUBRICS = {
+    'Signal Global': GLOBAL,
+    'Signal Business': BUSINESS,
+    'Signal AI': AI,
+    'Signal GCC': GCC,
+    'Signal Insurance': INSURANCE,
+    'Signal Executive': EXECUTIVE,
+    'Signal Banking': BANKING,
+    'Signal Energy': ENERGY,
+    'Signal Defence': DEFENCE,
+    'Signal Healthcare': HEALTHCARE,
+    'Signal Cyber': CYBER,
+    'Signal Climate': CLIMATE,
+    'Signal Telecom': TELECOM,
+    'Signal Supply Chain': SUPPLY_CHAIN,
+    'Signal Manufacturing': MANUFACTURING,
 }
 
-# Signals whose headline must itself carry one of their keywords. A summary
-# can add weight but cannot qualify a story alone: in the 2026-09-23 scan
-# "home loan" deep in a summary put an online-safety story in Banking, and
-# Goldman Sachs and Citigroup named as brokers put a Meesho stake sale there.
-TITLE_REQUIRED = {'Signal Banking', 'Signal Energy', 'Signal Defence',
-                  'Signal Healthcare', 'Signal Cyber', 'Signal Climate',
-                  'Signal Telecom', 'Signal Supply Chain', 'Signal Manufacturing'}
 
-# Phrases that contain a signal's keyword but are not about that signal. They
-# are blanked out of the text before that signal (and only that signal) is
-# scored: "West Bank" is geopolitics, "food bank" is charity, "gold deposits"
-# are geology — none of them is banking.
-NEUTRALIZE = {
-    'Signal Banking': re.compile(
-        r"\b(?:west bank|world bank|food banks?|blood banks?|sperm banks?|seed banks?|"
-        r"piggy banks?|river ?banks?|memory banks?|data banks?|power banks?|"
-        r"(?:gold|mineral|lithium|oil|gas|copper|coal|rare earth) deposits?|"
-        # "banks on" as a verb: "Snapdeal banks on Gen Z".
-        # Not "banks on strike" or "banks on Sunday", which are banking news.
-        r"(?:banks?|banking) on\b(?! (?:strike|holiday|alert|notice|monday|tuesday|"
-        r"wednesday|thursday|friday|saturday|sunday))|"
-        # Insurers, fund houses and brokers that carry a bank's name belong
-        # with Insurance or markets, not Banking. Longest names first, so
-        # "icici prudential amc" is blanked whole.
-        r"sbi life|sbi general|sbi mutual fund|sbi funds management|sbi cards?|"
-        r"hdfc life|hdfc ergo|hdfc amc|hdfc mutual fund|hdfc securities|"
-        r"icici prudential(?: amc| life| mutual fund)?|icici lombard|icici securities|"
-        r"kotak life|kotak general|kotak mahindra amc|kotak securities|"
-        r"axis max life|axis mutual fund|axis securities|bajaj allianz|"
-        r"lloyd's(?: of london)?)\b"
-    ),
-    # Everyday senses of Energy's words: kitchen oils, weapons, politics.
-    # Greenhouse gas belongs with Climate; nuclear weapons with Defence.
-    'Signal Energy': re.compile(
-        r"\b(?:(?:cooking|edible|palm|olive|vegetable|essential|coconut|mustard|"
-        r"castor|fish) oils?|oil paint(?:ing)?s?|oilseeds?|tear gas|"
-        r"greenhouse gas(?:es)?|gas chambers?|laughing gas|"
-        r"nuclear (?:weapons?|warheads?|missiles?|arsenal|bombs?|tests?|deal|"
-        r"talks|programme|program|threat)|shell compan(?:y|ies)|"
-        r"solar (?:system|eclipse|flares?)|energy drinks?|energy levels?|"
-        r"power banks?|superpowers?|powerhouses?)\b"
-    ),
-    # Sport, law and metaphor; veterans' personal stories; and cyber defence,
-    # which belongs to the Cyber tile.
-    'Signal Defence': re.compile(
-        r"\b(?:(?:title|world cup|trophy|championship|league|his|her|their|its) defen[cs]e|"
-        r"defen[cs]e (?:lawyers?|counsel|attorneys?|team|solicitor|case)|self-defen[cs]e|"
-        r"in defen[cs]e of|public defenders?|army of|salvation army|navy blue|old navy|"
-        r"air force one|secret weapons?|cyber ?defen[cs]e|submarine cables?|"
-        r"(?:army|navy|military|air force|marine|war) veterans?)\b"
-    ),
-    # Health insurance and COVID insurance claims belong to Insurance ("Judge
-    # rules for Sompo unit in COVID cover fight" reached the draft tile); drug
-    # crime to Global; computer viruses to Cyber; "financial health" and
-    # "pandemic-era" loans to Business; and metaphors to nobody.
-    'Signal Healthcare': re.compile(
-        r"\b(?:health (?:insurance|insurers?|cover(?:age)?|plans?)|mediclaim|medicare advantage|"
-        r"covid(?:-19)? (?:cover|insurance|claims?|business interruption|losses|polic(?:y|ies))|"
-        r"drugs?[- ](?:trafficking|traffickers?|cartels?|busts?|lords?|smuggling|smugglers?|"
-        r"seizures?|seized|peddlers?|peddling|mules?|haul|rackets?|raids?|dealers?|dealing|"
-        r"money|cases?|syndicates?)|war on drugs|"
-        r"computer virus(?:es)?|"
-        r"(?:outbreak|epidemic) of (?:violence|fighting|war|protests|clashes|hostilities|"
-        r"fraud|layoffs|scams?)|"
-        r"(?:financial|economic|fiscal|corporate|market|balance[- ]sheet) health|"
-        r"health of the (?:economy|market|company)|"
-        r"(?:post|pre)[- ](?:pandemic|covid)|(?:pandemic|covid)[- ](?:era|lows?|highs?|levels?|"
-        r"peaks?|boom|recovery|stimulus|loans?|relief)|"
-        r"spin doctors?|retail therapy|nurses (?:a|an|the|his|her|its|their|hopes|"
-        r"ambitions?|grudges?|wounds?))\b"
-    ),
-    # Cyber insurance (cover, underwriting, claims, cat bonds) belongs to
-    # Insurance; the rest is everyday usage.
-    'Signal Cyber': re.compile(
-        r"\b(?:cyber(?:[- ]?security)? (?:insurance|insurers?|cover(?:age)?|polic(?:y|ies)|"
-        r"underwriting|underwriters?|reinsurance|premiums?|claims?|market|pricing|losses|"
-        r"cat(?:astrophe)?(?: bonds?)?)|cyber risks? (?:insurance|cover|pricing|models?|"
-        r"modell?ing|underwriting|transfer)|cyber monday|"
-        r"life ?hacks?|growth hack(?:s|ing|ers?)?|"
-        r"breach(?:es|ed)? of (?:contract|trust|duty|promise|privilege|ceasefire|covenants?|"
-        r"conduct|code|the peace|rules)|trojan horse)\b"
-    ),
-    # The business, political and investment "climate"; metaphorical storms,
-    # floods, droughts and landslides ("London's listing drought" reached the
-    # draft tile); Cyber's hacker groups named after typhoons; and insured
-    # losses and cat bonds, which belong to Insurance.
-    'Signal Climate': re.compile(
-        r"\b(?:(?:political|business|investment|economic|regulatory|market|geopolitical|"
-        r"policy|funding|financial|trade|social|current|tough|hostile|operating|lending|"
-        r"credit|deal|ipo) climate|climate of (?:fear|uncertainty|distrust|mistrust|"
-        r"hostility|impunity|suspicion)|"
-        r"(?:salt|volt|flax|linen|silk) typhoon|"
-        r"carbon (?:copy|copies|fibre|fiber|dating|steel)|"
-        r"(?:perfect|political|media|social media|twitter|diplomatic) storm|storm of|"
-        r"storm(?:s|ed|ing)? (?:into|out|off|to|back|past|through)|"
-        r"(?:takes?|took|taking|taken) .{1,20} by storm|"
-        r"flood(?:s|ed|ing)? (?:of|the market|the zone|in)|"
-        r"(?:trophy|title|goal|ipo|listings?|deal|funding|hiring|win|scoring|medal|run|"
-        r"investment|profit|earnings|dividend|m&a|merger) drought|"
-        r"landslide (?:victory|win|wins|majority|mandate|defeat|election)|"
-        r"(?:debt|fiscal|financial|business|long-term) sustainability|"
-        r"monsoon session|"
-        r"(?:insured|catastrophe|cat|nat ?cat) (?:losses|loss|claims|bonds?|exposure)|"
-        r"(?:flood|storm|hurricane|wildfire|cyclone|weather) (?:insurance|insurers?|cover|"
-        r"claims|reinsurance|losses|premiums?)|cat bonds?|catastrophe bonds?)\b"
-    ),
-    # Other senses of "spectrum" and "fibre"; the fintech and media arms of
-    # telecom groups; and subscribers to things that are not phone plans.
-    'Signal Telecom': re.compile(
-        r"\b(?:(?:political|autism|autistic|broad|wide|whole|entire|full|"
-        r"other end of the) spectrum|broad-spectrum|spectrum of|"
-        r"across the (?:political )?spectrum|"
-        r"(?:dietary|high|low|soluble|insoluble|carbon|glass)[- ]fib(?:re|er)|"
-        r"fib(?:re|er) (?:diet|intake|supplements?)|"
-        r"jio financial(?: services)?|jio ?blackrock|jio ?hotstar|airtel money|"
-        r"(?:newsletter|youtube|channel|streaming|netflix|podcast|substack) subscribers?)\b"
-    ),
-    # The context rule: a "shortage" of housing, talent or water is not a
-    # supply-chain story (a truck-driver shortage is, so it stays).
-    # Software supply-chain attacks are Cyber's; freight insurance is
-    # Insurance's; India's UPS is a pension scheme.
-    'Signal Supply Chain': re.compile(
-        r"\b(?:(?:housing|home|homes|talent|skills?|teacher|nurse|doctor|water|blood|"
-        r"organ|cash|liquidity|dollar|rain(?:fall)?|seat|staff(?:ing)?) shortages?|"
-        r"(?:housing|home|homes) inventor(?:y|ies)|"
-        r"(?:software |open[- ]source )?supply[- ]chains? (?:attacks?|hacks?|compromise|"
-        r"breach(?:es)?)|"
-        r"(?:trucking|freight|cargo|fleet|marine|shipping|logistics) insurance|"
-        r"ups pension|unified pension|free shipping|ups and downs|"
-        r"cargo (?:pants|shorts|cult)|port of call|"
-        r"(?:energy|power|gas|electricity) suppliers?)\b"
-    ),
-    # Plants that are not factories, production that is not manufacturing,
-    # and metaphors.
-    'Signal Manufacturing': re.compile(
-        r"\b(?:plant-based|plant (?:a|the|trees|seeds)|(?:power|nuclear|coal|gas|solar|"
-        r"desalination|sewage|treatment|water) plants?|"
-        r"(?:oil|gas|crude|lng|coal|power|electricity|solar|wind|energy) production|"
-        r"(?:film|movie|tv|television|music|theatre|theater|stage|content|video) productions?|"
-        r"manufactur(?:ing|ed) (?:consent|dissent|evidence|outrage|crisis|crises)|"
-        r"factory reset|cheesecake factory|troll factory|dream factory|"
-        r"palantir foundry|nerves of steel|man of steel|"
-        r"(?:services|composite) pmi)\b"
-    ),
-}
+# ═════════════════════════════════════════════════════════════════════════════
+# 4. MACHINERY
+# ═════════════════════════════════════════════════════════════════════════════
 
-# Most specific first: on tied scores, the article lands in the earlier signal.
-# Tile-only domains sit after the audience's core (GCC, Insurance) and ahead
-# of the broad signals, so a banking story on a tie lands in Banking rather
-# than Business.
-PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal Energy',
-            'Signal Defence', 'Signal Healthcare', 'Signal Cyber', 'Signal Climate',
-            'Signal Telecom', 'Signal Supply Chain', 'Signal Manufacturing',
-            'Signal AI', 'Signal Global', 'Signal Executive', 'Signal Business']
+# The rubrics as the lookup tables the scoring code (and other modules) use.
 
-THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
-# Per-signal minimum, where the shared THRESHOLD is too loose. GCC sits at 6
-# because at 5 an IT-vendor services deal ("HCLTech bags AI-led IT
-# transformation deal from M Group") clears both axes and reaches the tile --
-# a supplier story, not a capability-centre one.
-# Defence sits at 5 so that a bare "defence" or "drone" in a headline (2 x 2 =
-# 4) cannot qualify alone, while one strong term there (military, troops,
-# missile: 3 x 2 = 6) still can.
-# Healthcare, Cyber and Climate sit at 5 for the same reason: "medical",
-# "privacy" or "storm" alone in a headline is not enough, "hospital",
-# "hackers" or "hurricane" is.
-SIGNAL_FLOORS = {'Signal GCC': 6, 'Signal Defence': 5, 'Signal Healthcare': 5,
-                 'Signal Cyber': 5, 'Signal Climate': 5, 'Signal Telecom': 5,
-                 'Signal Supply Chain': 5, 'Signal Manufacturing': 5}
-TITLE_MULTIPLIER = 2  # a keyword in the headline is worth double
-MAX_PER_SIGNAL = 8
+# KEYWORDS keeps its historical order (AI, Business, Global, Insurance, GCC,
+# Executive, then the tiles), not the order above: app/intelligence/domains.py
+# settles score ties by it.
+KEYWORDS = {name: RUBRICS[name].keywords for name in (
+    'Signal AI', 'Signal Business', 'Signal Global', 'Signal Insurance',
+    'Signal GCC', 'Signal Executive', *(s['name'] for s in TILE_SIGNALS))}
+NEUTRALIZE = {name: re.compile(r'\b(?:' + '|'.join(r.ignore) + r')\b')
+              for name, r in RUBRICS.items() if r.ignore}
+TITLE_REQUIRED = {name for name, r in RUBRICS.items() if r.headline_must_match}
+SIGNAL_FLOORS = {name: r.min_score for name, r in RUBRICS.items()}
+_TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
 
 _COMPILED = {
     name: [(re.compile(r'\b' + re.escape(kw) + r'\b'), weight)
@@ -1149,3 +1395,4 @@ def synthesize_signals(articles, data_date=None, require_current=True, include_t
             for s in listed
         ],
     }
+
