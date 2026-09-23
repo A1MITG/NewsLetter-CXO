@@ -1277,32 +1277,56 @@ a { color: inherit; }
     // the original, instead of jumping.
     // Started by renderPulseCards once the cards exist: the track is empty
     // until the fetch resolves, and cloning an empty track scrolls nothing.
+    //
+    // Cloning is what makes the loop seamless, but when the cards fit the
+    // duplicate sits in plain view and reads as a bug, so the loop runs only
+    // when the cards genuinely overflow. That is decided from the cards'
+    // natural width (flex-basis + gaps), not scrollWidth: cards grow to fill
+    // the track whenever they fit, and at fractional pixel ratios rounded
+    // widths can disagree by a pixel or two. It is re-decided on resize from
+    // the original cards, so a window that widens never keeps duplicates.
+    const pulseLoop = { raf: 0, paused: false, period: 0, original: '', bound: false };
     function startPulseScroller() {
         const viewport = document.getElementById('pulseViewport');
         const track = document.getElementById('pulseTrack');
         if (!viewport || !track || !track.children.length) return;
-        // Cloning is what makes the loop seamless, but with only a couple of
-        // cards the duplicate sits in plain view and reads as a bug. Below
-        // that, leave the row static — it fits on screen anyway.
-        if (track.scrollWidth <= viewport.clientWidth + 1) return;
-        const originalWidth = track.scrollWidth;
-        track.innerHTML += track.innerHTML;
-
-        let paused = false;
-        function step() {
-            if (!paused) {
-                viewport.scrollLeft += 0.6;
-                if (viewport.scrollLeft >= originalWidth) {
-                    viewport.scrollLeft -= originalWidth;
-                }
-            }
-            requestAnimationFrame(step);
+        pulseLoop.original = track.innerHTML;
+        if (!pulseLoop.bound) {
+            pulseLoop.bound = true;
+            ['mouseenter', 'touchstart', 'mousedown'].forEach(evt =>
+                viewport.addEventListener(evt, () => { pulseLoop.paused = true; }));
+            ['mouseleave', 'touchend', 'mouseup'].forEach(evt =>
+                viewport.addEventListener(evt, () => { pulseLoop.paused = false; }));
+            let resizeTimer = 0;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => layoutPulseLoop(viewport, track), 200);
+            });
         }
-        requestAnimationFrame(step);
-        ['mouseenter', 'touchstart', 'mousedown'].forEach(evt =>
-            viewport.addEventListener(evt, () => { paused = true; }));
-        ['mouseleave', 'touchend', 'mouseup'].forEach(evt =>
-            viewport.addEventListener(evt, () => { paused = false; }));
+        layoutPulseLoop(viewport, track);
+    }
+
+    function layoutPulseLoop(viewport, track) {
+        cancelAnimationFrame(pulseLoop.raf);
+        pulseLoop.raf = 0;
+        track.innerHTML = pulseLoop.original;
+        viewport.scrollLeft = 0;
+        const cards = Array.from(track.children);
+        if (!cards.length) return;
+        const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+        const basis = parseFloat(getComputedStyle(cards[0]).flexBasis) || cards[0].getBoundingClientRect().width;
+        if (cards.length * basis + (cards.length - 1) * gap <= viewport.clientWidth) return;
+        // One full set plus the gap before its clone, so the wrap is seamless.
+        pulseLoop.period = track.scrollWidth + gap;
+        track.innerHTML = pulseLoop.original + pulseLoop.original;
+        const step = () => {
+            if (!pulseLoop.paused) {
+                viewport.scrollLeft += 0.6;
+                if (viewport.scrollLeft >= pulseLoop.period) viewport.scrollLeft -= pulseLoop.period;
+            }
+            pulseLoop.raf = requestAnimationFrame(step);
+        };
+        pulseLoop.raf = requestAnimationFrame(step);
     }
 
     // Engine tiles: the row drifts slowly back and forth so every domain passes
