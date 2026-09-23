@@ -28,11 +28,11 @@ SIGNAL_TO_ENGINE = {
     'Signal Climate': ('climate', 'Climate & Sustainability'),
     'Signal Telecom': ('telecom', 'Telecom & Digital Infrastructure'),
     'Signal Supply Chain': ('supplychain', 'Supply Chain'),
+    'Signal Manufacturing': ('manufacturing', 'Manufacturing'),
 }
 
 # Engines with no scoring logic yet — written out honestly, not fabricated.
 COMING_SOON_ENGINES = {
-    'manufacturing': 'Manufacturing',
 }
 
 COMING_SOON_NOTE = (

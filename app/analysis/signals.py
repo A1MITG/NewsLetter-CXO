@@ -55,6 +55,8 @@ TILE_SIGNALS = [
      'audience': 'Telecom & Digital Infrastructure'},
     {'name': 'Signal Supply Chain', 'purpose': 'Shipping · Freight · Logistics · Sourcing',
      'audience': 'Operations & Procurement'},
+    {'name': 'Signal Manufacturing', 'purpose': 'Factories · Industrial Output · Autos & Electronics · Industrial Policy',
+     'audience': 'Manufacturing & Industry'},
 ]
 _TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
 
@@ -682,6 +684,49 @@ KEYWORDS = {
         'allcargo': 4, 'tci express': 4, 'mahindra logistics': 4,
         'zim': 3,
     },
+    # Tile-only. First draft 2026-09-24, same review rules as Defence, fed
+    # mainly by the manufacturing trade press added that day (Manufacturing
+    # Dive, ET Manufacturing). Power plants and oil production are Energy's;
+    # film "production" and Palantir's "Foundry" are nobody's (see
+    # NEUTRALIZE).
+    'Signal Manufacturing': {
+        # Core
+        'manufacturing': 4, 'factory': 4, 'factories': 4, 'manufacturing plant': 4,
+        'production line': 4, 'production lines': 4, 'assembly line': 4,
+        'assembly plant': 4, 'new plant': 4, 'industrial output': 4,
+        'industrial production': 4, 'factory output': 4, 'factory orders': 4,
+        'iip': 4, 'manufacturing pmi': 4, 'make in india': 4, 'pli scheme': 4,
+        'production-linked incentive': 4, 'contract manufacturing': 4,
+        'contract manufacturer': 4, 'electronics manufacturing': 4,
+        'semiconductor manufacturing': 4, 'chipmaking': 4, 'chip plant': 4,
+        'semiconductor fab': 4, 'gigafactory': 4, 'battery plant': 4,
+        'battery manufacturing': 4, 'cell manufacturing': 4, 'shipbuilding': 4,
+        'additive manufacturing': 4, 'industry 4.0': 4, 'smart factory': 4,
+        'industrial automation': 4, 'machine tools': 4, 'capital goods': 4,
+        'engineering goods': 4, 'heavy industry': 4, 'steelmaker': 4,
+        'steelmakers': 4, 'steel production': 4,
+        'manufacturer': 3, 'manufacturers': 3, 'pli': 3, 'foundry': 3,
+        'chipmaker': 3, 'chipmakers': 3, 'automaker': 3, 'automakers': 3,
+        'carmaker': 3, 'carmakers': 3, 'steel': 3, 'cement': 3, 'textiles': 3,
+        'textile': 3, 'shipyard': 3, '3d printing': 3, 'greenfield': 3,
+        'capacity expansion': 3,
+        # Weak on purpose: with the floor of 5 (SIGNAL_FLOORS) none qualifies
+        # a headline alone ("plant" is also a verb, "production" also film).
+        'plant': 2, 'plants': 2, 'production': 2, 'pmi': 2, 'aluminium': 2,
+        'aluminum': 2, 'chemicals': 2, 'garment': 2, 'capex': 2, 'brownfield': 2,
+        # Companies
+        'foxconn': 4, 'hon hai': 4, 'pegatron': 4, 'tata electronics': 4,
+        'dixon technologies': 4, 'tsmc': 4, 'intel foundry': 4,
+        'larsen & toubro': 4, 'l&t': 4, 'bhel': 4, 'caterpillar': 4,
+        'john deere': 4, 'tata steel': 4, 'jsw steel': 4, 'arcelormittal': 4,
+        'nippon steel': 4, 'posco': 4, 'us steel': 4, 'u.s. steel': 4,
+        'hindalco': 4, 'ultratech': 4,
+        'siemens': 3, 'abb': 3, 'bosch': 3, 'honeywell': 3,
+        'general electric': 3, '3m': 3, 'micron': 3, 'dixon': 3,
+        'maruti suzuki': 3, 'tata motors': 3, 'mahindra & mahindra': 3,
+        'hyundai motor': 3, 'toyota': 3, 'volkswagen': 3, 'boeing': 3,
+        'airbus': 3, 'vedanta': 3,
+    },
 }
 
 # Signals whose headline must itself carry one of their keywords. A summary
@@ -690,7 +735,7 @@ KEYWORDS = {
 # Goldman Sachs and Citigroup named as brokers put a Meesho stake sale there.
 TITLE_REQUIRED = {'Signal Banking', 'Signal Energy', 'Signal Defence',
                   'Signal Healthcare', 'Signal Cyber', 'Signal Climate',
-                  'Signal Telecom', 'Signal Supply Chain'}
+                  'Signal Telecom', 'Signal Supply Chain', 'Signal Manufacturing'}
 
 # Phrases that contain a signal's keyword but are not about that signal. They
 # are blanked out of the text before that signal (and only that signal) is
@@ -816,6 +861,18 @@ NEUTRALIZE = {
         r"cargo (?:pants|shorts|cult)|port of call|"
         r"(?:energy|power|gas|electricity) suppliers?)\b"
     ),
+    # Plants that are not factories, production that is not manufacturing,
+    # and metaphors.
+    'Signal Manufacturing': re.compile(
+        r"\b(?:plant-based|plant (?:a|the|trees|seeds)|(?:power|nuclear|coal|gas|solar|"
+        r"desalination|sewage|treatment|water) plants?|"
+        r"(?:oil|gas|crude|lng|coal|power|electricity|solar|wind|energy) production|"
+        r"(?:film|movie|tv|television|music|theatre|theater|stage|content|video) productions?|"
+        r"manufactur(?:ing|ed) (?:consent|dissent|evidence|outrage|crisis|crises)|"
+        r"factory reset|cheesecake factory|troll factory|dream factory|"
+        r"palantir foundry|nerves of steel|man of steel|"
+        r"(?:services|composite) pmi)\b"
+    ),
 }
 
 # Most specific first: on tied scores, the article lands in the earlier signal.
@@ -824,8 +881,8 @@ NEUTRALIZE = {
 # than Business.
 PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal Energy',
             'Signal Defence', 'Signal Healthcare', 'Signal Cyber', 'Signal Climate',
-            'Signal Telecom', 'Signal Supply Chain', 'Signal AI', 'Signal Global',
-            'Signal Executive', 'Signal Business']
+            'Signal Telecom', 'Signal Supply Chain', 'Signal Manufacturing',
+            'Signal AI', 'Signal Global', 'Signal Executive', 'Signal Business']
 
 THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Per-signal minimum, where the shared THRESHOLD is too loose. GCC sits at 6
@@ -840,7 +897,7 @@ THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # "hackers" or "hurricane" is.
 SIGNAL_FLOORS = {'Signal GCC': 6, 'Signal Defence': 5, 'Signal Healthcare': 5,
                  'Signal Cyber': 5, 'Signal Climate': 5, 'Signal Telecom': 5,
-                 'Signal Supply Chain': 5}
+                 'Signal Supply Chain': 5, 'Signal Manufacturing': 5}
 TITLE_MULTIPLIER = 2  # a keyword in the headline is worth double
 MAX_PER_SIGNAL = 8
 
