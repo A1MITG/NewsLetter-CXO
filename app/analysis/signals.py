@@ -53,6 +53,8 @@ TILE_SIGNALS = [
      'audience': 'Sustainability & Risk'},
     {'name': 'Signal Telecom', 'purpose': 'Operators · Networks · Spectrum · Data Centres',
      'audience': 'Telecom & Digital Infrastructure'},
+    {'name': 'Signal Supply Chain', 'purpose': 'Shipping · Freight · Logistics · Sourcing',
+     'audience': 'Operations & Procurement'},
 ]
 _TILE_NAMES = {s['name'] for s in TILE_SIGNALS}
 
@@ -633,6 +635,53 @@ KEYWORDS = {
         'charter communications': 4,
         'huawei': 3, 'ntt': 3, 'comcast': 3, 'kuiper': 3,
     },
+    # Tile-only. First draft 2026-09-24, same review rules as Defence, fed
+    # mainly by the logistics trade press added that day (Supply Chain Dive,
+    # The Loadstar, FreightWaves). Everyday shortages (housing, talent,
+    # water) are not supply chain; software "supply-chain attacks" are
+    # Cyber's; freight insurance is Insurance's (see NEUTRALIZE).
+    'Signal Supply Chain': {
+        # Core
+        'supply chain': 4, 'supply chains': 4, 'supply-chain': 4, 'logistics': 4,
+        'freight': 4, 'nearshoring': 4, 'reshoring': 4, 'friend-shoring': 4,
+        'friendshoring': 4, 'china plus one': 4, 'chip shortage': 4,
+        'semiconductor shortage': 4,
+        'suppliers': 3, 'supplier': 3, 'sourcing': 3, 'procurement': 3,
+        'inventory': 3, 'inventories': 3, 'rare earth': 3, 'rare earths': 3,
+        'critical minerals': 3, 'export controls': 3,
+        # Shipping and ports
+        'container shipping': 4, 'container ship': 4, 'container ships': 4,
+        'containership': 4, 'boxship': 4, 'boxships': 4, 'shipping lines': 4,
+        'shipping line': 4, 'freight rates': 4, 'shipping rates': 4,
+        'ocean freight': 4, 'port congestion': 4, 'shipping lane': 4,
+        'shipping lanes': 4, 'suez canal': 4, 'panama canal': 4, 'teu': 4,
+        'teus': 4, 'drewry': 4, 'freightos': 4, 'baltic dry index': 4, 'imec': 4,
+        'shipping': 3, 'ports': 3, 'cargo': 3, 'red sea': 3, 'chokepoint': 3,
+        # Air, road and rail
+        'air cargo': 4, 'air freight': 4, 'trucking': 4, 'truckers': 4,
+        'truckload': 4, 'less-than-truckload': 4, 'ltl': 4, 'rail freight': 4,
+        'freight rail': 4, 'last-mile': 4, 'last mile delivery': 4,
+        # Warehousing and fulfilment
+        'warehousing': 4, 'distribution centre': 4, 'distribution center': 4,
+        'distribution centres': 4, 'distribution centers': 4,
+        'warehouse': 3, 'warehouses': 3, 'fulfilment': 3, 'fulfillment': 3,
+        'de minimis': 3,
+        # Weak on purpose: with the floor of 5 (SIGNAL_FLOORS) none qualifies
+        # a headline alone ("Founder mode: stay hands-on, not the
+        # bottleneck"; India's UPS pension scheme).
+        'port': 2, 'vessel': 2, 'vessels': 2, 'containers': 2, 'shortage': 2,
+        'shortages': 2, 'customs': 2, 'bottleneck': 2, 'bottlenecks': 2, 'ups': 2,
+        # Companies
+        'maersk': 4, 'mediterranean shipping': 4, 'cma cgm': 4, 'hapag-lloyd': 4,
+        'cosco': 4, 'evergreen marine': 4, 'dp world': 4, 'adani ports': 4,
+        'jnpa': 4, 'jnpt': 4, 'concor': 4, 'container corporation': 4,
+        'delhivery': 4, 'blue dart': 4, 'fedex': 4, 'dhl': 4,
+        'united parcel service': 4, 'kuehne+nagel': 4, 'kuehne + nagel': 4,
+        'db schenker': 4, 'schenker': 4, 'c.h. robinson': 4, 'xpo': 4,
+        'old dominion': 4, 'j.b. hunt': 4, 'flexport': 4, 'shiprocket': 4,
+        'allcargo': 4, 'tci express': 4, 'mahindra logistics': 4,
+        'zim': 3,
+    },
 }
 
 # Signals whose headline must itself carry one of their keywords. A summary
@@ -641,7 +690,7 @@ KEYWORDS = {
 # Goldman Sachs and Citigroup named as brokers put a Meesho stake sale there.
 TITLE_REQUIRED = {'Signal Banking', 'Signal Energy', 'Signal Defence',
                   'Signal Healthcare', 'Signal Cyber', 'Signal Climate',
-                  'Signal Telecom'}
+                  'Signal Telecom', 'Signal Supply Chain'}
 
 # Phrases that contain a signal's keyword but are not about that signal. They
 # are blanked out of the text before that signal (and only that signal) is
@@ -752,6 +801,21 @@ NEUTRALIZE = {
         r"jio financial(?: services)?|jio ?blackrock|jio ?hotstar|airtel money|"
         r"(?:newsletter|youtube|channel|streaming|netflix|podcast|substack) subscribers?)\b"
     ),
+    # The context rule: a "shortage" of housing, talent or water is not a
+    # supply-chain story (a truck-driver shortage is, so it stays).
+    # Software supply-chain attacks are Cyber's; freight insurance is
+    # Insurance's; India's UPS is a pension scheme.
+    'Signal Supply Chain': re.compile(
+        r"\b(?:(?:housing|home|homes|talent|skills?|teacher|nurse|doctor|water|blood|"
+        r"organ|cash|liquidity|dollar|rain(?:fall)?|seat|staff(?:ing)?) shortages?|"
+        r"(?:housing|home|homes) inventor(?:y|ies)|"
+        r"(?:software |open[- ]source )?supply[- ]chains? (?:attacks?|hacks?|compromise|"
+        r"breach(?:es)?)|"
+        r"(?:trucking|freight|cargo|fleet|marine|shipping|logistics) insurance|"
+        r"ups pension|unified pension|free shipping|ups and downs|"
+        r"cargo (?:pants|shorts|cult)|port of call|"
+        r"(?:energy|power|gas|electricity) suppliers?)\b"
+    ),
 }
 
 # Most specific first: on tied scores, the article lands in the earlier signal.
@@ -760,8 +824,8 @@ NEUTRALIZE = {
 # than Business.
 PRIORITY = ['Signal GCC', 'Signal Insurance', 'Signal Banking', 'Signal Energy',
             'Signal Defence', 'Signal Healthcare', 'Signal Cyber', 'Signal Climate',
-            'Signal Telecom', 'Signal AI', 'Signal Global', 'Signal Executive',
-            'Signal Business']
+            'Signal Telecom', 'Signal Supply Chain', 'Signal AI', 'Signal Global',
+            'Signal Executive', 'Signal Business']
 
 THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # Per-signal minimum, where the shared THRESHOLD is too loose. GCC sits at 6
@@ -775,7 +839,8 @@ THRESHOLD = 3        # minimum evidence to classify; below this: unclassified
 # "privacy" or "storm" alone in a headline is not enough, "hospital",
 # "hackers" or "hurricane" is.
 SIGNAL_FLOORS = {'Signal GCC': 6, 'Signal Defence': 5, 'Signal Healthcare': 5,
-                 'Signal Cyber': 5, 'Signal Climate': 5, 'Signal Telecom': 5}
+                 'Signal Cyber': 5, 'Signal Climate': 5, 'Signal Telecom': 5,
+                 'Signal Supply Chain': 5}
 TITLE_MULTIPLIER = 2  # a keyword in the headline is worth double
 MAX_PER_SIGNAL = 8
 
