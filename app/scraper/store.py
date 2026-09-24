@@ -52,6 +52,15 @@ def get_articles(force_refresh=False):
         return articles
 
 
+def get_cached_articles():
+    """The cached articles as they stand, never scraping; [] with no cache.
+
+    For pages a reader should not wait on: the background refresher keeps
+    the cache warm, and the page states when its articles were fetched.
+    """
+    return (_load() or {}).get('articles', [])
+
+
 def _is_fresh(cached):
     """True when the cache is inside its TTL."""
     if not cached:

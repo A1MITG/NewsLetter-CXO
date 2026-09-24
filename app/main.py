@@ -1,11 +1,16 @@
 # app/main.py
 import logging
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, jsonify, render_template
 from dotenv import load_dotenv
 
+from .analysis.brief import build_brief, render_brief
+from .analysis.command_center import build_engine_data
+from .analysis.signals import synthesize_signals
 from .api.routes import api_blueprint
-from .scraper.store import start_background_refresh
+from .scraper.store import (cache_age_minutes, get_cache_date, get_cached_articles,
+                            start_background_refresh)
 from config.env_check import is_production, validate_environment
 
 load_dotenv()
@@ -37,8 +42,20 @@ def create_app():
 
     @app.route('/brief')
     def brief():
-        """Compact five-lens Daily Brief — the low-bandwidth view for mobile/travel."""
-        return render_template('index.html')
+        """Today's Brief: the tiles' stories as a text-only newsletter.
+
+        Reads the cache as it stands rather than scraping, so the page never
+        keeps a reader waiting; it says when its articles were fetched.
+        """
+        articles = get_cached_articles()
+        data_date = get_cache_date()
+        signals_data = synthesize_signals(articles, data_date=data_date,
+                                          include_tile_signals=True)
+        by_title = {a.get('title'): a for a in articles}
+        sections = build_brief(build_engine_data(signals_data, by_title), by_title)
+        age = cache_age_minutes()
+        fetched = None if age is None else datetime.now(timezone.utc) - timedelta(minutes=age)
+        return render_brief(sections, data_date, fetched)
 
     @app.route('/signals')
     def signals():

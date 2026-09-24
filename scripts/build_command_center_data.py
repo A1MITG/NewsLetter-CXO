@@ -5,6 +5,7 @@ Run twice a day, at 09:00 and 19:00 IST (alongside
 scripts/build_static_signals.py, by .github/workflows/build-signals.yml), to
 write:
     public/command_center_data.json
+    public/brief.html   Today's Brief, the tiles' stories as a text-only page
 
 Maps the scored Signal categories from app/analysis/signals.py onto the
 Command Center's engine ids: the Signals page's six plus the tile-only
@@ -32,6 +33,7 @@ load_dotenv()
 from app.scraper.store import get_articles, get_cache_date
 from app.scraper.article_images import fill_signal_images
 from app.analysis.signals import synthesize_signals
+from app.analysis.brief import build_brief, render_brief
 from app.analysis.command_center import build_engine_data, build_featured, build_people_rows
 from app.scraper.leader_quotes import get_leader_quotes
 
@@ -81,11 +83,12 @@ def main(refresh=False):
     # built_at and refresh_slots_ist let the page say when it was last
     # refreshed and when the next refresh is due. fetched_minutes_ago stays 0
     # for the current "Sources checked" stamp, which is only true at build time.
+    built_at = datetime.now(timezone.utc)
     engine_data['_meta'] = {
         'data_date': data_date,
         'fetched_minutes_ago': 0,
         'stale_excluded': signals_data.get('stale_excluded', 0),
-        'built_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'built_at': built_at.isoformat(timespec='seconds'),
         'refresh_slots_ist': list(REFRESH_SLOTS_IST),
     }
 
@@ -94,6 +97,14 @@ def main(refresh=False):
     with open(out_path, 'w', encoding='utf-8') as f:
         json.dump(engine_data, f, ensure_ascii=False)
     logger.info("Wrote %s", out_path)
+
+    # Today's Brief, from the same engine data, so it lists exactly the
+    # stories the tiles cycle through. "Updated" matches the page's line.
+    brief_out = PUBLIC_DIR / 'brief.html'
+    brief_out.write_text(
+        render_brief(build_brief(engine_data, by_title), data_date, built_at),
+        encoding='utf-8')
+    logger.info("Wrote %s", brief_out)
 
     html_src = ROOT / 'app' / 'static' / 'command_center_source.html'
     source_html = html_src.read_text(encoding='utf-8')
