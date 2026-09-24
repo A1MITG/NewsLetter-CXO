@@ -819,7 +819,9 @@ a { color: inherit; }
     </div>
     <p class="row-lede">AI and frontier-tech leaders in their own words, quoted verbatim by a company newsroom or the technology press.</p>
     <div class="people-row" id="recordRow"><!-- populated from _record --></div>
-    <div class="listening" id="recordListening"></div>
+    <!-- The "Listening to" watchlist strip is parked (hidden) since 2026-09-24.
+         renderRecord still fills it; remove "parked" to bring it back. -->
+    <div class="listening parked" id="recordListening"></div>
 </div>
 
 <section class="pipeline">
@@ -1259,8 +1261,8 @@ a { color: inherit; }
     }
 
     // Leaders on Record: verbatim quotes, each linked to where it was
-    // published, with the watchlist beneath so a sparse day still says who
-    // is being listened to.
+    // published. The "Listening to" watchlist beneath is still filled but
+    // parked (hidden) in the markup.
     function renderRecord(record) {
         const row = document.getElementById('recordRow');
         if (!row) return;

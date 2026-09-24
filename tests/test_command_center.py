@@ -177,6 +177,20 @@ class TestFounderSection(unittest.TestCase):
         self.assertIn('alt="Portrait of the founder of SIGNAL"', self.body)
 
 
+class TestListeningStripParked(unittest.TestCase):
+    """The "Listening to" watchlist under Leaders on Record is hidden
+    (2026-09-24). Parked, not removed: the data and the renderer stay, so
+    removing the class brings it back."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.body = create_app().test_client().get('/').get_data(as_text=True)
+
+    def test_strip_is_parked(self):
+        self.assertIn('<div class="listening parked" id="recordListening"></div>', self.body)
+        self.assertIn('.parked { display: none !important; }', self.body)
+
+
 class TestLiveEndpoint(unittest.TestCase):
 
     @classmethod
