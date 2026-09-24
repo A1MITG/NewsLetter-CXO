@@ -4,7 +4,7 @@ A breakpoint (BP) is a commit you can safely return to. This register lists ever
 one, what it changed, how far it has travelled (local → committed → pushed →
 live), and the exact command to roll it back.
 
-*Last updated: 2026-09-24 (BP-27 to BP-29 live; BP-25, BP-26 pushed) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
+*Last updated: 2026-09-24 (BP-27 to BP-29 live; BP-25, BP-26 and BP-30 pushed) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
 (GitHub now redirects it to `A1MITG/SYGNALZ`).*
 
 ---
@@ -27,6 +27,7 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 
 | BP | Commit | Date (IST) | Stage | Change | What it did | Roll back with |
 |---|---|---|---|---|---|---|
+| BP-30 | `ce8cacf` | 2026-09-24 10:57 | Pushed | Manifesto | The nav's "About" link (which pointed at `#`) becomes "Manifesto" and lands on The Builder's Manifesto, a new section just before About the Builder: a title band ("Hands-on. / Hands-off. / Hands-on again.") over an original generated background, four numbered chapters from the user's manifesto, and "Build. Learn. Iterate. Repeat." The image (`manifesto-bg.jpg`, 2880x1440, 288 KB) is procedural art from `scripts/generate_manifesto_bg.py` (seed 7), committed to `app/static/img` and `public/img`. The workflow now publishes all of `public/img` to both deploy branches. Test: `TestManifestoSection`. Goes live with the next build. | `git revert ce8cacf`, then rebuild and republish |
 | BP-29 | `6f000df` | 2026-09-24 10:24 | **Live** | ListeningParked | The "Listening to" strip of tech-leader names under Leaders on Record is hidden with the page's `parked` class. Parked, not removed: `renderRecord` still fills it and `_record.leaders` is unchanged, so removing the class brings it back. Test: `TestListeningStripParked`. Live as `signals-deploy` `5cd149a`. | `git revert 6f000df`, then rebuild and republish |
 | BP-28 | `6e8330f` | 2026-09-24 10:12 | **Live** | BuilderLabel | "About the Founder" is now "About the Builder": the nav link and the section's eyebrow. Ids, classes and the image path keep "founder", so `#founder` links still land; the portrait's alt text is unchanged. Test: `test_labelled_about_the_builder`. Live as `signals-deploy` `5cd149a`. | `git revert 6e8330f`, then rebuild and republish |
 | BP-27 | `bcc74ff` | 2026-09-24 10:09 | **Live** | WorldTimeLine | One thin full-width line between the nav and the hero: Tokyo, New Delhi, Dubai and New York, each with its flag and local date and time (browser time zones, no data), then the last refresh from `_meta.built_at` and `refresh_slots_ist` ("Updated … · Next …" in IST; amber "… update delayed" when a scheduled refresh is more than 90 min late; hidden without `built_at`). Replaces the engine band's "Sources checked" stamp, which on the static site always said "moments ago". `/api/command-center` sends `built_at` too. Pages regenerated from the source; the data file untouched. Tests: `tests/test_world_time_line.py`, plus a `built_at` check in `test_freshness_gate.py`. Live as `signals-deploy` `5cd149a`, published by hand on the midnight data, which was given its real build time (00:37 IST) so the line reads "Updated 00:37 IST". | `git revert bcc74ff`, then rebuild and republish |
@@ -58,7 +59,7 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 | BP-01 | `d82d6d6` | 2026-09-21 16:58 | **Live** | GCCFix | "India"/"Indian" alone no longer classify a story as Signal GCC. Affects which stories reach the live GCC tile. | `git revert d82d6d6`, then rebuild data and republish |
 
 **Dependencies to respect when rolling back**
-- **Revert newest first.** BP-02/03, BP-04, BP-06, BP-08, BP-10 to BP-23 and BP-27 to BP-29 all touch the Command Center page (`command_center_source.html`, the template, `public/`). Reverting an older one on its own will likely conflict.
+- **Revert newest first.** BP-02/03, BP-04, BP-06, BP-08, BP-10 to BP-23 and BP-27 to BP-30 all touch the Command Center page (`command_center_source.html`, the template, `public/`). Reverting an older one on its own will likely conflict.
 - BP-02 and BP-03 go together; reverting only one leaves the source template and the generated page out of step.
 - BP-04 and BP-01 both change the GCC rules in `app/analysis/signals.py`. Revert BP-04 first if you revert both.
 - Reverting a **Live** breakpoint doesn't change the website until `signals-deploy` is republished: run the *Build Signals* workflow, or push a rebuilt tree.
