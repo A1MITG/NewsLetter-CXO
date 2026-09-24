@@ -75,6 +75,54 @@ a { color: inherit; }
 .flyout a:hover { background: var(--slate-50); color: var(--blue); }
 .flyout .dd-empty { padding: 12px 18px; font-size: 12px; color: var(--slate-light); font-style: italic; }
 
+/* ---------- World-time line: four cities' local time, then the last refresh ----------
+   One thin full-width line between the sticky nav and the hero, in the
+   slate-50 and hairline of .persona-bar. Filled by WorldTime in the script. */
+.wc-line { background: var(--slate-50); border-bottom: 1px solid var(--slate-100); }
+.wc-line-inner { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+                 max-width: 1560px; margin: 0 auto; padding: 0 44px; }   /* the .wrap gutter */
+.wc-item { display: flex; align-items: center; justify-content: center; gap: 10px;
+           padding: 7px 12px; white-space: nowrap; }
+.wc-item + .wc-item { border-left: 1px solid #e3e7ec; }
+.wc-country { display: inline-flex; align-items: center; gap: 7px; font-size: 10.5px; font-weight: 700;
+              letter-spacing: .16em; text-transform: uppercase; color: var(--slate); }
+.wc-country .short { display: none; }
+/* 22px wide, the ticker's icon box (.ticker-item .ic), at a flag's 3:2. The
+   hairline keeps Japan's white field visible on the slate band. */
+.wc-flag { width: 22px; height: 14.67px; flex: none; display: block; border-radius: 2px;
+           box-shadow: 0 0 0 1px rgba(11,21,36,.14); }
+.wc-dt { display: inline-flex; align-items: baseline; gap: 5px; font-variant-numeric: tabular-nums; }
+.wc-dow, .wc-date { font-size: 12px; color: var(--slate-light); }
+.wc-time { font-size: 12.5px; font-weight: 700; color: var(--navy); margin-left: 3px; }
+/* The last refresh: a status, not a fifth clock. Green on schedule, amber
+   when a scheduled refresh is late. */
+.wc-upd { display: flex; align-items: baseline; gap: 7px; padding: 7px 0 7px 18px; white-space: nowrap;
+          border-left: 1px solid #e3e7ec; font-variant-numeric: tabular-nums; }
+.wc-upd[hidden] { display: none; }
+.wc-upd::before { content: ''; align-self: center; width: 6px; height: 6px; border-radius: 50%; background: #16a34a; }
+.wc-upd.delayed::before { background: #d97706; }
+.wc-upd-label { font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--slate); }
+.wc-upd-time { font-size: 12.5px; font-weight: 700; color: var(--navy); }
+.wc-upd-next { font-size: 12px; color: var(--slate-light); }
+.wc-upd-next::before { content: '\00b7  '; }   /* two spaces: the escape eats the first */
+.wc-upd.delayed .wc-upd-next { color: #b45309; }
+/* Too narrow for five cells: the refresh drops to its own hairline row. */
+@media (max-width: 1380px) {
+    .wc-upd { grid-column: 1 / -1; justify-content: center; padding: 5px 0; border-left: 0; border-top: 1px solid #e3e7ec; }
+}
+/* Narrower: each city above its date and time. */
+@media (max-width: 1120px) {
+    .wc-item { flex-direction: column; align-items: center; gap: 1px; padding: 6px 6px; }
+}
+@media (max-width: 640px) {
+    .wc-line-inner { padding: 0 8px; }
+    .wc-country { gap: 5px; font-size: 9.5px; letter-spacing: .08em; }
+    .wc-country .long, .wc-dow { display: none; }
+    .wc-country .short { display: inline; }
+    .wc-date { font-size: 11px; }
+    .wc-time { font-size: 11.5px; margin-left: 1px; }
+}
+
 /* ---------- Engine panel (top-5 with POV) ---------- */
 .panel-backdrop { position: fixed; inset: 0; background: rgba(11,21,36,.55); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 60px 24px; overflow-y: auto; }
 .panel-backdrop.open { display: flex; }
@@ -411,21 +459,6 @@ a { color: inherit; }
     .nav-right a.link[href="/signals"] { display: inline; }
 }
 
-.fresh-stamp {
-    display: block;
-    margin-top: 2px;
-    font-size: 11px;
-    color: var(--slate-light);
-}
-.fresh-stamp::before {
-    content: "";
-    display: inline-block;
-    width: 6px; height: 6px;
-    margin-right: 6px;
-    border-radius: 50%;
-    background: #16a34a;
-    vertical-align: middle;
-}
 .econ-card.no-img { background: var(--navy); }
 .econ-card.no-img .econ-body { position: relative; }
 
@@ -511,6 +544,8 @@ a { color: inherit; }
         </div>
     </nav>
 </div>
+<!-- World-time line: Tokyo, New Delhi, Dubai, New York, then the last refresh. Filled by WorldTime. -->
+<div class="wc-line" id="worldTime" role="group" aria-label="World time and last refresh"></div>
 <div class="flyout" id="flyout"></div>
 
 <div class="wrap">
@@ -546,7 +581,6 @@ a { color: inherit; }
     <div id="engines" class="band-head">
         <span class="eyebrow" style="font-size:13px;">Explore Intelligence Engines</span>
         <span class="sub" id="engineCount">&nbsp;</span>
-        <span class="sub fresh-stamp" id="freshStamp"></span>
     </div>
     <div class="persona-bar">
         <span>⭐ <b>Pin</b>, 👁 <b>hide</b>, or drag tiles to reorder your dashboard.</span>
@@ -1040,6 +1074,139 @@ a { color: inherit; }
         el.innerHTML = ENGINE_ICONS[el.dataset.icon] || '';
     });
 
+    // ---------- World-time line: four cities' local time, then the last refresh ----------
+    // Local time comes from the browser's clock and time-zone database (Intl),
+    // so the clocks need no data, and New York's daylight saving is the zone's
+    // own. Flags are inline SVG because Windows renders flag emoji as letters.
+    // The last cell reads _meta.built_at and _meta.refresh_slots_ist (written by
+    // scripts/build_command_center_data.py; the Flask API sends built_at only)
+    // and stays hidden without built_at rather than guess.
+    const WorldTime = (() => {
+        const ZONES = [
+            // short: the phone label, where a quarter of the screen is ~80px.
+            { label: 'Tokyo',     short: 'Tokyo', tz: 'Asia/Tokyo',       flag: 'jp' },
+            { label: 'New Delhi', short: 'Delhi', tz: 'Asia/Kolkata',     flag: 'in' },
+            { label: 'Dubai',     short: 'Dubai', tz: 'Asia/Dubai',       flag: 'ae' },
+            { label: 'New York',  short: 'NYC',   tz: 'America/New_York', flag: 'us' },
+        ];
+        const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const IST = 330;                   // minutes east of UTC; India has no daylight saving
+        const LATE_AFTER = 90 * 60000;     // a scheduled refresh this late is called delayed
+        const pad = n => String(n).padStart(2, '0');
+
+        // Flags on a 30x20 grid (3:2), simplified for 22px: India's chakra is
+        // a ring, the US canton a field of dots rather than fifty stars.
+        function usFlag() {
+            const h = 20 / 13;
+            let s = '<rect width="30" height="20" fill="#b22234"/>';
+            for (let i = 1; i < 13; i += 2) s += `<rect y="${(i * h).toFixed(2)}" width="30" height="${h.toFixed(2)}" fill="#fff"/>`;
+            s += `<rect width="12" height="${(7 * h).toFixed(2)}" fill="#3c3b6e"/>`;
+            for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) s += `<circle cx="${1.6 + c * 2.2}" cy="${1.5 + r * 2.3}" r=".55" fill="#fff"/>`;
+            return s;
+        }
+        const FLAGS = {
+            jp: '<rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="6" fill="#bc002d"/>',
+            in: '<rect width="30" height="20" fill="#fff"/><rect width="30" height="6.67" fill="#ff9933"/>' +
+                '<rect y="13.33" width="30" height="6.67" fill="#138808"/>' +
+                '<circle cx="15" cy="10" r="2.6" fill="none" stroke="#000080" stroke-width=".8"/><circle cx="15" cy="10" r=".7" fill="#000080"/>',
+            ae: '<rect width="30" height="20" fill="#fff"/><rect width="30" height="6.67" fill="#00732f"/>' +
+                '<rect y="13.33" width="30" height="6.67" fill="#000"/><rect width="7.5" height="20" fill="#ff0000"/>',
+            us: usFlag(),
+        };
+
+        // Numeric parts rather than a formatted string, so the output is the
+        // same in every browser (en-GB alone writes September as "Sept" in some).
+        const formatters = {};
+        function localTime(tz, ms) {
+            const f = formatters[tz] || (formatters[tz] = new Intl.DateTimeFormat('en-US', {
+                timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric',
+                hour: 'numeric', minute: 'numeric',
+            }));
+            const p = {};
+            for (const part of f.formatToParts(new Date(ms))) p[part.type] = part.value;
+            const t = { y: +p.year, mo: +p.month, d: +p.day, h: +p.hour % 24, mi: +p.minute };
+            t.dow = new Date(Date.UTC(t.y, t.mo - 1, t.d)).getUTCDay();
+            return t;
+        }
+
+        // Every scheduled refresh from yesterday to tomorrow, as epoch ms.
+        function slotTimes(slots, now) {
+            const t = localTime('Asia/Kolkata', now), out = [];
+            for (const dayShift of [-1, 0, 1]) {
+                for (const hm of slots) {
+                    const [h, m] = hm.split(':').map(Number);
+                    out.push(Date.UTC(t.y, t.mo - 1, t.d + dayShift, h, m) - IST * 60000);
+                }
+            }
+            return out.sort((a, b) => a - b);
+        }
+
+        // "09:04 IST" today, "Wed 19:02 IST" otherwise.
+        function istLabel(ms, now) {
+            const t = localTime('Asia/Kolkata', ms), today = localTime('Asia/Kolkata', now);
+            const day = t.d === today.d && t.mo === today.mo ? '' : DAYS[t.dow] + ' ';
+            return `${day}${pad(t.h)}:${pad(t.mi)} IST`;
+        }
+
+        function mount(el) {
+            el.innerHTML = '<div class="wc-line-inner">' + ZONES.map(z => `
+                <span class="wc-item">
+                    <span class="wc-country"><svg class="wc-flag" viewBox="0 0 30 20" aria-hidden="true">${FLAGS[z.flag]}</svg><span class="long">${z.label}</span><span class="short">${z.short}</span></span>
+                    <span class="wc-dt"><span class="wc-dow"></span><span class="wc-date"></span><span class="wc-time"></span></span>
+                </span>`).join('') + `
+                <span class="wc-upd" hidden>
+                    <span class="wc-upd-label">Updated</span>
+                    <span class="wc-upd-time"></span>
+                    <span class="wc-upd-next"></span>
+                </span></div>`;
+            const items = el.querySelectorAll('.wc-item'), cell = el.querySelector('.wc-upd');
+            let meta = null;
+
+            function renderRefresh(now) {
+                const built = Date.parse(meta.built_at);
+                const slots = Array.isArray(meta.refresh_slots_ist) ? meta.refresh_slots_ist : [];
+                const times = slotTimes(slots, now);
+                const last = times.filter(s => s <= now).pop(), next = times.find(s => s > now);
+                const delayed = last !== undefined && built < last && now - last > LATE_AFTER;
+                cell.classList.toggle('delayed', delayed);
+                cell.querySelector('.wc-upd-time').textContent = istLabel(built, now);
+                const nextEl = cell.querySelector('.wc-upd-next');
+                nextEl.textContent = delayed ? `${istLabel(last, now).replace(' IST', '')} update delayed`
+                    : next !== undefined ? `Next ${istLabel(next, now)}` : '';
+                nextEl.hidden = !nextEl.textContent;
+                const ago = Math.max(0, Math.round((now - built) / 60000));
+                const title = [`Last refreshed ${ago < 60 ? `${ago} min` : `${Math.round(ago / 60)} h`} ago.`];
+                if (slots.length) title.push(`Refreshed each day at ${slots.join(' and ')} IST.`);
+                if (meta.stale_excluded) title.push(`${meta.stale_excluded} articles excluded as stale or undated.`);
+                cell.title = title.join(' ');
+            }
+
+            function tick() {
+                const now = Date.now();
+                ZONES.forEach((z, i) => {
+                    const t = localTime(z.tz, now);
+                    items[i].querySelector('.wc-dow').textContent = DAYS[t.dow];
+                    items[i].querySelector('.wc-date').textContent = `${t.d} ${MONTHS[t.mo - 1]}`;
+                    items[i].querySelector('.wc-time').textContent = `${pad(t.h)}:${pad(t.mi)}`;
+                });
+                if (meta) renderRefresh(now);
+                setTimeout(tick, 1000 - (Date.now() % 1000) + 5);   // just after each second, so minutes turn on time
+            }
+            tick();
+
+            return {
+                setMeta(m) {
+                    meta = m && m.built_at && !isNaN(Date.parse(m.built_at)) ? m : null;
+                    cell.hidden = !meta;
+                    if (meta) renderRefresh(Date.now());
+                },
+            };
+        }
+        return { mount };
+    })();
+    const worldTime = WorldTime.mount(document.getElementById('worldTime'));
+
     // ---------- Live data load: fetch real classified articles, then build the ticker + tile headlines ----------
     const flyout = document.getElementById('flyout');
     // Data source: the live API when served by Flask, the prebuilt snapshot on a
@@ -1062,7 +1229,7 @@ a { color: inherit; }
             renderPulseCards(_pulse || []);
             renderRecord(_record || { quotes: [], leaders: [] });
             updateEngineCount();
-            renderFreshness();
+            worldTime.setMeta(CC_META);
             initTileHeadlines();
             initTicker();
         })
@@ -1160,21 +1327,6 @@ a { color: inherit; }
                 <div class="featured-read">Read Full Brief &rarr;</div>
             </div>
         </a>`;
-    }
-
-    function renderFreshness() {
-        const el = document.getElementById('freshStamp');
-        if (!el || !CC_META) return;
-        const m = CC_META.fetched_minutes_ago;
-        let when;
-        if (m === null || m === undefined) when = 'just now';
-        else if (m < 1) when = 'moments ago';
-        else if (m < 60) when = `${m} min ago`;
-        else { const h = Math.round(m / 60); when = h === 1 ? 'an hour ago' : `${h} hours ago`; }
-        el.textContent = `Sources checked ${when}`;
-        el.title = CC_META.stale_excluded
-            ? `${CC_META.stale_excluded} articles excluded as stale or undated`
-            : 'All qualifying articles are current';
     }
 
     function updateEngineCount() {

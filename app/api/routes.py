@@ -1,5 +1,6 @@
 # app/api/routes.py
 import logging
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request
 from ..scraper.store import get_articles, get_cache_date, cache_age_minutes
 from ..scraper.article_images import fill_signal_images
@@ -71,6 +72,12 @@ def get_command_center():
             'fetched_minutes_ago': None if age is None else round(age),
             'stale_excluded': signals_data.get('stale_excluded', 0),
         }
+        # When the articles were fetched: the world-time line's "Updated". No
+        # refresh_slots_ist, since the app re-scrapes on its own timer rather
+        # than the static site's schedule.
+        if age is not None:
+            fetched = datetime.now(timezone.utc) - timedelta(minutes=age)
+            payload['_meta']['built_at'] = fetched.isoformat(timespec='seconds')
         return jsonify(payload)
     except Exception:
         logger.exception("Error generating command center data")

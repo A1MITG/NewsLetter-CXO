@@ -83,6 +83,15 @@ class TestLivePageIsCurrent(unittest.TestCase):
         self.assertIn('fetched_minutes_ago', meta)
         self.assertIn('stale_excluded', meta)
 
+    def test_meta_says_when_the_articles_were_fetched(self):
+        """The world-time line's "Updated" reads built_at."""
+        meta = self.payload['_meta']
+        if meta.get('fetched_minutes_ago') is None:
+            self.skipTest('no cached articles')
+        built = datetime.fromisoformat(meta['built_at'])
+        self.assertIsNotNone(built.tzinfo)
+        self.assertLessEqual(built, datetime.now(timezone.utc))
+
     def test_meta_is_not_treated_as_an_engine(self):
         """_meta must never render as a tile."""
         self.assertNotIn('articles', self.payload['_meta'])
