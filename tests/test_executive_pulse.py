@@ -58,7 +58,7 @@ class TestPulseCardBuilding(unittest.TestCase):
         ])
         self.assertEqual(len(cards), 1)
         self.assertEqual(cards[0]['name'], 'Satya Nadella')
-        self.assertEqual(cards[0]['source'], 'example')
+        self.assertEqual(cards[0]['source'], 'Example')
 
     def test_skips_articles_without_a_photograph(self):
         """The layout puts the name over the image; no image, no card."""

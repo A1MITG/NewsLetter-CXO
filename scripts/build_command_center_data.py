@@ -34,7 +34,8 @@ from app.scraper.store import get_articles, get_cache_date
 from app.scraper.article_images import fill_signal_images
 from app.analysis.signals import synthesize_signals
 from app.analysis.brief import build_brief, render_brief
-from app.analysis.command_center import build_engine_data, build_featured, build_people_rows
+from app.analysis.command_center import (build_engine_data, build_featured, build_people_rows,
+                                         load_pinned_moves)
 from app.scraper.leader_quotes import get_leader_quotes
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -77,7 +78,9 @@ def main(refresh=False):
     engine_data = build_engine_data(signals_data, by_title)
     engine_data['_featured'] = build_featured(engine_data, by_title)
     # The static build waits for a fresh quote set; the live API never does.
-    engine_data.update(build_people_rows(articles, get_leader_quotes(block=True)))
+    # Pins from config/pinned_moves.yaml lead People Movers until they expire.
+    engine_data.update(build_people_rows(articles, get_leader_quotes(block=True),
+                                         pinned=load_pinned_moves()))
     # The static page shows the same freshness stamp as the live one; without
     # _meta it would render blank on the Vercel deploy.
     # built_at and refresh_slots_ist let the page say when it was last

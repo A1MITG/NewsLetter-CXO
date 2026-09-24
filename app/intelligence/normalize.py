@@ -33,7 +33,24 @@ PUBLISHERS = {
     "247wallst.com": "24/7 Wall St.",
     "reuters.com": "Reuters",
     "bloomberg.com": "Bloomberg",
+    # The trade-press feeds added for the Telecom, Supply Chain and
+    # Manufacturing tiles, plus India business titles the scrape carries.
+    "business-standard.com": "Business Standard",
+    "thehindubusinessline.com": "The Hindu BusinessLine",
+    "economictimes.com": "The Economic Times",
+    "mobileworldlive.com": "Mobile World Live",
+    "rcrwireless.com": "RCR Wireless News",
+    "freightwaves.com": "FreightWaves",
+    "supplychaindive.com": "Supply Chain Dive",
+    "theloadstar.com": "The Loadstar",
+    "manufacturingdive.com": "Manufacturing Dive",
+    "peoplematters.in": "People Matters",
+    "prnewswire.com": "PR Newswire",
 }
+
+# Two-label public suffixes, so "abc.net.au" is named for "abc", not "net".
+_TWO_LABEL_SUFFIXES = {"co.uk", "org.uk", "ac.uk", "com.au", "net.au", "co.in",
+                       "co.nz", "com.sg", "co.jp", "co.za"}
 
 
 def publisher_for(host: str) -> str:
@@ -47,7 +64,14 @@ def publisher_for(host: str) -> str:
         parent = ".".join(parts[i:])
         if parent in PUBLISHERS:
             return PUBLISHERS[parent]
-    stem = parts[0] if parts else host
+    # Name the site, not its subdomain: the first label was "www" for most
+    # unlisted feeds, so People Movers credited stories to "Www".
+    if len(parts) > 2 and ".".join(parts[-2:]) in _TWO_LABEL_SUFFIXES:
+        stem = parts[-3]
+    elif len(parts) >= 2:
+        stem = parts[-2]
+    else:
+        stem = host
     return stem.replace("-", " ").title()
 
 

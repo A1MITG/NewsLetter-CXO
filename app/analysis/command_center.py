@@ -10,7 +10,14 @@ Both surfaces read from here so they cannot drift apart:
 Signal name -> (Command Center engine id, display name). Signal Executive is
 intentionally unmapped: the Command Center layout has no tile for it.
 """
+import logging
 import re
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+
+import yaml
+
+logger = logging.getLogger(__name__)
 
 SIGNAL_TO_ENGINE = {
     'Signal Global': ('global', 'Global Affairs'),
@@ -242,12 +249,13 @@ def build_pulse_cards(current_articles, limit=8, exclude_urls=(), exclude_names=
 
 
 def _publisher(url):
-    """Bare domain for the card's meta line."""
+    """The publisher's name for the card's meta line ("Mint", not "livemint")."""
+    from ..intelligence.normalize import publisher_for
     try:
         host = url.split('/')[2]
     except IndexError:
         return ''
-    return host.replace('www.', '').split('.')[0]
+    return publisher_for(host)
 
 
 _MOVE_LABELS = {'EXECUTIVE_APPOINTMENT': 'Appointed', 'EXECUTIVE_EXIT': 'Steps down'}
@@ -299,6 +307,50 @@ def build_movers(current_articles, limit=8):
     return moves[:limit]
 
 
+PINNED_MOVES = Path(__file__).resolve().parents[2] / 'config' / 'pinned_moves.yaml'
+_IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def load_pinned_moves(path=PINNED_MOVES, today=None):
+    """People Movers pins from config/pinned_moves.yaml that are still in date.
+
+    A pin keeps a reported move on the row past the 7-day window until its
+    `until` date (IST, inclusive), then it drops off by itself. The card keeps
+    the report's real date and carries pinned=True, which the page shows as
+    "Pinned", so an older story never passes as today's. An unreadable file or
+    an incomplete entry is skipped rather than failing the build.
+    """
+    from ..intelligence.normalize import publisher_for
+    try:
+        entries = (yaml.safe_load(Path(path).read_text(encoding='utf-8')) or {}).get('pins') or []
+    except (OSError, yaml.YAMLError):
+        logger.warning("Pinned moves unreadable: %s", path, exc_info=True)
+        return []
+    today = today or datetime.now(_IST).date()
+    labels = set(_MOVE_LABELS.values()) | {'Leadership change'}
+    pins = []
+    for entry in entries:
+        title = (entry.get('title') or '').strip()
+        url = (entry.get('url') or '').strip()
+        until, published = entry.get('until'), entry.get('published')
+        if not title or not url.startswith('http') or not isinstance(until, date) or until < today:
+            continue
+        label = entry.get('type') if entry.get('type') in labels else 'Appointed'
+        when = (datetime(published.year, published.month, published.day, tzinfo=timezone.utc)
+                if isinstance(published, date) else None)
+        pins.append({
+            'title': title,
+            'url': url,
+            'type': label,
+            'kind': 'exit' if label == 'Steps down' else 'appointment',
+            'source': entry.get('source') or publisher_for(url.split('/')[2]),
+            'date': when.strftime('%d %b') if when else '',
+            'ts': when.timestamp() if when else 0,
+            'pinned': True,
+        })
+    return pins
+
+
 def build_record(quote_set, movers):
     """Leaders on Record, minus anyone People Movers already shows.
 
@@ -312,14 +364,19 @@ def build_record(quote_set, movers):
     return record
 
 
-def build_people_rows(current_articles, quote_set, pulse_limit=8):
+def build_people_rows(current_articles, quote_set, pulse_limit=8, pinned=(), movers_limit=8):
     """The three people rows, each person shown once, in the most specific row.
 
     Precedence is People Movers > Leaders on Record > Executive Pulse: a move
     is a fact about the person, a quote is their own voice, and Pulse is the
     general "in the news" catch-all, so it takes whoever the others did not.
+
+    `pinned` (from load_pinned_moves) leads People Movers; a pinned story the
+    scan also found is shown once, as the pin.
     """
-    movers = build_movers(current_articles)
+    pin_urls = {p['url'] for p in pinned}
+    movers = (list(pinned) + [m for m in build_movers(current_articles)
+                              if m['url'] not in pin_urls])[:movers_limit]
     record = build_record(quote_set, movers)
     pulse = build_pulse_cards(
         current_articles, limit=pulse_limit,

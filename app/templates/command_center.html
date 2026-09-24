@@ -1384,12 +1384,16 @@ a { color: inherit; }
     function renderMovers(moves) {
         const row = document.getElementById('moversRow');
         if (!row) return;
-        document.getElementById('moversCount').textContent = plural(moves.length, 'move', 'moves') + " in today's scan";
+        // Pins (config/pinned_moves.yaml) are older reports kept on purpose;
+        // they are counted apart so "in today's scan" stays true.
+        const pinned = moves.filter(m => m.pinned).length;
+        document.getElementById('moversCount').textContent =
+            plural(moves.length - pinned, 'move', 'moves') + " in today's scan" + (pinned ? ` · ${pinned} pinned` : '');
         row.innerHTML = moves.length ? moves.map(m => `
             <a class="move-card" href="${esc(m.url)}" target="_blank" rel="noopener">
                 <span class="move-type${m.kind === 'exit' ? ' exit' : ''}">${esc(m.type)}</span>
                 <h4>${esc(m.title)}</h4>
-                <span class="row-meta">${esc(m.source)}${m.date ? ' &middot; ' + esc(m.date) : ''}</span>
+                <span class="row-meta">${esc(m.source)}${m.date ? ' &middot; ' + esc(m.date) : ''}${m.pinned ? ' &middot; Pinned' : ''}</span>
             </a>`).join('')
             : `<div class="row-empty">No appointments or exits in today's scan.</div>`;
     }
