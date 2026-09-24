@@ -11,6 +11,10 @@
 # `veto` patterns kill a match outright. They exist because the obvious
 # keyword for an event is often a term of art in this corpus: "war risk" is an
 # insurance product, not a war; "price war" is competition, not conflict.
+#
+# `where: title` limits a pattern to the headline (default: title or summary).
+# Use it for phrasings that are the news in a headline but usually background
+# in body text, such as the passive "X Named President".
 
 detection:
   min_score: 3
@@ -47,9 +51,25 @@ events:
 
   EXECUTIVE_APPOINTMENT:
     significance: 3
+    # "Names" is also how a lawsuit lists who it is against: "British Columbia
+    # sues OpenAI ... names OpenAI and its CEO" is a defendant, not a hire.
+    # Deliberately not on EXECUTIVE_EXIT: "resigns amid lawsuit" is a real exit.
+    veto:
+      - '\bsu(?:es|ed|ing)\b'            # not bare "sue", which is also a first name
+      - '\blawsuits?\b'
+      - '\b(?:defendants?|plaintiffs?)\b'
+      - '\bcomplaint\b'                  # the filing; plural is usually customers
+    # Roles: "chief" covers chief executive/financial/commercial officer, but
+    # not "chief minister" or "chief justice", which are political and judicial.
     patterns:
-      - { rx: '\b(?:names|appoints|elects|promotes)\b.{0,40}\b(?:ceo|cfo|coo|cio|cto|chief executive|chief financial officer|president|managing director|chairman)\b', weight: 3 }
+      - { rx: '\b(?:names|appoints|elects|promotes)\b.{0,40}\b(?:ceo|cfo|coo|cio|cto|chief(?!\s+(?:minister|justice)\b)|president|managing director|chair(?:man|woman|person)?|head of)\b', weight: 3 }
+      # Decisive in the headline only. The passive is the news in a title
+      # ("Jamieson Named President", "Dieppa Appointed to ... Board"); in body
+      # text it is usually background ("named CEO in 2014"), so there the same
+      # words are corroboration only (the next two patterns).
+      - { rx: '\b(?:named|appointed)\b.{0,40}\b(?:ceo|cfo|coo|cio|cto|chief(?!\s+(?:minister|justice)\b)|president|managing director|chair(?:man|woman|person)?|head of|board)\b', weight: 3, where: title }
       - { rx: '\b(?:appointed|appointment of|new chief executive|succeeds as)\b', weight: 2 }
+      - { rx: '\bnamed\b.{0,40}\b(?:ceo|cfo|coo|cio|cto|chief(?!\s+(?:minister|justice)\b)|president|managing director|chair(?:man|woman|person)?|head of)\b', weight: 2 }
       - { rx: '\bpeople moves\b', weight: 1 }
 
   EXECUTIVE_EXIT:

@@ -3,6 +3,9 @@
 Two contracts. Known events are detected, and terms of art in this corpus do
 not masquerade as events — "war risk insurance" is a product, not a war.
 """
+import pytest
+
+from app.intelligence import events
 from app.intelligence.events import apply_all, detect, max_significance
 
 
@@ -77,6 +80,67 @@ def test_trade_war_routes_to_trade_not_conflict():
     t = _types("Trade war escalates as new tariffs are imposed")
     assert "CONFLICT" not in t
     assert "TRADE_ACTION" in t
+
+
+# ---------- executive moves (headlines observed 2026-09-23) ----------
+
+def test_lawsuit_naming_a_ceo_is_not_an_appointment():
+    """A lawsuit that 'names OpenAI and its CEO' lists defendants. Before the
+    legal veto this fired EXECUTIVE_APPOINTMENT and promoted the story. The
+    summary carries no legal word, so the title's 'sues' must do the work."""
+    summary = "The province's claim names OpenAI and its CEO, Sam Altman."
+    for title in (
+        "British Columbia sues OpenAI and Sam Altman over Tumbler Ridge mass school shooting",
+        "British Columbia sues OpenAI over Tumbler Ridge school shooting",
+    ):
+        assert "EXECUTIVE_APPOINTMENT" not in _types(title, summary)
+
+
+def test_defendant_listing_in_summary_is_not_an_appointment():
+    assert "EXECUTIVE_APPOINTMENT" not in _types(
+        "OpenAI faces claim over school shooting",
+        "The filing names OpenAI and its CEO, Sam Altman, as defendants.")
+
+
+def test_named_in_headline_is_an_appointment():
+    """Only the exit used to fire: the rule had 'names' but not 'named'."""
+    t = _types("Jamieson Named President of Ryan Specialty's SSRU as Stewart Steps Down")
+    assert {"EXECUTIVE_APPOINTMENT", "EXECUTIVE_EXIT"} <= t
+
+
+def test_appointed_to_board_in_headline_is_an_appointment():
+    """'Appointed' alone is weight 2, so on its own it never fired."""
+    assert "EXECUTIVE_APPOINTMENT" in _types(
+        "People: Hotaling's Dieppa Appointed to Florida Citizens Board of Governors")
+
+
+def test_past_appointment_in_summary_does_not_fire():
+    """The headline passive is decisive only in a title. In body text it is
+    usually background, and background must not promote the article."""
+    assert "EXECUTIVE_APPOINTMENT" not in _types(
+        "Microsoft doubles down on AI spending",
+        "Satya Nadella, who was named chief executive in 2014, said capacity is tight.")
+
+
+def test_chief_minister_is_not_an_executive_appointment():
+    assert "EXECUTIVE_APPOINTMENT" not in _types("Party names new chief minister for the state")
+
+
+def test_legal_veto_does_not_block_exits():
+    """Resignations often arrive with litigation; the veto is appointment-only."""
+    assert "EXECUTIVE_EXIT" in _types("Insurer CEO resigns amid shareholder lawsuit")
+
+
+def test_unknown_where_is_rejected(monkeypatch):
+    """A typo in `where` must not silently widen a title-only pattern."""
+    monkeypatch.setattr(events, "_config", lambda: {"events": {"X": {
+        "patterns": [{"rx": "x", "weight": 3, "where": "titel"}]}}})
+    events._compiled.cache_clear()
+    try:
+        with pytest.raises(ValueError):
+            events._compiled()
+    finally:
+        events._compiled.cache_clear()
 
 
 # ---------- evidence discipline ----------

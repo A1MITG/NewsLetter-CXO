@@ -258,10 +258,10 @@ def build_movers(current_articles, limit=8):
     """People Movers: appointments and exits that today's headlines state.
 
     The Sprint 6 event detector finds the candidates; this row additionally
-    requires the detector's evidence to sit in the headline. On its own the
-    detector also fires on a summary such as "the lawsuit names OpenAI and its
-    CEO", which is not a move, and a row called People Movers has to be right
-    every time it shows a card.
+    requires the detector's evidence to sit in the headline. Summary evidence
+    is often background rather than a move (a lawsuit that "names OpenAI and
+    its CEO" fired the detector until BP-25 vetoed legal contexts), and a row
+    called People Movers has to be right every time it shows a card.
     """
     from ..intelligence import events
     from ..intelligence.freshness import classify

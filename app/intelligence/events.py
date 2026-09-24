@@ -12,7 +12,12 @@ article, it promotes it up the dashboard.
 
 Veto patterns exist because the obvious keyword is frequently a term of art
 in this corpus. "War risk" is an insurance product. "Price war" is
-competition. Neither is a conflict.
+competition. Neither is a conflict. "Names ... its CEO" in a lawsuit lists a
+defendant; it is not a hire.
+
+A pattern marked `where: title` counts only in the headline. Some phrasings
+are the news in a title and background in body text: "Jamieson Named
+President" is an appointment, "Nadella, named CEO in 2014, said..." is not.
 """
 import pathlib
 import re
@@ -32,13 +37,20 @@ def _config() -> dict:
 
 @lru_cache(maxsize=1)
 def _compiled() -> dict:
-    """-> {event_type: {significance, patterns:[(rx,weight)], vetoes:[rx]}}"""
+    """-> {event_type: {significance, patterns:[(rx,weight,where)], vetoes:[rx]}}"""
     out = {}
     for name, spec in (_config().get("events") or {}).items():
+        patterns = []
+        for p in spec.get("patterns", []):
+            where = p.get("where", "any")
+            # A typo here would silently widen a title-only pattern to
+            # summaries, which is exactly the false positive it exists to stop.
+            if where not in ("any", "title"):
+                raise ValueError(f"{name}: unknown where={where!r} for {p['rx']}")
+            patterns.append((re.compile(p["rx"], re.IGNORECASE), int(p["weight"]), where))
         out[name] = {
             "significance": int(spec.get("significance", 1)),
-            "patterns": [(re.compile(p["rx"], re.IGNORECASE), int(p["weight"]))
-                         for p in spec.get("patterns", [])],
+            "patterns": patterns,
             "vetoes": [re.compile(v, re.IGNORECASE) for v in spec.get("veto", [])],
         }
     return out
@@ -62,14 +74,14 @@ def detect(title: str, summary: str = "") -> list:
             continue
 
         score, evidence = 0, []
-        for rx, weight in spec["patterns"]:
+        for rx, weight, where in spec["patterns"]:
             m = rx.search(title)
             if m:
                 score += weight * TITLE_MULTIPLIER
                 evidence.append({"pattern": rx.pattern, "weight": weight,
                                  "where": "title", "matched": m.group(0)})
                 continue
-            if summary:
+            if summary and where != "title":
                 m = rx.search(summary)
                 if m:
                     score += weight
