@@ -141,7 +141,8 @@ class TestRoutes(unittest.TestCase):
 
 
 class TestFounderSection(unittest.TestCase):
-    """The About the Founder section and its portrait."""
+    """The About the Builder section and its portrait (ids and classes keep
+    the older "founder" name, so #founder links still land)."""
 
     @classmethod
     def setUpClass(cls):
@@ -152,6 +153,13 @@ class TestFounderSection(unittest.TestCase):
         """The nav has always linked to #founder; the target must exist."""
         self.assertIn('href="#founder"', self.body)
         self.assertIn('id="founder"', self.body)
+
+    def test_labelled_about_the_builder(self):
+        """Renamed from "About the Founder" on 2026-09-24: the nav link and
+        the section's eyebrow."""
+        self.assertIn('href="#founder">About the Builder</a>', self.body)
+        self.assertIn('<p class="founder-eyebrow">About the Builder</p>', self.body)
+        self.assertNotIn('About the Founder', self.body)
 
     def test_shows_name_roles_and_statement(self):
         self.assertIn('Amit Gupta', self.body)
