@@ -5,6 +5,7 @@ Follows the suite convention of testing against the real cached corpus
 """
 import json
 import unittest
+from pathlib import Path
 
 from app.analysis.command_center import (
     COMING_SOON_ENGINES,
@@ -189,6 +190,44 @@ class TestListeningStripParked(unittest.TestCase):
     def test_strip_is_parked(self):
         self.assertIn('<div class="listening parked" id="recordListening"></div>', self.body)
         self.assertIn('.parked { display: none !important; }', self.body)
+
+
+class TestManifestoSection(unittest.TestCase):
+    """The Builder's Manifesto (2026-09-24): the nav's "About" link, which
+    pointed nowhere, now reads "Manifesto" and lands on it, just before
+    About the Builder."""
+
+    ROOT = Path(__file__).resolve().parents[1]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.client = create_app().test_client()
+        cls.body = cls.client.get('/').get_data(as_text=True)
+
+    def test_nav_link_lands_on_the_section(self):
+        self.assertIn('<a class="link" href="#manifesto">Manifesto</a>', self.body)
+        self.assertIn('id="manifesto"', self.body)
+        self.assertNotIn('href="#">About</a>', self.body)
+
+    def test_sits_just_before_about_the_builder(self):
+        start = self.body.index('<section class="manifesto" id="manifesto">')
+        between = self.body[start + 1:self.body.index('<section class="founder" id="founder">')]
+        self.assertNotIn('<section', between)
+        self.assertEqual(between.count('class="mf-chapter"'), 4)
+
+    def test_background_is_served_by_flask(self):
+        self.assertIn('src="/static/img/manifesto-bg.jpg"', self.body)
+        resp = self.client.get('/static/img/manifesto-bg.jpg')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.mimetype, 'image/jpeg')
+
+    def test_static_deploy_carries_the_background(self):
+        """The static page reads ./img/, and the workflow must publish it."""
+        self.assertIn('src="./img/manifesto-bg.jpg"',
+                      (self.ROOT / 'public' / 'command_center.html').read_text(encoding='utf-8'))
+        self.assertTrue((self.ROOT / 'public' / 'img' / 'manifesto-bg.jpg').is_file())
+        workflow = (self.ROOT / '.github' / 'workflows' / 'build-signals.yml').read_text(encoding='utf-8')
+        self.assertEqual(workflow.count('cp public/img/* '), 2, 'both deploy branches copy every image')
 
 
 class TestLiveEndpoint(unittest.TestCase):

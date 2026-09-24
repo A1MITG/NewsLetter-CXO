@@ -462,6 +462,73 @@ a { color: inherit; }
 .econ-card.no-img { background: var(--navy); }
 .econ-card.no-img .econ-body { position: relative; }
 
+/* ---------- The Builder's Manifesto ----------
+   A title band over the generated background, then numbered chapters on
+   navy. Same column as About the Builder below it (980px), so the two
+   navy sections read as one chapter of the page. */
+.manifesto { background: var(--navy); color: #fff; }
+.manifesto .wrap { max-width: 980px; position: relative; z-index: 2; }
+.mf-hero { position: relative; overflow: hidden; min-height: 540px; display: flex; align-items: center; }
+.manifesto-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 68% 50%; }
+/* Legibility from the left, and a fade into the navy the chapters sit on. */
+.mf-hero::before { content: ''; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(180deg, rgba(11,21,36,0) 55%, var(--navy) 100%),
+                linear-gradient(90deg, rgba(11,21,36,.86) 0%, rgba(11,21,36,.5) 40%, rgba(11,21,36,0) 68%); }
+.mf-hero .wrap { width: 100%; padding-top: 96px; padding-bottom: 96px; }
+.mf-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+              color: #9fc1ff; margin: 0 0 26px; }
+.mf-title { font-family: var(--serif); font-weight: 400; font-size: 56px; line-height: 1.06; letter-spacing: -.015em; margin: 0; }
+.mf-title .away { color: rgba(255,255,255,.38); }      /* the years away from the keyboard */
+
+.mf-body { padding-bottom: 104px; }
+.mf-chapter { display: grid; grid-template-columns: 190px 1fr; gap: 40px; padding: 46px 0;
+              border-top: 1px solid rgba(255,255,255,.09); }
+.mf-num { font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
+          color: rgba(255,255,255,.5); }
+.mf-num b { display: block; font-family: var(--serif); font-weight: 400; font-size: 44px; letter-spacing: 0;
+            line-height: 1; color: #9fc1ff; margin-bottom: 12px; }
+/* Body lines first; the classed lines below are scoped to .mf-text too, so
+   they outrank it. */
+.mf-text p { font-size: 17px; line-height: 1.65; color: #c9d4e3; margin: 0 0 12px; max-width: 36em; }
+.mf-text p.mf-strong { color: #fff; font-weight: 700; }
+.mf-text .mf-lead { font-family: var(--serif); font-size: 31px; line-height: 1.2; letter-spacing: -.01em;
+                    color: #fff; margin: 0 0 22px; }
+.mf-text .mf-quote { font-family: var(--serif); font-style: italic; font-size: 25px; line-height: 1.35; color: #fff;
+                     border-left: 2px solid var(--blue); padding: 2px 0 2px 18px; margin: 6px 0 22px; }
+/* Each arrow belongs to the step after it, so a wrapped line never ends on one. */
+.mf-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; list-style: none; padding: 0; margin: 6px 0 20px; }
+.mf-flow li { display: flex; align-items: center; gap: 8px; }
+.mf-flow .to { color: var(--blue); font-size: 14px; }
+.mf-flow .step { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+                 color: #dfe9ff; border: 1px solid rgba(159,193,255,.32); border-radius: 3px; padding: 7px 11px; }
+.mf-flow li:last-child .step { background: var(--blue); border-color: var(--blue); color: #fff; }
+.mf-text .mf-words { font-family: var(--serif); font-size: 27px; line-height: 1.35; color: #fff; margin: 0 0 20px; }
+.mf-words span { color: #9fc1ff; }
+.mf-plain { list-style: none; padding: 0; margin: 18px 0 0; font-size: 17px; line-height: 1.7; color: #c9d4e3; }
+.mf-plain li:last-child { color: #fff; font-weight: 700; }
+.mf-close { padding-top: 60px; border-top: 1px solid rgba(255,255,255,.09); }
+.mf-mantra { font-family: var(--serif); font-size: 50px; line-height: 1.08; letter-spacing: -.015em; margin: 0 0 14px; }
+.mf-sign { font-family: var(--serif); font-style: italic; font-size: 21px; color: #9fc1ff; margin: 0; }
+
+/* Narrow screens: the words would cover the whole image, so the image gets
+   its own band at the top, fading into navy, and the title sits below it;
+   chapters stack. */
+@media (max-width: 860px) {
+    .manifesto .wrap { padding-left: 20px; padding-right: 20px; }
+    .mf-hero { display: block; min-height: 0; }
+    .mf-hero .wrap { padding-top: 240px; padding-bottom: 36px; }
+    .manifesto-bg { height: 300px; object-position: 70% 50%; }
+    .mf-hero::before { background: linear-gradient(180deg, rgba(11,21,36,0) 0, rgba(11,21,36,0) 150px, var(--navy) 300px); }
+    .mf-title { font-size: 38px; }
+    .mf-chapter { grid-template-columns: 1fr; gap: 14px; padding: 34px 0; }
+    .mf-num b { display: inline; font-size: 30px; margin: 0 12px 0 0; vertical-align: -4px; }
+    .mf-text .mf-lead { font-size: 25px; }
+    .mf-text .mf-quote { font-size: 21px; }
+    .mf-text .mf-words { font-size: 22px; }
+    .mf-mantra { font-size: 36px; }
+    .mf-body { padding-bottom: 76px; }
+}
+
 /* ---------- About the Builder ---------- */
 .founder { background: var(--navy); color: #fff; padding: 88px 0; }
 .founder .wrap { max-width: 980px; }
@@ -539,7 +606,7 @@ a { color: inherit; }
             <a class="link parked" href="/brief">Today's Brief</a>
             <a class="link parked" href="/signals">Signals</a>
             <span class="icon-btn" title="Search (not yet wired up)">&#128269;</span>
-            <a class="link" href="#">About</a>
+            <a class="link" href="#manifesto">Manifesto</a>
             <a class="link" href="#founder">About the Builder</a>
         </div>
     </nav>
@@ -865,6 +932,69 @@ a { color: inherit; }
             <div class="why-item">Information</div>
             <div class="why-arrow">→</div>
             <div class="why-item right">Decision Intelligence</div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== The Builder's Manifesto (nav: Manifesto) ===== -->
+<section class="manifesto" id="manifesto">
+    <div class="mf-hero">
+        <img class="manifesto-bg" src="/static/img/manifesto-bg.jpg" alt="" loading="lazy" decoding="async">
+        <div class="wrap">
+            <p class="mf-eyebrow">The Builder&rsquo;s Manifesto</p>
+            <h2 class="mf-title">Hands-on.<br><span class="away">Hands-off.</span><br>Hands-on again.</h2>
+        </div>
+    </div>
+    <div class="wrap mf-body">
+        <article class="mf-chapter">
+            <div class="mf-num"><b>01</b>Who I am</div>
+            <div class="mf-text">
+                <p class="mf-lead">The itch to build never went away.</p>
+                <p>I started as a developer, solving problems in code.</p>
+                <p>Then I led people: bigger teams, bigger problems, outcomes at scale. Every step took me further from the keyboard and closer to strategy and execution.</p>
+                <p>That was the job.</p>
+                <p>But I wasn&rsquo;t going to spend my weekends writing Excel macros and VBA. &#128516;</p>
+                <p>Then came AI. Then came Claude. And suddenly I could build again, without becoming a full-time developer again.</p>
+                <p class="mf-strong">So I&rsquo;m back.</p>
+            </div>
+        </article>
+        <article class="mf-chapter">
+            <div class="mf-num"><b>02</b>What I&rsquo;m building</div>
+            <div class="mf-text">
+                <p class="mf-lead">Signal is my first experiment.</p>
+                <p>It started with one question:</p>
+                <p class="mf-quote">What do I actually want to read?</p>
+                <p>Today, Signal gathers news from many sources and shows it through different lenses. <strong>That&rsquo;s Phase One.</strong></p>
+                <p>The goal is to turn that information, step by step, into intelligence:</p>
+                <ul class="mf-flow" aria-label="What happened to Why it matters to Who it affects to What to watch to What to do"><li><span class="step">What happened</span></li><li><span class="to" aria-hidden="true">&rarr;</span><span class="step">Why it matters</span></li><li><span class="to" aria-hidden="true">&rarr;</span><span class="step">Who it affects</span></li><li><span class="to" aria-hidden="true">&rarr;</span><span class="step">What to watch</span></li><li><span class="to" aria-hidden="true">&rarr;</span><span class="step">What to do</span></li></ul>
+                <p>Read, above all, for what it means for India, Indians and Indian businesses.</p>
+            </div>
+        </article>
+        <article class="mf-chapter">
+            <div class="mf-num"><b>03</b>Where I am</div>
+            <div class="mf-text">
+                <p class="mf-lead">Laying the foundations. Deliberately unfinished.</p>
+                <p class="mf-words">Sources<span>.</span> Signals<span>.</span> Themes<span>.</span> Lenses<span>.</span> AI<span>.</span> Code<span>.</span></p>
+                <p>Testing ideas, breaking things, fixing them, and learning by building.</p>
+                <ul class="mf-plain">
+                    <li>No grand business plan.</li>
+                    <li>No startup pitch.</li>
+                    <li>Just a builder, building.</li>
+                </ul>
+            </div>
+        </article>
+        <article class="mf-chapter">
+            <div class="mf-num"><b>04</b>What&rsquo;s next</div>
+            <div class="mf-text">
+                <p class="mf-lead">You decide what matters to you. Signal finds the signals.</p>
+                <p>The next version moves beyond aggregation:</p>
+                <ul class="mf-flow" aria-label="News to Context to Intelligence to Action"><li><span class="step">News</span></li><li><span class="to" aria-hidden="true">&rarr;</span><span class="step">Context</span></li><li><span class="to" aria-hidden="true">&rarr;</span><span class="step">Intelligence</span></li><li><span class="to" aria-hidden="true">&rarr;</span><span class="step">Action</span></li></ul>
+                <p>And Signal won&rsquo;t be the last experiment.</p>
+            </div>
+        </article>
+        <div class="mf-close">
+            <p class="mf-mantra">Build. Learn. Iterate. Repeat.</p>
+            <p class="mf-sign">Let&rsquo;s see where it goes.</p>
         </div>
     </div>
 </section>

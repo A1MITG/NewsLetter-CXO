@@ -65,7 +65,8 @@ jobs:
           mkdir -p /tmp/signals-deploy/img
           cp public/command_center.html /tmp/signals-deploy/index.html
           cp public/command_center_data.json /tmp/signals-deploy/
-          cp public/img/founder.jpg /tmp/signals-deploy/img/founder.jpg
+          # Every image the page uses (the portrait, the Manifesto background).
+          cp public/img/* /tmp/signals-deploy/img/
           cp public/index.html /tmp/signals-deploy/signals.html
           cp public/signal.css public/signals.json /tmp/signals-deploy/
           echo '{ "cleanUrls": true }' > /tmp/signals-deploy/vercel.json
@@ -74,7 +75,7 @@ jobs:
           git checkout -q -b signals-deploy
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html command_center_data.json img/founder.jpg signals.html signal.css signals.json vercel.json
+          git add index.html command_center_data.json img signals.html signal.css signals.json vercel.json
           git commit -q -m "Signals rebuild: $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" signals-deploy
 
@@ -85,12 +86,12 @@ jobs:
           cp public/command_center.html /tmp/command-center-deploy/index.html
           cp public/command_center_data.json /tmp/command-center-deploy/command_center_data.json
           mkdir -p /tmp/command-center-deploy/img
-          cp public/img/founder.jpg /tmp/command-center-deploy/img/founder.jpg
+          cp public/img/* /tmp/command-center-deploy/img/
           cd /tmp/command-center-deploy
           git init -q
           git checkout -q -b command-center-deploy
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html command_center_data.json img/founder.jpg
+          git add index.html command_center_data.json img
           git commit -q -m "Command Center rebuild: $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" command-center-deploy
