@@ -7,6 +7,8 @@ import json
 import unittest
 from pathlib import Path
 
+import pytest
+
 from app.analysis.command_center import (
     COMING_SOON_ENGINES,
     SIGNAL_TO_ENGINE,
@@ -230,6 +232,7 @@ class TestManifestoSection(unittest.TestCase):
         self.assertEqual(workflow.count('cp public/img/* '), 2, 'both deploy branches copy every image')
 
 
+@pytest.mark.usefixtures("raw_cache")
 class TestLiveEndpoint(unittest.TestCase):
 
     @classmethod

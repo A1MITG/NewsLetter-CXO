@@ -8,6 +8,8 @@ import json
 import unittest
 from datetime import date, datetime, timedelta, timezone
 
+import pytest
+
 from app.analysis.command_center import build_engine_data
 from app.analysis.signals import synthesize_signals
 from app.intelligence.freshness import classify
@@ -62,6 +64,7 @@ class TestFreshnessGate(unittest.TestCase):
         self.assertFalse(classify(parse_date(outside))['is_current'])
 
 
+@pytest.mark.usefixtures("raw_cache")
 class TestLivePageIsCurrent(unittest.TestCase):
     """End-to-end against the real corpus."""
 
@@ -111,6 +114,7 @@ if __name__ == '__main__':
     unittest.main()
 
 
+@pytest.mark.usefixtures("raw_cache")
 class TestPageRows(unittest.TestCase):
     """The rows under the engine tiles, in their agreed order.
 
@@ -125,12 +129,6 @@ class TestPageRows(unittest.TestCase):
         cls.payload = client.get('/api/command-center').get_json()
         cls.page = client.get('/').get_data(as_text=True)
 
-    def test_rows_appear_in_the_agreed_order(self):
-        order = ['id="ribbon"', 'id="featuredSlot"', 'id="moversRow"',
-                 'id="pulseSection"', 'id="recordRow"']
-        positions = [self.page.index(marker) for marker in order]
-        self.assertEqual(positions, sorted(positions))
-
     def test_repeated_engine_row_is_gone(self):
         self.assertNotIn('id="econGrid"', self.page)
         self.assertNotIn('_hero', self.payload)
@@ -144,20 +142,34 @@ class TestPageRows(unittest.TestCase):
         self.assertIsInstance(record.get('quotes'), list)
         self.assertTrue(record.get('leaders'), 'Leaders on Record has no watchlist')
 
+
+class TestPageRowsMarkup(unittest.TestCase):
+    """The template alone, so it runs without a corpus (CI has none)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.page = create_app().test_client().get('/').get_data(as_text=True)
+
+    def test_rows_appear_in_the_agreed_order(self):
+        order = ['id="ribbon"', 'id="featuredSlot"', 'id="moversRow"',
+                 'id="pulseSection"', 'id="recordRow"']
+        positions = [self.page.index(marker) for marker in order]
+        self.assertEqual(positions, sorted(positions))
+
     def test_people_rows_are_not_treated_as_engines(self):
         """The page peels the _-prefixed keys off before ENGINE_DATA, or the
         ticker and tile code would iterate over them as domains."""
         self.assertIn('const { _meta, _featured, _movers, _pulse, _record, ...engines } = data;', self.page)
 
 
+@pytest.mark.usefixtures("raw_cache")
 class TestFeaturedIsLive(unittest.TestCase):
     """The large Featured Analysis card was one frozen July-2026 article."""
 
     @classmethod
     def setUpClass(cls):
-        client = create_app().test_client()
-        cls.payload = client.get('/api/command-center').get_json()
-        cls.page = client.get('/').get_data(as_text=True)
+        cls.payload = create_app().test_client() \
+            .get('/api/command-center').get_json()
 
     def test_endpoint_returns_a_featured_story(self):
         self.assertIsNotNone(self.payload.get('_featured'))
@@ -172,6 +184,14 @@ class TestFeaturedIsLive(unittest.TestCase):
         from app.analysis.command_center import FEATURED_ORDER
         urls = {a['url'] for e in FEATURED_ORDER for a in self.payload.get(e, {}).get('articles', [])}
         self.assertIn(self.payload['_featured']['url'], urls)
+
+
+class TestFeaturedMarkup(unittest.TestCase):
+    """The template alone, so it runs without a corpus (CI has none)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.page = create_app().test_client().get('/').get_data(as_text=True)
 
     def test_no_hardcoded_featured_remains(self):
         self.assertIn('id="featuredSlot"', self.page)

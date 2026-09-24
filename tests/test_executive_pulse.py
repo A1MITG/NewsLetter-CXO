@@ -9,6 +9,8 @@ individual, not just a stale headline.
 """
 import unittest
 
+import pytest
+
 from app.analysis.command_center import _looks_like_a_person, build_pulse_cards
 from app.main import create_app
 
@@ -105,13 +107,13 @@ class TestPulseCardBuilding(unittest.TestCase):
         self.assertLessEqual(len(build_pulse_cards(arts, limit=3)), 3)
 
 
+@pytest.mark.usefixtures("raw_cache")
 class TestPulseIsLive(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        client = create_app().test_client()
-        cls.payload = client.get('/api/command-center').get_json()
-        cls.page = client.get('/').get_data(as_text=True)
+        cls.payload = create_app().test_client() \
+            .get('/api/command-center').get_json()
 
     def test_endpoint_returns_pulse(self):
         self.assertIsInstance(self.payload.get('_pulse'), list)
@@ -129,6 +131,14 @@ class TestPulseIsLive(unittest.TestCase):
         for card in self.payload['_pulse']:
             self.assertTrue(_is_the_subject(card['name'], card['title']),
                             f"{card['name']} not the subject of {card['title']!r}")
+
+
+class TestPulseMarkup(unittest.TestCase):
+    """The template alone, so it runs without a corpus (CI has none)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.page = create_app().test_client().get('/').get_data(as_text=True)
 
     def test_no_hardcoded_leaders_remain(self):
         self.assertIn('id="pulseTrack"', self.page)

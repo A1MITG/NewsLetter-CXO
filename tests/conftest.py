@@ -31,6 +31,13 @@ def cache_path():
 
 @pytest.fixture(scope="session")
 def raw_cache(cache_path):
+    """The cached corpus, or a skip when there is none (as on CI).
+
+    The unittest classes that call /api/command-center take this through
+    @pytest.mark.usefixtures("raw_cache"). Without a cache that endpoint
+    scrapes the live feeds and writes one, and every corpus test after it
+    then runs against whatever the scrape returned instead of skipping.
+    """
     if not cache_path.exists():
         pytest.skip("no instance/articles_cache.json — run the scraper first")
     return json.loads(cache_path.read_text(encoding="utf-8"))
