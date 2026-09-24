@@ -1,17 +1,21 @@
 name: Build Signals (static)
 
-# Regenerates public/ once a day, or on demand via "Run workflow". Commits
-# it to the working branch for history, and also force-pushes the relevant
-# static files to two orphan branches — `signals-deploy` (Signals page) and
-# `command-center-deploy` (Command Center) — the ones Vercel actually
-# watches, since neither ever contains requirements.txt or .python-version
-# and so can never trigger Vercel's Python auto-detection (see README's
-# Vercel section for why that matters). No Vercel token or deploy hook is
-# needed; the push itself triggers Vercel's redeploy.
+# Regenerates public/ twice a day, at 09:00 and 19:00 IST, or on demand via
+# "Run workflow". Commits it to the working branch for history, and also
+# force-pushes the relevant static files to two orphan branches —
+# `signals-deploy` (Signals page) and `command-center-deploy` (Command
+# Center) — the ones Vercel actually watches, since neither ever contains
+# requirements.txt or .python-version and so can never trigger Vercel's
+# Python auto-detection (see README's Vercel section for why that matters).
+# No Vercel token or deploy hook is needed; the push itself triggers
+# Vercel's redeploy.
 
 on:
   schedule:
-    - cron: "30 2 * * *"  # 08:00 IST daily
+    # 09:00 and 19:00 IST (03:30 and 13:30 UTC). The page says when the next
+    # refresh is due from REFRESH_SLOTS_IST in build_command_center_data.py;
+    # tests/test_refresh_schedule.py keeps the two in step.
+    - cron: "30 3,13 * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -49,7 +53,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/
-          git diff --staged --quiet || git commit -m "Daily Signals + Command Center rebuild: $(date -u +'%Y-%m-%d')"
+          git diff --staged --quiet || git commit -m "Signals + Command Center rebuild: $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
 
       # news-letter-cxo.vercel.app is wired to this branch, so its root is the

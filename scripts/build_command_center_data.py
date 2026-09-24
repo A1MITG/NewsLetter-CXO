@@ -1,7 +1,9 @@
 # scripts/build_command_center_data.py
 """Build the live data snapshot for the Command Center static deploy.
 
-Run daily (alongside scripts/build_static_signals.py) to write:
+Run twice a day, at 09:00 and 19:00 IST (alongside
+scripts/build_static_signals.py, by .github/workflows/build-signals.yml), to
+write:
     public/command_center_data.json
 
 Maps the scored Signal categories from app/analysis/signals.py onto the
@@ -18,6 +20,7 @@ import json
 import logging
 import shutil
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +39,11 @@ logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 PUBLIC_DIR = ROOT / 'public'
+
+# When the scheduled build runs, in IST. The cron in
+# .github/workflows/build-signals.yml is what actually runs it;
+# tests/test_refresh_schedule.py keeps the two in step.
+REFRESH_SLOTS_IST = ('09:00', '19:00')
 
 # Injected into the Flask template only: tells the page to read the live API
 # instead of the static snapshot.
@@ -70,10 +78,15 @@ def main(refresh=False):
     engine_data.update(build_people_rows(articles, get_leader_quotes(block=True)))
     # The static page shows the same freshness stamp as the live one; without
     # _meta it would render blank on the Vercel deploy.
+    # built_at and refresh_slots_ist let the page say when it was last
+    # refreshed and when the next refresh is due. fetched_minutes_ago stays 0
+    # for the current "Sources checked" stamp, which is only true at build time.
     engine_data['_meta'] = {
         'data_date': data_date,
         'fetched_minutes_ago': 0,
         'stale_excluded': signals_data.get('stale_excluded', 0),
+        'built_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'refresh_slots_ist': list(REFRESH_SLOTS_IST),
     }
 
     PUBLIC_DIR.mkdir(exist_ok=True)
