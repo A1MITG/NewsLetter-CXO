@@ -4,7 +4,7 @@ A breakpoint (BP) is a commit you can safely return to. This register lists ever
 one, what it changed, how far it has travelled (local → committed → pushed →
 live), and the exact command to roll it back.
 
-*Last updated: 2026-09-24 (BP-24 pushed, BP-25 committed) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
+*Last updated: 2026-09-24 (BP-25 and BP-26 pushed) · working branch `final` (GitHub default) · repo `A1MITG/NewsLetter-CXO`
 (GitHub now redirects it to `A1MITG/SYGNALZ`).*
 
 ---
@@ -27,7 +27,8 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 
 | BP | Commit | Date (IST) | Stage | Change | What it did | Roll back with |
 |---|---|---|---|---|---|---|
-| BP-25 | `bb07de8` | 2026-09-24 07:22 | Committed | ExecEvents | Executive-move rules in `config/events.yaml` (the Sprint 6 detector behind Sprint 7 impact scoring and the People Movers row). A legal veto on EXECUTIVE_APPOINTMENT (sues, lawsuit, defendant, plaintiff, complaint), so "British Columbia sues OpenAI … names OpenAI and its CEO" is no longer a hire; exits are untouched. The headline passive ("Jamieson Named President", "Dieppa Appointed to … Board") is decisive in the title only, via a new `where: title` pattern option in `app/intelligence/events.py`; roles widen to "chief" (not chief minister or chief justice), chair and "head of". On the 2026-09-24 cache two articles gain an appointment and nothing else changes; People Movers goes from 1 card to 3. Tests: `tests/test_sprint6_events.py`. Not yet pushed; goes live at the first daily build after a push. | Unpushed: `git reset --hard 7f54592` would drop it (and the register commit after it). Once pushed: `git revert bb07de8`, then rebuild and republish |
+| BP-26 | `caadec2` | 2026-09-24 09:55 | Pushed | RefreshSchedule | The feed rebuilds twice a day, at 09:00 and 19:00 IST: the *Build Signals* cron is now `30 3,13 * * *` (was once, at 08:00). The build writes `_meta.built_at` and `_meta.refresh_slots_ist` so the page can show "Updated … · Next …" (the world-time line preview, not yet on the page). `tests/test_refresh_schedule.py` keeps the cron and the slots in step. **The workflow had never run before this** (no runs since 2026-07-25): every live state so far, including the midnight rebuild at 00:37 IST (`767ebfb`), was a manual rebuild. Live once the first scheduled run publishes (19:00 IST, or earlier via *Run workflow*); that run also takes BP-25 live. | `git revert caadec2` (back to one run a day at 08:00) |
+| BP-25 | `bb07de8` | 2026-09-24 07:22 | Pushed | ExecEvents | Executive-move rules in `config/events.yaml` (the Sprint 6 detector behind Sprint 7 impact scoring and the People Movers row). A legal veto on EXECUTIVE_APPOINTMENT (sues, lawsuit, defendant, plaintiff, complaint), so "British Columbia sues OpenAI … names OpenAI and its CEO" is no longer a hire; exits are untouched. The headline passive ("Jamieson Named President", "Dieppa Appointed to … Board") is decisive in the title only, via a new `where: title` pattern option in `app/intelligence/events.py`; roles widen to "chief" (not chief minister or chief justice), chair and "head of". On the 2026-09-24 cache two articles gain an appointment and nothing else changes; People Movers goes from 1 card to 3. Tests: `tests/test_sprint6_events.py`. Pushed with BP-26 on 2026-09-24; goes live with the first scheduled build. | `git revert bb07de8`, then rebuild and republish |
 | BP-24 | `3bc58a4` | 2026-09-24 00:53 | Pushed | RubricCleanup | `app/analysis/signals.py` restructured for reading and editing: the fifteen Signals at the top, shared rules, then one rubric per Signal in the same shape (headline_must_match, min_score, keywords with points, ignore list one phrase per line), then the unchanged machinery. The old tables (KEYWORDS, NEUTRALIZE, TITLE_REQUIRED, SIGNAL_FLOORS) are derived from the rubrics. **No behaviour change**: proven identical over 869 articles (11,361 checks) and the same stories on all 14 tiles, so no deploy was needed; the 08:00 IST daily build runs it. Guard tests: `tests/test_rubrics.py`. | `git revert 3bc58a4` (nothing depends on it) |
 | BP-23 | `6626dd1` | 2026-09-24 00:37 | **Live** | ManufacturingTile | The last "coming soon" tile made live, with the same rules as Defence (headline required, floor 5; "plant", "production", "PMI" at 2). Power plants and oil production stay with Energy; film "production", Palantir Foundry, "manufacturing consent" are blanked. Placed after Supply Chain, ahead of AI. Holds 8 stories on 2026-09-24. No tile is "coming soon" any more. First-draft rubric. Tests: `tests/test_manufacturing_tile.py`. Live as `signals-deploy` `767ebfb`. | `git revert 6626dd1`, then rebuild and republish |
 | BP-22 | `d5eb27d` | 2026-09-24 00:32 | **Live** | SupplyChainTile | Eighth tile made live, same rules (headline required, floor 5; "shortage", "port", "bottleneck", "UPS" at 2). The context rule: a housing, talent, water or cash "shortage" is not supply chain (a truck-driver shortage is). Software supply-chain attacks stay with Cyber; freight insurance with Insurance; India's UPS pension scheme is blanked. Holds 8 stories on 2026-09-24; FedEx's and Old Dominion's rate increases leave Banking and Global. Tests: `tests/test_supply_chain_tile.py`. Live as `signals-deploy` `767ebfb`. | `git revert d5eb27d` (after BP-23 if reverting both), then rebuild and republish |
@@ -58,6 +59,7 @@ label in their commit message. BP-07 and BP-08 are assigned here.
 - BP-02 and BP-03 go together; reverting only one leaves the source template and the generated page out of step.
 - BP-04 and BP-01 both change the GCC rules in `app/analysis/signals.py`. Revert BP-04 first if you revert both.
 - Reverting a **Live** breakpoint doesn't change the website until `signals-deploy` is republished: run the *Build Signals* workflow, or push a rebuilt tree.
+- From BP-26 the workflow rebuilds at 09:00 and 19:00 IST, so anything on `origin/final` goes live within about 12 hours of being pushed. Each run also commits `public/` to `final`, so pull before committing locally.
 
 ---
 
@@ -77,11 +79,11 @@ Earlier stable points, if you ever need to go further back. The hash is the last
 
 ## Live site (`signals-deploy` → news-letter-cxo.vercel.app)
 
-The workflow force-pushes this branch daily, so its history is short. Keep this list; it's the only record of earlier live states.
+The workflow force-pushes this branch on every build (twice a day from BP-26), so its history is short. Keep this list; it's the only record of earlier live states.
 
 | Live state | Commit | Published | What visitors saw |
 |---|---|---|---|
-| **Current** | `767ebfb` | 2026-09-24 00:37 | BP-20 to BP-23: Telecom, Supply Chain and Manufacturing tiles live, with their new feeds (all 14 tiles live) |
+| **Current** | `767ebfb` | 2026-09-24 00:37 | BP-20 to BP-23: Telecom, Supply Chain and Manufacturing tiles live, with their new feeds (all 14 tiles live). Rebuilt by hand at midnight IST; still the live state when BP-25 and BP-26 were pushed, until the first scheduled build. |
 | Previous | `5449bb4` | 2026-09-24 00:06 | BP-19: Climate tile live (11 live tiles, 3 coming soon) |
 | Earlier | `6461974` | 2026-09-23 23:58 | BP-18: Cyber tile live (10 live tiles, 4 coming soon) |
 | Earlier | `4dc164f` | 2026-09-23 23:41 | BP-17: Healthcare tile live (9 live tiles, 5 coming soon) |
