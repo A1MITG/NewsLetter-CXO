@@ -40,6 +40,19 @@ TIER_2_SOURCES = {
         "https://www.livemint.com/rss/companies",
         "https://www.business-standard.com/rss/home_page_top_stories.rss",
         "https://timesofindia.indiatimes.com/rssfeeds/1898055.cms",
+        # 2026-09-25: the GCC tile went empty. None of the feeds above carried
+        # a GCC story that day, and each build sees only what the feeds list
+        # at that moment. Of about 45 Indian business and tech feeds tested
+        # against the GCC rubric, these five did; together they filled the
+        # tile (8 stories), including new centres (Syneos Health, Hyderabad;
+        # Fuel Cycle, Mumbai). ET's GCC section runs only capability-centre
+        # news. Financial Express (410), Deccan Herald (404), NDTV Profit
+        # (403) and Analytics India Magazine (no items) failed.
+        "https://gcc.economictimes.indiatimes.com/rss/recentstories",
+        "https://economictimes.indiatimes.com/tech/technology/rssfeeds/78570561.cms",
+        "https://hr.economictimes.indiatimes.com/rss/topstories",
+        "https://www.thehindubusinessline.com/info-tech/feeder/default.rss",
+        "https://www.thehindubusinessline.com/companies/feeder/default.rss",
     ],
     # 2026-09-24: trade press for the Command Center's last three tile-only
     # domains, which the general feeds above barely cover. All verified

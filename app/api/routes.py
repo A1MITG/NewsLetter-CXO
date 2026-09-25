@@ -7,7 +7,7 @@ from ..scraper.article_images import fill_missing_images, fill_signal_images
 from ..analysis.synthesis import synthesize_articles
 from ..analysis.signals import synthesize_signals
 from ..analysis.command_center import (build_engine_data, build_featured, build_people_rows,
-                                       load_pinned_moves)
+                                       load_pinned_moves, load_pinned_stories)
 from ..scraper.leader_quotes import get_leader_quotes
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,9 @@ def get_command_center():
                                           include_tile_signals=True)
         by_title = {a.get('title'): a for a in scraped_articles}
         fill_signal_images(signals_data, by_title)
-        payload = build_engine_data(signals_data, by_title)
+        # Pins from config/pinned_stories.yaml lead their tile (and Featured,
+        # when marked) until they expire.
+        payload = build_engine_data(signals_data, by_title, pinned=load_pinned_stories())
         payload['_featured'] = build_featured(payload, by_title)
         # Never blocks: a stale quote set refreshes in the background.
         payload.update(build_people_rows(scraped_articles, get_leader_quotes(),

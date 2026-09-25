@@ -354,6 +354,49 @@ def load_pinned_moves(path=PINNED_MOVES, today=None):
     return pins
 
 
+PINNED_STORIES = Path(__file__).resolve().parents[2] / 'config' / 'pinned_stories.yaml'
+
+
+def load_pinned_stories(path=PINNED_STORIES, today=None):
+    """Engine tile pins from config/pinned_stories.yaml that are still in date.
+
+    A pin keeps a published story at the front of its tile after the feeds
+    stop listing it, until its `until` date (IST, inclusive), then it drops
+    off by itself. It keeps the story's real date and carries pinned=True;
+    one marked featured is also the Featured Analysis card (build_featured).
+    An unreadable file or an incomplete entry is skipped rather than failing
+    the build.
+    """
+    from ..intelligence.normalize import publisher_for
+    try:
+        entries = (yaml.safe_load(Path(path).read_text(encoding='utf-8')) or {}).get('pins') or []
+    except (OSError, yaml.YAMLError):
+        logger.warning("Pinned stories unreadable: %s", path, exc_info=True)
+        return []
+    today = today or datetime.now(_IST).date()
+    engines = {engine_id for engine_id, _ in SIGNAL_TO_ENGINE.values()}
+    pins = []
+    for entry in entries:
+        title = (entry.get('title') or '').strip()
+        url = (entry.get('url') or '').strip()
+        until, published = entry.get('until'), entry.get('published')
+        if (not title or not url.startswith('http') or entry.get('engine') not in engines
+                or not isinstance(until, date) or until < today):
+            continue
+        pins.append({
+            'engine': entry['engine'],
+            'title': title,
+            'url': url,
+            'image': _article_image(entry),
+            'summary': (entry.get('summary') or '').strip(),
+            'source': entry.get('source') or publisher_for(url.split('/')[2]),
+            'date': published.strftime('%d %b') if isinstance(published, date) else '',
+            'featured': entry.get('featured') is True,
+            'pinned': True,
+        })
+    return pins
+
+
 def build_record(quote_set, movers):
     """Leaders on Record, minus anyone People Movers already shows.
 
@@ -390,13 +433,41 @@ def build_people_rows(current_articles, quote_set, pulse_limit=8, pinned=(), mov
     return {'_movers': movers, '_record': record, '_pulse': pulse}
 
 
+FEATURED_SUMMARY = 260  # characters of summary on the Featured card
+
+
+def _clip(text, limit):
+    """Text cut to at most `limit` characters at a word boundary, with "…"."""
+    text = ' '.join(text.split())
+    if len(text) <= limit:
+        return text
+    return text[:limit - 1].rsplit(' ', 1)[0].rstrip(',;:') + '…'
+
+
 def build_featured(engine_data, articles_by_title):
     """The single large Featured Analysis card.
 
-    Was one hardcoded article (a July 2026 GCC office-leasing piece). Takes the
-    first current story with a picture in FEATURED_ORDER: GCC, then Insurance,
+    Was one hardcoded article (a July 2026 GCC office-leasing piece). A story
+    pinned with `featured: true` (config/pinned_stories.yaml) comes first and
+    says so, with its publisher and real date. Otherwise it takes the first
+    current story with a picture in FEATURED_ORDER: GCC, then Insurance,
     otherwise the top Global Affairs story.
     """
+    for engine_id, engine in engine_data.items():
+        if engine_id.startswith('_'):
+            continue
+        for article in engine.get('articles') or []:
+            if article.get('pinned') and article.get('featured') and article.get('image'):
+                return {
+                    'title': article['title'],
+                    'url': article['url'],
+                    'image': article['image'],
+                    'summary': _clip(article.get('summary') or '', FEATURED_SUMMARY),
+                    'label': engine.get('name', ''),
+                    'pinned': True,
+                    'source': article.get('source', ''),
+                    'date': article.get('date', ''),
+                }
     for engine_id in FEATURED_ORDER:
         engine = engine_data.get(engine_id) or {}
         for article in engine.get('articles', []):
@@ -408,7 +479,7 @@ def build_featured(engine_data, articles_by_title):
                 'title': article['title'],
                 'url': article['url'],
                 'image': image,
-                'summary': (raw.get('summary') or '').strip()[:260],
+                'summary': _clip(raw.get('summary') or '', FEATURED_SUMMARY),
                 'label': engine.get('name', ''),
             }
     return None
@@ -425,7 +496,7 @@ def _article_image(raw):
     return image if image.startswith('http') else None
 
 
-def build_engine_data(signals_data, articles_by_title=None):
+def build_engine_data(signals_data, articles_by_title=None, pinned=()):
     """Map a synthesize_signals() result onto the Command Center tile contract.
 
     ``articles_by_title`` is the raw corpus keyed by title, the same map the
@@ -435,21 +506,30 @@ def build_engine_data(signals_data, articles_by_title=None):
     It stays optional: callers that only need titles and urls (and the tests
     that pin this contract) may omit it, and every article then reports no
     image, which the page renders as that domain's vector.
+
+    ``pinned`` (from load_pinned_stories) leads its engine's tile; a pinned
+    story the scan also found is shown once, as the pin. Pins count toward
+    the tile's MAX_PER_SIGNAL.
     """
+    from .signals import MAX_PER_SIGNAL
     by_name = {s['name']: s for s in signals_data.get('signals', [])}
     by_title = articles_by_title or {}
 
     engine_data = {}
     for signal_name, (engine_id, display_name) in SIGNAL_TO_ENGINE.items():
         signal = by_name.get(signal_name, {})
-        engine_data[engine_id] = {
-            'name': display_name,
-            'articles': [
-                {'title': a['title'], 'url': a['url'],
-                 'image': _article_image(by_title.get(a['title']))}
-                for a in signal.get('articles', [])
-            ],
-        }
+        articles = [
+            {'title': a['title'], 'url': a['url'],
+             'image': _article_image(by_title.get(a['title']))}
+            for a in signal.get('articles', [])
+        ]
+        pins = [{k: v for k, v in p.items() if k != 'engine'}
+                for p in pinned if p['engine'] == engine_id]
+        if pins:
+            seen = {p['url'] for p in pins} | {p['title'] for p in pins}
+            articles = (pins + [a for a in articles
+                                if a['url'] not in seen and a['title'] not in seen])[:MAX_PER_SIGNAL]
+        engine_data[engine_id] = {'name': display_name, 'articles': articles}
 
     for engine_id, display_name in COMING_SOON_ENGINES.items():
         engine_data[engine_id] = {

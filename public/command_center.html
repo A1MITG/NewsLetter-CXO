@@ -416,6 +416,7 @@ a { color: inherit; }
 .featured-impl { font-size: 12.5px; color: rgba(255,255,255,.65); margin-bottom: 14px; }
 .featured-impl b { color: #9fc1ff; }
 .featured-read { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+.featured-pin { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #9fc1ff; margin-bottom: 10px; }
 
 /* ---------- People rows: People Movers, Leaders on Record ----------
    Cards grow to fill the row when there are few, so each row spans the same
@@ -1516,6 +1517,7 @@ a { color: inherit; }
         <a class="featured fade-up in" href="${esc(f.url)}" target="_blank" rel="noopener">
             <img src="${esc(f.image)}" alt="" loading="lazy" decoding="async">
             <div class="featured-body">
+                ${f.pinned ? `<div class="featured-pin">Pinned &middot; ${esc(f.source)} &middot; ${esc(f.date)}</div>` : ''}
                 <h2>${esc(f.title)}</h2>
                 ${f.summary ? `<p class="featured-summary">${esc(f.summary)}</p>` : ''}
                 <div class="featured-read">Read Full Brief &rarr;</div>

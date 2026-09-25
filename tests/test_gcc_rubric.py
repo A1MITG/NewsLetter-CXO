@@ -134,6 +134,43 @@ class TestGulfVetoSurvives(unittest.TestCase):
         self.assertIsNone(_gcc(title))
 
 
+class TestManufacturingAndEngineeringGCCs(unittest.TestCase):
+    """What work a named centre does counts as the action (2026-09-25)."""
+
+    def _tile(self, title, summary=''):
+        result = classify_article(title, summary, include_tile_signals=True)
+        return result[0] if result else None
+
+    def test_the_manufacturing_gcc_story_reaches_the_gcc_tile(self):
+        """Went to the Manufacturing tile on 2026-09-25: it names GCCs but
+        says nothing is being opened, expanded or hired."""
+        title = "Manufacturing, transport firms overtake banks to lead India’s GCC boom"
+        self.assertEqual(self._tile(title), 'Signal GCC')
+
+    def test_engineering_gccs_and_plural_centres(self):
+        for title in ('Engineering GCCs drive ER&D spend in India',
+                      'Airbus opens engineering centres in Bengaluru and Chennai',
+                      'Siemens to double headcount at its Pune R&D centres'):
+            self.assertEqual(self._tile(title), 'Signal GCC', title)
+
+    def test_a_centres_own_name_is_not_evidence_of_its_work(self):
+        """'engineering' in "engineering centre" is the entity, not an action."""
+        self.assertIsNone(_gcc('The engineering centre model, explained'))
+        self.assertEqual(gcc_axes('The engineering centre model, explained'), (True, False))
+
+    def test_a_supplier_manufacturing_deal_is_still_not_a_gcc_story(self):
+        """The sector counts only beside a named capability centre, never
+        beside 'it services' or 'outsourcing'."""
+        for title in ('Infosys wins manufacturing IT services deal from European carmaker',
+                      'Bosch outsourcing arm eyes automotive clients'):
+            self.assertNotEqual(self._tile(title), 'Signal GCC', title)
+
+    def test_the_gulf_veto_covers_the_sector_too(self):
+        title = 'Saudi Arabia and UAE lead GCC summit on manufacturing'
+        self.assertNotEqual(self._tile(title), 'Signal GCC')
+        self.assertFalse(gcc_axes(title)[1])
+
+
 class TestFloor(unittest.TestCase):
 
     def test_vendor_services_deal_sits_below_the_floor(self):

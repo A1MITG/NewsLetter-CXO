@@ -262,6 +262,12 @@ GCC_ENTITY = {
     'delivery center': 4, 'delivery centre': 4,
     'competency center': 4, 'competency centre': 4,
     'r&d center': 4, 'r&d centre': 4, 'research and development center': 4,
+    # Engineering capability centres. Plurals are listed because matching is
+    # word-bounded: 'engineering centre' does not match "engineering centres".
+    'engineering centers': 4, 'engineering centres': 4,
+    'r&d centers': 4, 'r&d centres': 4,
+    'er&d center': 4, 'er&d centre': 4, 'er&d centers': 4, 'er&d centres': 4,
+    'engineering hub': 4, 'r&d hub': 4,
     # Supporting: the operating model rather than the centre itself.
     'shared services': 2, 'offshoring': 2, 'nearshoring': 2, 'reshoring': 2,
     'outsourcing': 2, 'it services': 2, 'ites': 2, 'bpo': 2, 'kpo': 2,
@@ -315,6 +321,38 @@ GCC_ACTION = {
         'recruiting', 'roles', 'jobs', 'positions')),
 }
 
+# What work a centre does, as a seventh ACTION facet: manufacturing and
+# engineering GCCs are a story in their own right ("Manufacturing, transport
+# firms overtake banks to lead India's GCC boom" went to the Manufacturing
+# tile, 2026-09-25). Two limits keep it from reopening the vendor problem:
+#   - it counts only beside a NAMED capability centre (GCC_NAMED_CENTRE), not
+#     beside supporting terms such as 'it services' or 'outsourcing', so an
+#     IT supplier's manufacturing deal is still not a GCC story;
+#   - the centre's own name is not evidence of its work: 'engineering' in
+#     "engineering centre" is the entity, and is blanked before this facet
+#     looks. "The engineering centre model, explained" still needs an action.
+GCC_SECTOR = (3, (
+    'manufacturing', 'manufacturer', 'manufacturers', 'engineering', 'er&d',
+    'industrial', 'automotive', 'automaker', 'automakers', 'aerospace',
+    'semiconductor', 'semiconductors', 'chipmaker', 'chipmakers'))
+
+# The capability centres GCC_SECTOR may stand beside: names of an in-house
+# centre. Left out: generic or vendor-side names ('delivery centre', 'global
+# delivery centre', 'coe', 'gic', 'innovation centre', ...), which suppliers,
+# universities and funds use as often as capability centres do.
+GCC_NAMED_CENTRE = (
+    'gcc', 'gccs', 'global capability center', 'global capability centre',
+    'global capability centers', 'global capability centres', 'global capability',
+    'capability center', 'capability centre', 'capability centers', 'capability centres',
+    'global in-house center', 'global in-house centre',
+    'captive center', 'captive centre', 'captive unit',
+    'shared services center', 'shared services centre',
+    'engineering center', 'engineering centre', 'engineering centers', 'engineering centres',
+    'r&d center', 'r&d centre', 'r&d centers', 'r&d centres',
+    'er&d center', 'er&d centre', 'er&d centers', 'er&d centres',
+    'research and development center', 'engineering hub', 'r&d hub',
+)
+
 # Scores nothing. Present so the exclusion is explicit and reviewable rather
 # than an absence someone re-adds in good faith next year.
 GCC_CONTEXT = {
@@ -339,7 +377,7 @@ def _gcc_vocabulary():
     KEYWORDS (app/intelligence/domains.py, the tests) sees the same terms.
     """
     vocab = dict(GCC_ENTITY)
-    for weight, terms in GCC_ACTION.values():
+    for weight, terms in (*GCC_ACTION.values(), GCC_SECTOR):
         for term in terms:
             vocab.setdefault(term, weight)
     return vocab
@@ -1163,7 +1201,29 @@ _GCC_TERM_WEIGHT = KEYWORDS['Signal GCC']['gcc']
 
 _GCC_RX = {kw: re.compile(r'\b' + re.escape(kw) + r'\b')
            for kw in list(GCC_ENTITY)
-           + [t for _, terms in GCC_ACTION.values() for t in terms]}
+           + [t for _, terms in GCC_ACTION.values() for t in terms]
+           + list(GCC_SECTOR[1])}
+
+# Every entity name, longest first: blanked before GCC_SECTOR looks, so a
+# centre's own name ("engineering centre") is not evidence of its work.
+_GCC_ENTITY_ANY = re.compile(
+    r'\b(?:' + '|'.join(re.escape(k) for k in sorted(GCC_ENTITY, key=len, reverse=True)) + r')\b')
+
+
+def _gcc_sector(title, summary='', gulf=False):
+    """Where GCC_SECTOR fires: 'title', 'summary', or None.
+
+    Only beside a named capability centre (GCC_NAMED_CENTRE; "GCC" beside
+    Gulf terms is not one), and only on words outside the centres' names.
+    """
+    named = [k for k in GCC_NAMED_CENTRE if not (gulf and k in ('gcc', 'gccs'))]
+    if not any(_GCC_RX[k].search(title) or (summary and _GCC_RX[k].search(summary)) for k in named):
+        return None
+    title, summary = _GCC_ENTITY_ANY.sub(' ', title), _GCC_ENTITY_ANY.sub(' ', summary or '')
+    for where, text in (('title', title), ('summary', summary)):
+        if any(_GCC_RX[t].search(text) for t in GCC_SECTOR[1]):
+            return where
+    return None
 
 
 def gcc_axes(title, summary=''):
@@ -1175,8 +1235,9 @@ def gcc_axes(title, summary=''):
     """
     blob = _normalize(title or '') + ' ' + _normalize(summary or '')
     entity = any(_GCC_RX[k].search(blob) for k in GCC_ENTITY)
-    action = any(_GCC_RX[t].search(blob)
-                 for _, terms in GCC_ACTION.values() for t in terms)
+    action = (any(_GCC_RX[t].search(blob)
+                  for _, terms in GCC_ACTION.values() for t in terms)
+              or _gcc_sector(blob, gulf=bool(_GULF_CONTEXT.search(blob))) is not None)
     return entity, action
 
 
@@ -1215,6 +1276,11 @@ def _score_gcc(title, summary):
         if where:
             action_facets += 1
             total += weight * (TITLE_MULTIPLIER if where == 'title' else 1)
+
+    where = _gcc_sector(title, summary, gulf)
+    if where:
+        action_facets += 1
+        total += GCC_SECTOR[0] * (TITLE_MULTIPLIER if where == 'title' else 1)
 
     if not entity_hits or not action_facets:
         return 0

@@ -35,7 +35,7 @@ from app.scraper.article_images import fill_missing_images, fill_signal_images
 from app.analysis.signals import synthesize_signals
 from app.analysis.brief import build_brief, render_brief
 from app.analysis.command_center import (build_engine_data, build_featured, build_people_rows,
-                                         load_pinned_moves)
+                                         load_pinned_moves, load_pinned_stories)
 from app.scraper.leader_quotes import get_leader_quotes
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -75,7 +75,9 @@ def main(refresh=False):
 
     by_title = {a.get('title'): a for a in articles}
     fill_signal_images(signals_data, by_title)
-    engine_data = build_engine_data(signals_data, by_title)
+    # Pins from config/pinned_stories.yaml lead their tile (and Featured,
+    # when marked) until they expire.
+    engine_data = build_engine_data(signals_data, by_title, pinned=load_pinned_stories())
     engine_data['_featured'] = build_featured(engine_data, by_title)
     # The static build waits for a fresh quote set; the live API never does.
     # Pins from config/pinned_moves.yaml lead People Movers until they expire.
