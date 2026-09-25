@@ -24,7 +24,8 @@ The file reads top to bottom:
                       Sector, Talent, Policy, Real estate, Consolidation
     3. NOT EVIDENCE   cities, vendors, nationality: never scored
     4. GULF           when "GCC" means the Gulf Cooperation Council
-    5. SCORING        score_gcc(), gcc_axes(), gcc_branches(), gcc_vocabulary()
+    5. SCORING        score_gcc(), gcc_axes(), names_a_centre(), gcc_branches(),
+                      gcc_vocabulary()
 
 How a story is scored
 ---------------------
@@ -252,7 +253,7 @@ FACETS = {
     'consolidation': Facet(CONSOLIDATION, 3, (
         'shuts', 'shut down', 'shutting', 'closes', 'closing', 'closure',
         'exits', 'exit', 'winds down', 'wind down', 'scales down', 'downsizes',
-        'downsizing', 'layoffs', 'lays off', 'job cuts', 'cuts', 'trims', 'trim',
+        'downsizing', 'layoffs', 'lays off', 'job cuts', 'cut', 'cuts', 'trims', 'trim',
         'divests', 'divestment', 'sells', 'acquires', 'acquired', 'acquisition',
         'buys', 'buying', 'stake', 'merger', 'merges', 'build-operate-transfer',
         'build operate transfer', 'carve-out', 'carve out', 'spin off',
@@ -362,15 +363,19 @@ def _where(terms, title, summary):
     return None
 
 
+def _named(title, summary, gulf):
+    """Where the story names an in-house centre (NAMED_CENTRE), or None."""
+    return _where([t for t in NAMED_CENTRE if not (gulf and t in _GULF_SENSE_ONLY)], title, summary)
+
+
 def _facets(title, summary, gulf):
     """{facet name: 'title' | 'summary'} for every facet this story shows."""
-    names_a_centre = _where([t for t in NAMED_CENTRE
-                             if not (gulf and t in _GULF_SENSE_ONLY)], title, summary)
+    named = _named(title, summary, gulf)
     bare_title, bare_summary = _ENTITY_ANY.sub(' ', title), _ENTITY_ANY.sub(' ', summary)
     found = {}
     for name, facet in FACETS.items():
         if facet.topic:
-            where = names_a_centre and _where(facet.terms, bare_title, bare_summary)
+            where = named and _where(facet.terms, bare_title, bare_summary)
         else:
             where = _where(facet.terms, title, summary)
         if where:
@@ -413,6 +418,16 @@ def gcc_axes(title, summary=''):
     gulf = gcc_means_gulf(f'{title} {summary}')
     entity = _where([t for t in ENTITY if not (gulf and t in _GULF_SENSE_ONLY)], title, summary)
     return bool(entity), bool(_facets(title, summary, gulf))
+
+
+def names_a_centre(text):
+    """True when the text names an in-house centre, and not the Gulf bloc.
+
+    The first gate, for sources too broad to take whole: a Moneycontrol
+    headline must pass it before its story is fetched at all.
+    """
+    text = normalize_text(text or '')
+    return bool(_named(text, '', gcc_means_gulf(text)))
 
 
 def gcc_branches(title, summary=''):

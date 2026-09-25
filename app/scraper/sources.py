@@ -75,6 +75,16 @@ TIER_2_SOURCES = {
     ],
 }
 
+# Google News sitemaps, read by app/scraper/news_sitemaps.py, for publishers
+# whose RSS is dead but whose sitemap is live. Only stories whose headline
+# names a capability centre are kept, so a whole publisher's output does not
+# reshuffle every tile. Moneycontrol: RSS frozen since April 2024 (see the
+# note at the top); on 2026-09-25 its sitemap listed two GCC stories no other
+# source carried.
+NEWS_SITEMAPS = (
+    "https://www.moneycontrol.com/news/news-sitemap.xml",
+)
+
 # URL fragments of articles to drop. Mobile World Live republishes its stories
 # in French and Spanish under these paths, which put the same story on a tile
 # twice, once untranslated.

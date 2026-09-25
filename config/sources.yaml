@@ -50,9 +50,12 @@ sources:
   thinkadvisor.com:               { tier: tier_2, authority: 0.85 }
 
   # ---- tier 2: business and financial press ----
+  # gcc. and hr.economictimes inherit economictimes' tier.
   economictimes.indiatimes.com:   { tier: tier_2 }
   livemint.com:                   { tier: tier_2 }
   moneycontrol.com:               { tier: tier_2 }
+  business-standard.com:          { tier: tier_2 }   # feed since 2026-09-20
+  thehindubusinessline.com:       { tier: tier_2 }   # feeds since 2026-09-25 (BP-38)
 
   # ---- tier 2: domain trade press (2026-09-24, Command Center tiles) ----
   # telecom. and manufacturing.economictimes inherit economictimes' tier.

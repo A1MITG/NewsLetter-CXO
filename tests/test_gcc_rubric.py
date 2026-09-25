@@ -8,7 +8,7 @@ import unittest
 
 from app.analysis.gcc_rubric import (BRANCHES, ENTITY, FACETS, MIN_SCORE, NAMED_CENTRE,
                                      NOT_EVIDENCE, gcc_axes, gcc_branches, gcc_means_gulf,
-                                     gcc_vocabulary)
+                                     gcc_vocabulary, names_a_centre)
 from app.analysis.signals import KEYWORDS, SIGNAL_FLOORS, classify_article, score_signals
 
 
@@ -121,6 +121,11 @@ class TestTaxonomyBranches(unittest.TestCase):
         for branch, title in self.CASES.items():
             self.assertEqual(_tile(title), 'Signal GCC', title)
             self.assertIn(branch, gcc_branches(title), title)
+
+    def test_job_cuts_are_consolidation(self):
+        """Moneycontrol, 25 Sep 2026: "cut", not "cuts"."""
+        title = 'GCCs cut thousands of jobs even as India takes on bigger global mandates'
+        self.assertIn('Consolidation', gcc_branches(title))
 
     def test_a_centres_leaders_are_a_gcc_story(self):
         """ET's GCC-leader profiles name the centre only in the summary."""
@@ -254,6 +259,17 @@ class TestScoring(unittest.TestCase):
     def test_the_signal_uses_the_rubric_floor_and_vocabulary(self):
         self.assertEqual(SIGNAL_FLOORS['Signal GCC'], MIN_SCORE)
         self.assertEqual(KEYWORDS['Signal GCC'], gcc_vocabulary())
+
+    def test_names_a_centre_is_the_first_gate_for_broad_sources(self):
+        """A Moneycontrol headline must name a centre before its page is read."""
+        for title in ('Syneos Health opens GCC in Hyderabad',
+                      'Airbus opens engineering centres in Bengaluru',
+                      'India’s Tier-2 GCC growth brings infrastructure, talent into focus'):
+            self.assertTrue(names_a_centre(title), title)
+        for title in ('GCC countries approve unified tourist visa',
+                      'Infosys wins outsourcing deal from European carmaker',
+                      'Govt approves interest-free loan for tobacco farmers'):
+            self.assertFalse(names_a_centre(title), title)
 
 
 if __name__ == '__main__':

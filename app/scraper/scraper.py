@@ -8,7 +8,8 @@ from html import unescape
 import aiohttp
 from bs4 import BeautifulSoup
 
-from .sources import EXCLUDE_URL_PARTS, TIER_1_SOURCES, TIER_2_SOURCES
+from .news_sitemaps import scrape_news_sitemap
+from .sources import EXCLUDE_URL_PARTS, NEWS_SITEMAPS, TIER_1_SOURCES, TIER_2_SOURCES
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,9 @@ async def run_scraper(tier='all'):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
     async with aiohttp.ClientSession(headers=headers) as session:
         tasks = [scrape_source(session, url) for url in sources_to_scan]
+        # GCC stories from news sitemaps (publishers whose RSS is dead).
+        if tier in ('tier2', 'all'):
+            tasks += [scrape_news_sitemap(session, url, fetch_html) for url in NEWS_SITEMAPS]
         # return_exceptions so one source's parse failure can't abort the
         # whole scrape — the rest of the sources still return their articles.
         results = await asyncio.gather(*tasks, return_exceptions=True)
