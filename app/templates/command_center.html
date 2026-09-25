@@ -292,7 +292,11 @@ a { color: inherit; }
 
 /* ---------- Band 3: Executive Pulse (auto-scroll) ---------- */
 .pulse-note { font-size: 12px; color: var(--slate); margin: -8px 0 16px; max-width: 640px; }
-.pulse-viewport { overflow: hidden; padding-bottom: 40px; }
+/* Swipeable as well as self-scrolling. A phone shows one card, so the row
+   must move by hand too; the scrollbar stays hidden, as on the other rows. */
+.pulse-viewport { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding-bottom: 40px; }
+.pulse-viewport::-webkit-scrollbar { display: none; }
+.pulse-wrap .row-arrow { top: calc(50% - 20px); }
 /* Like People Movers: the track is the row's width, so few cards grow to fill
    it, aligned with the rows above; many cards keep their 260px basis and
    overflow, and startPulseScroller loops them. (width: max-content would size
@@ -314,6 +318,10 @@ a { color: inherit; }
 .pulse-insight span { font-style: normal; font-weight: 700; color: var(--blue); }
 .pulse-impl { font-size: 10.5px; color: var(--slate-light); margin-bottom: 8px; }
 .pulse-meta { font-family: var(--mono); font-size: 9.5px; color: var(--slate-light); text-transform: uppercase; }
+/* A phone fits one card; the edge of the next one shows there is more. */
+@media (max-width: 640px) { .pulse-card { flex-basis: calc(100% - 48px); } }
+/* On a phone the arrows sit mid-photo, clear of the name along its foot. */
+@media (max-width: 700px) { .pulse-wrap .row-arrow { top: 70px; } }
 
 /* ---------- Band 4: Intelligence Engines + Personalization Bar ---------- */
 /* The pin/hide/drag hint sits on the engines header line, and the note on
@@ -922,8 +930,12 @@ a { color: inherit; }
         <span class="eyebrow" style="font-size:13px;">Executive Pulse</span>
     </div>
     <p class="pulse-note">Business leaders making news today. A leader appears only when a named executive is the subject of a real story — never a fabricated quote, never a raw social feed. Most days only a few qualify.</p>
-    <div class="pulse-viewport" id="pulseViewport">
-        <div class="pulse-track" id="pulseTrack"><!-- populated from _pulse --></div>
+    <div class="row-scroller pulse-wrap">
+        <div class="pulse-viewport" id="pulseViewport">
+            <div class="pulse-track" id="pulseTrack"><!-- populated from _pulse --></div>
+        </div>
+        <button type="button" class="row-arrow prev" aria-label="Scroll Executive Pulse left" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button type="button" class="row-arrow next" aria-label="Scroll Executive Pulse right" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
     </div>
     </div>
 
@@ -1728,7 +1740,11 @@ a { color: inherit; }
     // the track whenever they fit, and at fractional pixel ratios rounded
     // widths can disagree by a pixel or two. It is re-decided on resize from
     // the original cards, so a window that widens never keeps duplicates.
-    const pulseLoop = { raf: 0, paused: false, period: 0, original: '', bound: false };
+    //
+    // The row also moves by hand (swipe, trackpad, its side arrows). A swipe
+    // or an arrow holds the loop for a few seconds, then it carries on from
+    // wherever the reader left the row.
+    const pulseLoop = { raf: 0, paused: false, resumeAt: 0, period: 0, original: '', bound: false };
     function startPulseScroller() {
         const viewport = document.getElementById('pulseViewport');
         const track = document.getElementById('pulseTrack');
@@ -1736,10 +1752,14 @@ a { color: inherit; }
         pulseLoop.original = track.innerHTML;
         if (!pulseLoop.bound) {
             pulseLoop.bound = true;
-            ['mouseenter', 'touchstart', 'mousedown'].forEach(evt =>
-                viewport.addEventListener(evt, () => { pulseLoop.paused = true; }));
-            ['mouseleave', 'touchend', 'mouseup'].forEach(evt =>
-                viewport.addEventListener(evt, () => { pulseLoop.paused = false; }));
+            const hold = () => { pulseLoop.paused = true; };
+            const release = ms => () => { pulseLoop.paused = false; pulseLoop.resumeAt = performance.now() + ms; };
+            ['mouseenter', 'mousedown'].forEach(evt => viewport.addEventListener(evt, hold));
+            viewport.addEventListener('touchstart', hold, { passive: true });
+            ['mouseleave', 'mouseup'].forEach(evt => viewport.addEventListener(evt, release(0)));
+            // A swiped row coasts on after the finger lifts.
+            viewport.addEventListener('touchend', release(5000), { passive: true });
+            viewport.addEventListener('signal:pause', release(6000)); // its side arrows
             let resizeTimer = 0;
             window.addEventListener('resize', () => {
                 clearTimeout(resizeTimer);
@@ -1766,10 +1786,17 @@ a { color: inherit; }
         // One full set plus the gap before its clone, so the wrap is seamless.
         pulseLoop.period = track.scrollWidth + gap;
         track.innerHTML = pulseLoop.original + pulseLoop.original;
-        const step = () => {
-            if (!pulseLoop.paused) {
-                viewport.scrollLeft += 0.6;
-                if (viewport.scrollLeft >= pulseLoop.period) viewport.scrollLeft -= pulseLoop.period;
+        // The position is kept here, not read back from scrollLeft: Safari
+        // holds scrollLeft to whole pixels, so adding 0.6px to it each frame
+        // never moved the row on an iPhone.
+        let pos = 0;
+        const step = now => {
+            if (!pulseLoop.paused && now >= pulseLoop.resumeAt) {
+                // A swipe or an arrow moved the row: carry on from there.
+                if (Math.abs(viewport.scrollLeft - pos) > 2) pos = viewport.scrollLeft;
+                pos += 0.6;
+                if (pos >= pulseLoop.period) pos -= pulseLoop.period;
+                viewport.scrollLeft = pos;
             }
             pulseLoop.raf = requestAnimationFrame(step);
         };
@@ -1824,7 +1851,7 @@ a { color: inherit; }
     function initRowArrows() {
         const smooth = !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
         document.querySelectorAll('.row-scroller').forEach(wrap => {
-            const row = wrap.querySelector('.ribbon, .people-row');
+            const row = wrap.querySelector('.ribbon, .people-row, .pulse-viewport');
             const prev = wrap.querySelector('.row-arrow.prev');
             const next = wrap.querySelector('.row-arrow.next');
             if (!row || !prev || !next) return;
