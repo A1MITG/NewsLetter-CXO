@@ -407,12 +407,26 @@ a { color: inherit; }
 .tile.hidden-tile { display: none; }
 
 /* ---------- Featured Analysis ---------- */
-/* The picture keeps its own shape (publishers send 3:2, 4:3, 16:9): a wide
-   strip filled edge to edge cut off the top of every portrait. Text sits on
-   navy beside it; on a phone the picture goes on top. */
-.featured { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); background: var(--navy); border-radius: 12px; overflow: hidden; margin-bottom: 50px; text-decoration: none; }
-.featured-media { position: relative; aspect-ratio: var(--ratio, 3 / 2); max-height: 540px; background: #0b1524; }
+/* Featured Analysis rotates through the pinned story and the day's GCC
+   stories. Text sits on navy beside the picture; on a phone the picture goes
+   on top. The picture is never cropped (a wide strip filled edge to edge cut
+   off the top of every portrait): it sits whole in a 16:9 frame, the shape
+   most share images come in, over a blurred copy of itself. Every card is
+   stacked in one grid cell, so the section keeps its tallest card's height
+   and nothing below it moves as the cards change. */
+.featured-deck { position: relative; margin-bottom: 50px; }
+.featured-deck.cycling { margin-bottom: 0; }
+.featured-stack { display: grid; }
+.featured-stack > .featured { grid-area: 1 / 1; opacity: 0; visibility: hidden; transition: opacity .6s ease, visibility 0s linear .6s; }
+.featured-stack > .featured.on { opacity: 1; visibility: visible; transition: opacity .6s ease; }
+.featured { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); background: var(--navy); border-radius: 12px; overflow: hidden; text-decoration: none; }
+.featured-media { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #0b1524; }
 .featured-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.featured-media .featured-fill { inset: -24px; width: calc(100% + 48px); height: calc(100% + 48px); object-fit: cover; filter: blur(20px) brightness(.5); }
+.featured-summary { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.featured-dots { display: flex; justify-content: center; gap: 8px; margin: 14px 0 42px; }
+.featured-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: #c9d0d9; cursor: pointer; }
+.featured-dots button.on { background: var(--navy); width: 22px; border-radius: 4px; }
 .featured-body { position: relative; z-index: 2; align-self: center; padding: 32px 38px; color: #fff; }
 .featured-body h2 { font-family: var(--serif); font-size: 30px; font-weight: 400; line-height: 1.2; margin-bottom: 12px; }
 .featured-summary { font-size: 14px; color: rgba(255,255,255,.82); line-height: 1.55; margin-bottom: 10px; }
@@ -420,7 +434,10 @@ a { color: inherit; }
 .featured-impl b { color: #9fc1ff; }
 .featured-read { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
 .featured-pin { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #9fc1ff; margin-bottom: 10px; }
-@media (max-width: 860px) { .featured { grid-template-columns: 1fr; } .featured-media { order: -1; max-height: none; } .featured-body { padding: 22px 22px 26px; } .featured-body h2 { font-size: 24px; } }
+@media (max-width: 860px) { .featured { grid-template-columns: 1fr; align-content: start; } .featured-media { order: -1; } .featured-body { padding: 22px 22px 26px; } .featured-body h2 { font-size: 24px; } }
+/* On a phone the arrows sit mid-picture (a 16:9 picture the card's width,
+   the page's 44px gutters aside), clear of the headline. */
+@media (max-width: 860px) { .featured-deck .row-arrow { top: calc((100vw - 88px) * .28125); } }
 
 /* ---------- People rows: People Movers, Leaders on Record ----------
    Cards grow to fill the row when there are few, so each row spans the same
@@ -1411,10 +1428,10 @@ a { color: inherit; }
         .then(data => {
             // The _-prefixed keys are page furniture, not tiles — keep them
             // out of ENGINE_DATA so nothing iterates over them as an engine.
-            const { _meta, _featured, _movers, _pulse, _record, ...engines } = data;
+            const { _meta, _featured, _features, _movers, _pulse, _record, ...engines } = data;
             ENGINE_DATA = engines;
             CC_META = _meta || null;
-            renderFeatured(_featured);
+            renderFeatured(_features || (_featured ? [_featured] : []));
             renderMovers(_movers || []);
             renderPulseCards(_pulse || []);
             renderRecord(_record || { quotes: [], leaders: [] });
@@ -1513,28 +1530,69 @@ a { color: inherit; }
         startPulseScroller();
     }
 
-    function renderFeatured(f) {
+    // Featured Analysis: the pinned story first, then the day's GCC stories,
+    // one card at a time. It moves on every 7 seconds, like the tiles' headlines,
+    // and holds while the reader points at it, focuses it or touches it; its
+    // arrows and dots move by hand. Reduced motion: no automatic change.
+    let featuredTimer = 0;
+    function renderFeatured(list) {
         const slot = document.getElementById('featuredSlot');
         if (!slot) return;
-        if (!f) { slot.innerHTML = ''; return; }
+        clearInterval(featuredTimer);
+        if (!list.length) { slot.innerHTML = ''; return; }
+        const many = list.length > 1;
+        const arrow = (dir, path) => `<button type="button" class="row-arrow ${dir}" aria-label="${dir === 'prev' ? 'Previous' : 'Next'} featured story"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg></button>`;
         slot.innerHTML = `
-        <a class="featured fade-up in" href="${esc(f.url)}" target="_blank" rel="noopener">
-            <div class="featured-body">
-                ${f.pinned ? `<div class="featured-pin">Pinned &middot; ${esc(f.source)} &middot; ${esc(f.date)}</div>` : ''}
-                <h2>${esc(f.title)}</h2>
-                ${f.summary ? `<p class="featured-summary">${esc(f.summary)}</p>` : ''}
-                <div class="featured-read">Read Full Brief &rarr;</div>
+        <div class="featured-deck${many ? ' cycling' : ''}">
+            <div class="featured-stack">${list.map((f, i) => `
+                <a class="featured${i ? '' : ' on'}" href="${esc(f.url)}" target="_blank" rel="noopener"${i ? ' aria-hidden="true" tabindex="-1"' : ''}>
+                    <div class="featured-body">
+                        <div class="featured-pin">${f.pinned ? 'Pinned &middot; ' : ''}${esc(f.source || '')}${f.date ? ` &middot; ${esc(f.date)}` : ''}</div>
+                        <h2>${esc(f.title)}</h2>
+                        ${f.summary ? `<p class="featured-summary">${esc(f.summary)}</p>` : ''}
+                        <div class="featured-read">Read Full Brief &rarr;</div>
+                    </div>
+                    <div class="featured-media">
+                        <img class="featured-fill" src="${esc(f.image)}" alt="" aria-hidden="true" decoding="async">
+                        <img src="${esc(f.image)}" alt="" decoding="async">
+                    </div>
+                </a>`).join('')}
             </div>
-            <div class="featured-media"><img src="${esc(f.image)}" alt="" loading="lazy" decoding="async"></div>
-        </a>`;
-        // The frame takes the picture's own shape once it is known (between
-        // 6:5 and 2:1; outside that the picture sits whole inside the frame).
-        const img = slot.querySelector('.featured-media img');
-        const fit = () => {
-            const r = img.naturalWidth / img.naturalHeight;
-            if (r) img.parentNode.style.setProperty('--ratio', Math.min(2, Math.max(1.2, r)).toFixed(3));
+            ${many ? arrow('prev', 'M15 5l-7 7 7 7') + arrow('next', 'M9 5l7 7-7 7') : ''}
+        </div>
+        ${many ? `<div class="featured-dots">${list.map((f, i) => `<button type="button" aria-label="Featured story ${i + 1} of ${list.length}"${i ? '' : ' class="on"'}></button>`).join('')}</div>` : ''}`;
+        if (!many) return;
+
+        const deck = slot.querySelector('.featured-deck');
+        const cards = [...slot.querySelectorAll('.featured')];
+        const dots = [...slot.querySelectorAll('.featured-dots button')];
+        const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let at = 0, held = false, touchTimer = 0;
+        const show = i => {
+            at = (i + cards.length) % cards.length;
+            cards.forEach((c, k) => {
+                c.classList.toggle('on', k === at);
+                if (k === at) { c.removeAttribute('aria-hidden'); c.removeAttribute('tabindex'); }
+                else { c.setAttribute('aria-hidden', 'true'); c.tabIndex = -1; }
+            });
+            dots.forEach((d, k) => d.classList.toggle('on', k === at));
         };
-        img.complete ? fit() : img.addEventListener('load', fit);
+        const restart = () => {
+            clearInterval(featuredTimer);
+            if (!still) featuredTimer = setInterval(() => { if (!held && !document.hidden) show(at + 1); }, 7000);
+        };
+        deck.addEventListener('mouseenter', () => { held = true; });
+        deck.addEventListener('mouseleave', () => { held = false; });
+        deck.addEventListener('focusin', () => { held = true; });
+        deck.addEventListener('focusout', () => { held = false; });
+        deck.addEventListener('touchstart', () => {
+            held = true; clearTimeout(touchTimer);
+            touchTimer = setTimeout(() => { held = false; }, 6000);
+        }, { passive: true });
+        deck.querySelector('.row-arrow.prev').addEventListener('click', () => { show(at - 1); restart(); });
+        deck.querySelector('.row-arrow.next').addEventListener('click', () => { show(at + 1); restart(); });
+        dots.forEach((d, k) => d.addEventListener('click', () => { show(k); restart(); }));
+        restart();
     }
 
     function updateEngineCount() {

@@ -28,4 +28,4 @@ pins:
     summary: "The report, titled 'India GCCs 2030: From Capability Centers to Agentic Transformation Engines', noted that while ambition remains high, approximately 55% of routine GCC work is currently exposed to AI-led automation, necessitating that nearly 60% of the workforce undergo reskilling by 2030."
     image: "https://img.etimg.com/photo/msid-134432876,imgsize-109716.cms"
     featured: true
-    until: 2026-09-27   # pinned 2026-09-25 through Sunday
+    until: 2026-10-02   # pinned 2026-09-25 for a week (first through Sunday 27 Sep)

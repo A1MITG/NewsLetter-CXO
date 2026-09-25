@@ -444,45 +444,65 @@ def _clip(text, limit):
     return text[:limit - 1].rsplit(' ', 1)[0].rstrip(',;:') + '…'
 
 
-def build_featured(engine_data, articles_by_title):
-    """The single large Featured Analysis card.
+FEATURED_LIMIT = 6  # cards in the Featured Analysis rotation
 
-    Was one hardcoded article (a July 2026 GCC office-leasing piece). A story
-    pinned with `featured: true` (config/pinned_stories.yaml) comes first and
-    says so, with its publisher and real date. Otherwise it takes the first
-    current story with a picture in FEATURED_ORDER: GCC, then Insurance,
-    otherwise the top Global Affairs story.
+
+def build_features(engine_data, articles_by_title, limit=FEATURED_LIMIT):
+    """The Featured Analysis rotation, in order.
+
+    Was one hardcoded article (a July 2026 GCC office-leasing piece), then one
+    card. Stories pinned with `featured: true` (config/pinned_stories.yaml)
+    come first and say so. Then the current stories with a full-size picture
+    (a feed thumbnail does not count) in FEATURED_ORDER: GCC's first, then
+    Insurance's, then the top Global Affairs stories, so a thin GCC day still
+    fills the rotation. Every card names its publisher and date.
     """
+    from ..intelligence.normalize import parse_date
+    from ..scraper.article_images import is_thumbnail
+
+    features = []
+    # 1. Pins: they carry their own picture, summary, publisher and date.
     for engine_id, engine in engine_data.items():
         if engine_id.startswith('_'):
             continue
-        for article in engine.get('articles') or []:
-            if article.get('pinned') and article.get('featured') and article.get('image'):
-                return {
-                    'title': article['title'],
-                    'url': article['url'],
-                    'image': article['image'],
-                    'summary': _clip(article.get('summary') or '', FEATURED_SUMMARY),
+        for pin in engine.get('articles') or []:
+            if pin.get('pinned') and pin.get('featured') and pin.get('image'):
+                features.append({
+                    'title': pin['title'], 'url': pin['url'], 'image': pin['image'],
+                    'summary': _clip(pin.get('summary') or '', FEATURED_SUMMARY),
                     'label': engine.get('name', ''),
+                    'source': pin.get('source', ''), 'date': pin.get('date', ''),
                     'pinned': True,
-                    'source': article.get('source', ''),
-                    'date': article.get('date', ''),
-                }
+                })
+    # 2. The day's stories with a full-size picture, GCC's first.
+    seen = {f['url'] for f in features} | {f['title'] for f in features}
     for engine_id in FEATURED_ORDER:
         engine = engine_data.get(engine_id) or {}
         for article in engine.get('articles', []):
-            raw = articles_by_title.get(article['title'], {})
-            image = (raw.get('image') or '').strip()
-            if not image.startswith('http'):
+            if len(features) >= limit:
+                return features
+            if article['url'] in seen or article['title'] in seen:
                 continue
-            return {
-                'title': article['title'],
-                'url': article['url'],
-                'image': image,
+            raw = articles_by_title.get(article['title']) or {}
+            image = (raw.get('image') or '').strip()
+            if not image.startswith('http') or is_thumbnail(image):
+                continue
+            when = parse_date(raw.get('date'))
+            features.append({
+                'title': article['title'], 'url': article['url'], 'image': image,
                 'summary': _clip(raw.get('summary') or '', FEATURED_SUMMARY),
                 'label': engine.get('name', ''),
-            }
-    return None
+                'source': _publisher(article['url']),
+                'date': when.astimezone(_IST).strftime('%d %b') if when else '',
+            })
+            seen.add(article['url'])
+    return features[:limit]
+
+
+def build_featured(engine_data, articles_by_title):
+    """The first Featured Analysis card (build_features), or None."""
+    features = build_features(engine_data, articles_by_title, limit=1)
+    return features[0] if features else None
 
 
 def _article_image(raw):

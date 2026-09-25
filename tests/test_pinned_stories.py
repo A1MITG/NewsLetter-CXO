@@ -85,14 +85,15 @@ class TestLoadPinnedStories(unittest.TestCase):
         self.assertEqual(load_pinned_stories(_write(self.tmp.name, 'pins: [unclosed')), [])
 
     def test_the_shipped_pin_is_valid_and_expires(self):
-        """The Dell-Zinnov report, pinned on 2026-09-25 through Sunday 27 Sep.
+        """The Dell-Zinnov report, pinned on 2026-09-25 for a week, to Fri 2 Oct.
         Remove this test with the pin once it has expired."""
         pins = load_pinned_stories(PINNED_STORIES, today=date(2026, 9, 25))
         self.assertEqual([(p['engine'], p['featured']) for p in pins], [('gcc', True)])
         self.assertIn('Dell-Zinnov', pins[0]['title'])
         self.assertEqual((pins[0]['source'], pins[0]['date']), ('The Economic Times', '23 Sep'))
         self.assertTrue(pins[0]['image'].startswith('https://'))
-        self.assertEqual(load_pinned_stories(PINNED_STORIES, today=date(2026, 9, 28)), [])
+        self.assertEqual(len(load_pinned_stories(PINNED_STORIES, today=date(2026, 10, 2))), 1)
+        self.assertEqual(load_pinned_stories(PINNED_STORIES, today=date(2026, 10, 3)), [])
 
 
 class TestPinsOnTheTiles(unittest.TestCase):
@@ -176,7 +177,7 @@ class TestPinnedFeatured(unittest.TestCase):
 
     def test_the_page_labels_a_pinned_featured_story(self):
         page = (ROOT / 'app' / 'static' / 'command_center_source.html').read_text(encoding='utf-8')
-        self.assertIn('${f.pinned ? `<div class="featured-pin">Pinned &middot; ${esc(f.source)} &middot; ${esc(f.date)}</div>` : \'\'}', page)
+        self.assertIn('<div class="featured-pin">${f.pinned ? \'Pinned &middot; \' : \'\'}${esc(f.source || \'\')}', page)
         public = (ROOT / 'public' / 'command_center.html').read_text(encoding='utf-8')
         self.assertEqual(public, page)
 

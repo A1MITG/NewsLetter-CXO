@@ -37,6 +37,11 @@ _META_TAG = re.compile(r'<meta\b[^>]*>', re.I)
 _ATTR = re.compile(r'([\w:-]+)\s*=\s*["\']([^"\']*)["\']')
 _IMAGE_KEYS = ('og:image', 'og:image:url', 'og:image:secure_url', 'twitter:image', 'twitter:image:src')
 _GENERIC = re.compile(r'logo|default|placeholder|favicon|site-?icon|cropped-|fallback|/social/', re.I)
+# Feed images that are thumbnails rather than pictures: ET's B2B sites (ET GCC,
+# HRWorld, Telecom, Manufacturing) send 100x100 crops in their feeds, while
+# the article page's share image is 1200x627. Treated as no image, so the
+# page's own is fetched; kept if the page has none.
+_THUMBNAIL = re.compile(r'etb2bimg\.com/thumb/img-size-', re.I)
 
 # url -> image or None, kept for the life of the process so the live API does
 # not refetch the same pages on every request inside one cache window.
@@ -63,6 +68,11 @@ def is_generic(image):
     return bool(_GENERIC.search(image or ''))
 
 
+def is_thumbnail(image):
+    """True for a feed's thumbnail crop, too small to show as a picture."""
+    return bool(_THUMBNAIL.search(image or ''))
+
+
 async def _fetch_one(session, sem, url):
     async with sem:
         try:
@@ -85,8 +95,10 @@ async def _fetch_all(urls):
 def fill_missing_images(articles, fetch=None):
     """Give each article dict without an http image its page's share image.
 
-    Mutates ``articles`` in place and returns how many gained an image.
-    ``fetch`` (urls -> [(url, image)]) is injectable for tests.
+    A feed thumbnail (is_thumbnail) counts as no image; it is kept when the
+    page offers nothing better. Mutates ``articles`` in place and returns how
+    many gained an image. ``fetch`` (urls -> [(url, image)]) is injectable
+    for tests.
     """
     if fetch is None:
         if not enabled():
@@ -94,7 +106,8 @@ def fill_missing_images(articles, fetch=None):
         fetch = lambda urls: asyncio.run(_fetch_all(urls))
 
     missing = [a for a in articles
-               if a.get('url') and not (a.get('image') or '').startswith('http')]
+               if a.get('url') and (not (a.get('image') or '').startswith('http')
+                                    or is_thumbnail(a.get('image')))]
     todo = sorted({a['url'] for a in missing} - _seen.keys())
     if todo:
         results = dict(fetch(todo))

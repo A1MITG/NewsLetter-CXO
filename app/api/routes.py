@@ -6,7 +6,7 @@ from ..scraper.store import get_articles, get_cache_date, cache_age_minutes
 from ..scraper.article_images import fill_missing_images, fill_signal_images
 from ..analysis.synthesis import synthesize_articles
 from ..analysis.signals import synthesize_signals
-from ..analysis.command_center import (build_engine_data, build_featured, build_people_rows,
+from ..analysis.command_center import (build_engine_data, build_features, build_people_rows,
                                        load_pinned_moves, load_pinned_stories)
 from ..scraper.leader_quotes import get_leader_quotes
 
@@ -64,7 +64,10 @@ def get_command_center():
         # Pins from config/pinned_stories.yaml lead their tile (and Featured,
         # when marked) until they expire.
         payload = build_engine_data(signals_data, by_title, pinned=load_pinned_stories())
-        payload['_featured'] = build_featured(payload, by_title)
+        # The Featured Analysis rotation; _featured is its first card.
+        features = build_features(payload, by_title)
+        payload['_features'] = features
+        payload['_featured'] = features[0] if features else None
         # Never blocks: a stale quote set refreshes in the background.
         payload.update(build_people_rows(scraped_articles, get_leader_quotes(),
                                          pinned=load_pinned_moves()))

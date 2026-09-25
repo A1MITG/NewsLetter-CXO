@@ -34,7 +34,7 @@ from app.scraper.store import get_articles, get_cache_date
 from app.scraper.article_images import fill_missing_images, fill_signal_images
 from app.analysis.signals import synthesize_signals
 from app.analysis.brief import build_brief, render_brief
-from app.analysis.command_center import (build_engine_data, build_featured, build_people_rows,
+from app.analysis.command_center import (build_engine_data, build_features, build_people_rows,
                                          load_pinned_moves, load_pinned_stories)
 from app.scraper.leader_quotes import get_leader_quotes
 
@@ -78,7 +78,10 @@ def main(refresh=False):
     # Pins from config/pinned_stories.yaml lead their tile (and Featured,
     # when marked) until they expire.
     engine_data = build_engine_data(signals_data, by_title, pinned=load_pinned_stories())
-    engine_data['_featured'] = build_featured(engine_data, by_title)
+    # The Featured Analysis rotation; _featured is its first card.
+    features = build_features(engine_data, by_title)
+    engine_data['_features'] = features
+    engine_data['_featured'] = features[0] if features else None
     # The static build waits for a fresh quote set; the live API never does.
     # Pins from config/pinned_moves.yaml lead People Movers until they expire.
     engine_data.update(build_people_rows(articles, get_leader_quotes(block=True),

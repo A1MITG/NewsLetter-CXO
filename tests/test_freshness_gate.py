@@ -159,7 +159,7 @@ class TestPageRowsMarkup(unittest.TestCase):
     def test_people_rows_are_not_treated_as_engines(self):
         """The page peels the _-prefixed keys off before ENGINE_DATA, or the
         ticker and tile code would iterate over them as domains."""
-        self.assertIn('const { _meta, _featured, _movers, _pulse, _record, ...engines } = data;', self.page)
+        self.assertIn('const { _meta, _featured, _features, _movers, _pulse, _record, ...engines } = data;', self.page)
 
 
 @pytest.mark.usefixtures("raw_cache")
