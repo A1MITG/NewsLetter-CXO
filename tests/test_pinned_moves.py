@@ -139,7 +139,7 @@ class TestPinsOnTheRow(unittest.TestCase):
     def test_the_page_labels_pins_and_counts_them_apart(self):
         page = (ROOT / 'app' / 'static' / 'command_center_source.html').read_text(encoding='utf-8')
         self.assertIn("${m.pinned ? ' &middot; Pinned' : ''}", page)
-        self.assertIn("\" in today's scan\" + (pinned ? ` · ${pinned} pinned` : '')", page)
+        self.assertIn("plural(moves.length - pinned, 'recent move', 'recent moves') + (pinned ? ` · ${pinned} pinned` : '')", page)
 
 
 class TestPublisherCredits(unittest.TestCase):

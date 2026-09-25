@@ -302,6 +302,7 @@ def build_movers(current_articles, limit=8):
             'source': publisher_for(url.split('/')[2]) if url.count('/') >= 2 else '',
             'date': when.strftime('%d %b') if when else '',
             'ts': when.timestamp() if when else 0,
+            'image': _article_image(raw),
         })
     moves.sort(key=lambda m: m['ts'], reverse=True)
     return moves[:limit]
@@ -346,6 +347,8 @@ def load_pinned_moves(path=PINNED_MOVES, today=None):
             'source': entry.get('source') or publisher_for(url.split('/')[2]),
             'date': when.strftime('%d %b') if when else '',
             'ts': when.timestamp() if when else 0,
+            # Optional; without one, the surfaces fill it from the report's page.
+            'image': _article_image(entry),
             'pinned': True,
         })
     return pins

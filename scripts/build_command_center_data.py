@@ -31,7 +31,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.scraper.store import get_articles, get_cache_date
-from app.scraper.article_images import fill_signal_images
+from app.scraper.article_images import fill_missing_images, fill_signal_images
 from app.analysis.signals import synthesize_signals
 from app.analysis.brief import build_brief, render_brief
 from app.analysis.command_center import (build_engine_data, build_featured, build_people_rows,
@@ -81,6 +81,8 @@ def main(refresh=False):
     # Pins from config/pinned_moves.yaml lead People Movers until they expire.
     engine_data.update(build_people_rows(articles, get_leader_quotes(block=True),
                                          pinned=load_pinned_moves()))
+    # Each move card leads with its story's own picture.
+    fill_missing_images(engine_data['_movers'])
     # The static page shows the same freshness stamp as the live one; without
     # _meta it would render blank on the Vercel deploy.
     # built_at and refresh_slots_ist let the page say when it was last

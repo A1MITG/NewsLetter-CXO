@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request
 from ..scraper.store import get_articles, get_cache_date, cache_age_minutes
-from ..scraper.article_images import fill_signal_images
+from ..scraper.article_images import fill_missing_images, fill_signal_images
 from ..analysis.synthesis import synthesize_articles
 from ..analysis.signals import synthesize_signals
 from ..analysis.command_center import (build_engine_data, build_featured, build_people_rows,
@@ -66,6 +66,9 @@ def get_command_center():
         # Never blocks: a stale quote set refreshes in the background.
         payload.update(build_people_rows(scraped_articles, get_leader_quotes(),
                                          pinned=load_pinned_moves()))
+        # A move card leads with its story's picture; fill the ones the feed
+        # left without from the article's own page (FETCH_ARTICLE_IMAGES).
+        fill_missing_images(payload['_movers'])
         # Let the page state how fresh it is rather than leaving the reader to
         # trust an undated grid.
         age = cache_age_minutes()
