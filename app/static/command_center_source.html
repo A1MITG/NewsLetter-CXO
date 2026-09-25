@@ -324,8 +324,10 @@ a { color: inherit; }
 /* No scroll-snap: the row drifts on its own (startRibbonDrift), and snapping
    would pull every small step back to the nearest tile. */
 .ribbon { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 20px; -webkit-overflow-scrolling: touch; }
-.ribbon::-webkit-scrollbar { height: 6px; }
-.ribbon::-webkit-scrollbar-thumb { background: var(--slate-100); border-radius: 3px; }
+/* Side arrows (.row-arrow) replace the scrollbars on the scrolling rows;
+   swipe, trackpad and keyboard scrolling still work. */
+.ribbon, .people-row { scrollbar-width: none; }
+.ribbon::-webkit-scrollbar, .people-row::-webkit-scrollbar { display: none; }
 .tile { flex: 0 0 250px; scroll-snap-align: start; border-radius: 10px; overflow: hidden; position: relative; min-height: 290px; display: flex; flex-direction: column; justify-content: flex-end; transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease; cursor: grab; }
 .tile.dragging { opacity: .4; }
 .tile:hover { transform: translateY(-3px); box-shadow: 0 18px 34px -18px rgba(0,0,0,.28); }
@@ -406,6 +408,23 @@ a { color: inherit; }
    width as the rows above it, and keep a minimum width (scrolling) when many. */
 .row-lede { font-size: 12px; color: var(--slate); margin: -8px 0 16px; max-width: 640px; }
 .people-row { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 14px; margin-bottom: 30px; }
+.row-scroller { position: relative; }
+.row-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 5; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--slate-100); background: #fff; color: var(--navy); cursor: pointer; display: grid; place-items: center; box-shadow: 0 6px 18px -6px rgba(11,21,36,.35); transition: background .18s ease, color .18s ease; }
+.row-arrow:hover { background: var(--navy); color: #fff; }
+.row-arrow:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.row-arrow[hidden] { display: none !important; }
+.row-arrow svg { width: 18px; height: 18px; }
+.row-arrow.prev { left: -21px; }
+.row-arrow.next { right: -21px; }
+.ribbon-wrap .row-arrow { top: calc(50% - 10px); }
+.people-wrap .row-arrow { top: calc(50% - 22px); }
+/* A soft fade marks the side where more cards wait (the white rows only;
+   on the dark tiles the arrow already stands out). */
+.people-wrap::before, .people-wrap::after { content: ''; position: absolute; top: 0; bottom: 44px; width: 64px; z-index: 4; pointer-events: none; opacity: 0; transition: opacity .18s ease; }
+.people-wrap::before { left: 0; background: linear-gradient(90deg, var(--paper), rgba(255,255,255,0)); }
+.people-wrap::after { right: 0; background: linear-gradient(270deg, var(--paper), rgba(255,255,255,0)); }
+.people-wrap.more-left::before, .people-wrap.more-right::after { opacity: 1; }
+@media (max-width: 700px) { .row-arrow { width: 34px; height: 34px; } .row-arrow.prev { left: -6px; } .row-arrow.next { right: -6px; } }
 .move-card { flex: 1 0 300px; display: flex; flex-direction: column; gap: 10px; background: #fff; border: 1px solid #e3e7ec; border-radius: 10px; padding: 18px 20px; text-decoration: none; color: inherit; transition: border-color .2s ease, transform .2s ease; }
 .move-card:hover, .quote-card:hover { border-color: var(--blue); transform: translateY(-2px); }
 .move-type { align-self: flex-start; font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; background: var(--blue-soft); color: var(--blue); }
@@ -649,7 +668,8 @@ a { color: inherit; }
         <button class="persona-reset" id="personaReset">Reset layout</button>
     </div>
     <p class="persona-note">This demo saves your pins, hides, and order to <b>this browser only</b> (via localStorage) — reload the page and your layout is still here. True cross-device sync for a logged-in account would need real user authentication and a backend database, neither of which exist in SIGNAL yet — that's a separate build, not a front-end setting.</p>
-    <div class="ribbon" id="ribbon">
+    <div class="row-scroller ribbon-wrap">
+        <div class="ribbon" id="ribbon">
         <div class="tile live fade-up" data-id="global" draggable="true" onclick="if(!event.target.closest('.tile-controls')) openEnginePanel('global')">
             <svg class="tile-vector" viewBox="0 0 240 224" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><circle cx="120" cy="108" r="58" class="vln"/><ellipse cx="120" cy="108" rx="22" ry="58" class="vln"/><ellipse cx="120" cy="108" rx="44" ry="58" class="vln"/><path d="M62 108H178M68 80H172M68 136H172" class="vln"/><path d="M97 82 L146 128" class="vln2"/><circle cx="97" cy="82" r="3.2" class="vdot"/><circle cx="146" cy="128" r="3.2" class="vdot"/><circle cx="120" cy="50" r="2.6" class="vdot"/></svg>
             <div class="tile-body">
@@ -847,6 +867,9 @@ a { color: inherit; }
             </div>
         </div>
     </div>
+        <button type="button" class="row-arrow prev" aria-label="Scroll the engine tiles left" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button type="button" class="row-arrow next" aria-label="Scroll the engine tiles right" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
 
     <!-- The Global Affairs / Economy / AI card row that sat here repeated
          three engines already in the tile row above, and was removed. Each
@@ -865,7 +888,11 @@ a { color: inherit; }
         <span class="sub" id="moversCount"></span>
     </div>
     <p class="row-lede">Appointments and exits that today's headlines state outright.</p>
-    <div class="people-row" id="moversRow"><!-- populated from _movers --></div>
+    <div class="row-scroller people-wrap">
+        <div class="people-row" id="moversRow"><!-- populated from _movers --></div>
+        <button type="button" class="row-arrow prev" aria-label="Scroll People Movers left" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button type="button" class="row-arrow next" aria-label="Scroll People Movers right" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
 
     <!-- ===== Band 5: Executive Pulse — business leaders making news (auto-scroll) ===== -->
     <div id="pulseSection">
@@ -885,7 +912,11 @@ a { color: inherit; }
         <span class="sub" id="recordCount"></span>
     </div>
     <p class="row-lede">AI and frontier-tech leaders in their own words, quoted verbatim by a company newsroom or the technology press.</p>
-    <div class="people-row" id="recordRow"><!-- populated from _record --></div>
+    <div class="row-scroller people-wrap">
+        <div class="people-row" id="recordRow"><!-- populated from _record --></div>
+        <button type="button" class="row-arrow prev" aria-label="Scroll Leaders on Record left" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button type="button" class="row-arrow next" aria-label="Scroll Leaders on Record right" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
     <!-- The "Listening to" watchlist strip is parked (hidden) since 2026-09-24.
          renderRecord still fills it; remove "parked" to bring it back. -->
     <div class="listening parked" id="recordListening"></div>
@@ -1738,6 +1769,7 @@ a { color: inherit; }
         rib.addEventListener('dragstart', hold); rib.addEventListener('dragend', release);
         rib.addEventListener('touchstart', nudge(6000), { passive: true });
         rib.addEventListener('wheel', nudge(4000), { passive: true });
+        rib.addEventListener('signal:pause', nudge(6000)); // its side arrows
         if (window.IntersectionObserver) {
             new IntersectionObserver(es => { onScreen = es[0].isIntersecting; }).observe(rib);
         }
@@ -1760,6 +1792,44 @@ a { color: inherit; }
         requestAnimationFrame(step);
     }
     startRibbonDrift();
+
+    // Side arrows on the scrolling rows: each click pages one screenful of
+    // whole cards, and an arrow shows only when there is more that way.
+    function initRowArrows() {
+        const smooth = !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+        document.querySelectorAll('.row-scroller').forEach(wrap => {
+            const row = wrap.querySelector('.ribbon, .people-row');
+            const prev = wrap.querySelector('.row-arrow.prev');
+            const next = wrap.querySelector('.row-arrow.next');
+            if (!row || !prev || !next) return;
+            const sync = () => {
+                const max = row.scrollWidth - row.clientWidth;
+                prev.hidden = row.scrollLeft <= 2;
+                next.hidden = row.scrollLeft >= max - 2;
+                wrap.classList.toggle('more-left', !prev.hidden);
+                wrap.classList.toggle('more-right', !next.hidden);
+            };
+            const step = () => {
+                // The first card still shown: a tile the reader hid has no width.
+                const card = [...row.children].find(c => c.offsetWidth);
+                if (!card) return row.clientWidth * 0.85;
+                const unit = card.getBoundingClientRect().width + (parseFloat(getComputedStyle(row).columnGap) || 14);
+                return Math.max(unit, Math.floor(row.clientWidth / unit) * unit);
+            };
+            const go = dir => {
+                row.dispatchEvent(new Event('signal:pause'));
+                row.scrollBy({ left: dir * step(), behavior: smooth ? 'smooth' : 'auto' });
+                setTimeout(sync, 450);
+            };
+            prev.addEventListener('click', () => go(-1));
+            next.addEventListener('click', () => go(1));
+            row.addEventListener('scroll', sync, { passive: true });
+            window.addEventListener('resize', sync);
+            new MutationObserver(sync).observe(row, { childList: true, attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+            sync();
+        });
+    }
+    initRowArrows();
 
     // Personalizable Intelligence Bar: pin / hide / drag-reorder, persisted to localStorage
     (function() {
