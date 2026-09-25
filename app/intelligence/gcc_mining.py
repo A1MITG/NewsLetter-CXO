@@ -21,7 +21,7 @@ Two measures decide instead, and a candidate must clear both:
                 it appears in stories that never name a centre.
 
 Nothing here activates a keyword. Candidates are written out with their
-evidence for a person to promote into app/analysis/signals.py. The decisive
+evidence for a person to promote into app/analysis/gcc_rubric.py. The decisive
 weight-4 tier is never proposed automatically -- naming what counts as a
 capability centre stays a human judgement.
 
@@ -34,7 +34,7 @@ import os
 import re
 from collections import Counter, defaultdict
 
-from app.analysis.signals import GCC_ACTION, GCC_CONTEXT, GCC_ENTITY
+from app.analysis.gcc_rubric import ENTITY, FACETS, NOT_EVIDENCE
 
 # A candidate must appear in this many distinct confirmed GCC stories before
 # its lift means anything. Below it the ratio is noise from one headline.
@@ -52,7 +52,7 @@ SAMPLE_HEADLINES = 3
 # Terms already spoken for: the live rubric, plus everything deliberately
 # excluded from it. Re-proposing a term the rubric rejects on purpose would
 # be the module arguing with its own design.
-_CONTEXT_TERMS = {t for group in GCC_CONTEXT.values() for t in group}
+_CONTEXT_TERMS = {t for group in NOT_EVIDENCE.values() for t in group}
 
 _STOPWORDS = set("""
 a an the of in on at to for with as by and or but is are was were be been being
@@ -89,14 +89,14 @@ def _ngrams(text, max_n=MAX_NGRAM):
 
 def _live_terms():
     """Every term the rubric currently scores, in one set."""
-    terms = set(GCC_ENTITY)
-    for _weight, action_terms in GCC_ACTION.values():
-        terms.update(action_terms)
+    terms = set(ENTITY)
+    for facet in FACETS.values():
+        terms.update(facet.terms)
     return terms
 
 
 def _decisive_terms():
-    return {term for term, weight in GCC_ENTITY.items() if weight == 4}
+    return {term for term, weight in ENTITY.items() if weight == 4}
 
 
 # --------------------------------------------------------------------------
@@ -205,9 +205,9 @@ def _facet_for(term, positives):
             continue
         if any(re.search(r'\b' + re.escape(e) + r'\b', text) for e in _decisive_terms()):
             tallies['entity'] += 1
-        for facet, (_weight, terms) in GCC_ACTION.items():
-            if any(re.search(r'\b' + re.escape(t) + r'\b', text) for t in terms):
-                tallies[facet] += 1
+        for name, facet in FACETS.items():
+            if any(re.search(r'\b' + re.escape(t) + r'\b', text) for t in facet.terms):
+                tallies[name] += 1
     if not tallies:
         return 'entity'
     best = max(tallies.values())

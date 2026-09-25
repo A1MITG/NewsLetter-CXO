@@ -24,8 +24,8 @@ from functools import lru_cache
 
 import yaml
 
-from app.analysis.signals import (KEYWORDS, _GCC_TERM, _GULF_CONTEXT,
-                                  _normalize, gcc_axes)
+from app.analysis.gcc_rubric import GCC_TERM, gcc_axes, gcc_means_gulf
+from app.analysis.signals import KEYWORDS, _normalize
 
 CONFIG = pathlib.Path(__file__).resolve().parents[2] / "config" / "domains.yaml"
 
@@ -90,11 +90,11 @@ def score_domains(title: str, summary: str = "") -> dict:
                 evidence.append({"keyword": kw, "weight": w, "where": "summary"})
         results[domain] = {"score": score, "evidence": evidence}
 
-    # "GCC" beside Gulf terms means Gulf Cooperation Council, not Global
-    # Capability Centers. Preserved from the legacy classifier.
-    if _GULF_CONTEXT.search(t) or _GULF_CONTEXT.search(s):
-        in_title = bool(_GCC_TERM.search(t))
-        if in_title or (s and _GCC_TERM.search(s)):
+    # "GCC" meaning the Gulf Cooperation Council, by the same rule the
+    # legacy classifier applies (gcc_rubric.gcc_means_gulf).
+    if gcc_means_gulf(f"{t} {s}"):
+        in_title = bool(GCC_TERM.search(t))
+        if in_title or (s and GCC_TERM.search(s)):
             mult = TITLE_MULTIPLIER if in_title else 1
             gcc_weight = KEYWORDS["Signal GCC"]["gcc"]
             results["gcc"]["score"] = max(0, results["gcc"]["score"] - gcc_weight * mult)

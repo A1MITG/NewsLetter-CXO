@@ -47,7 +47,9 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from ..intelligence.freshness import classify as classify_freshness
+from ..intelligence.normalize import normalize_text as _normalize
 from ..intelligence.normalize import parse_date
+from .gcc_rubric import GCC_TERM, MIN_SCORE as GCC_MIN_SCORE, gcc_means_gulf, gcc_vocabulary, score_gcc
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -211,185 +213,16 @@ AI = Rubric(
 )
 
 # ── Signal GCC ────────────────────────────────── Signals page and Command Center
-# Scored by its own two-axis rule rather than a flat keyword sum: a story
-# needs a capability centre (ENTITY) AND something happening to it (ACTION).
-# The explanation and both axes follow; the rubric's keywords are the two axes
-# combined, for anything that reads KEYWORDS.
-#
-# GCC is the one Signal where a flat keyword bag kept misfiring, because the
-# vocabulary that surrounds a capability centre -- Indian city names, IT
-# vendor names, the word "India" -- also surrounds a great deal of ordinary
-# Indian business news. Two live defects came from exactly that:
-#
-#   "Indian art auction market triples"      -> india(1) + indian(1)    = 3
-#   "Puravankara ... Greater Noida project"  -> noida(2) + gurugram(2)  = 6
-#
-# The second cleared even the stricter evidence rules in config/domains.yaml
-# (min_score 6, two distinct keywords), so raising the bar was never going to
-# fix it. What those stories lack is not the AMOUNT of evidence but the KIND:
-# neither names a capability centre, and neither describes anything happening
-# to one. So GCC evidence is split across two axes, and both must be present:
-#
-#   ENTITY  -- is this about a capability centre?  (GCC_ENTITY)
-#   ACTION  -- is something happening to it?       (GCC_ACTION, by facet)
-#
-# Geography is deliberately NOT evidence at any weight. Tier-2 cities now
-# court the same IT/ITES investment as Bengaluru and Hyderabad, so the set of
-# "GCC cities" is widening toward "Indian cities"; a longer city list makes
-# this worse, not better. Cities, vendors and nationality sit in GCC_CONTEXT,
-# which scores nothing and exists to record what must never classify alone.
-
-GCC_ENTITY = {
-    # Decisive: names a capability centre outright.
-    'global capability center': 4, 'global capability centre': 4,
-    'global capability centers': 4, 'global capability centres': 4,
-    'global capability': 4,
-    'capability center': 4, 'capability centre': 4,
-    'capability centers': 4, 'capability centres': 4,
-    'global in-house center': 4, 'global in-house centre': 4, 'gic': 4,
-    'captive center': 4, 'captive centre': 4, 'captive unit': 4,
-    'global delivery center': 4, 'global delivery centre': 4, 'gdc': 4,
-    'shared services center': 4, 'shared services centre': 4,
-    'offshore development center': 4, 'offshore development centre': 4,
-    'odc': 4,
-    'center of excellence': 4, 'centre of excellence': 4, 'coe': 4,
-    'global business services': 4, 'gbs': 4,
-    'gcc': 4, 'gccs': 4,
-    'engineering center': 4, 'engineering centre': 4,
-    'innovation center': 4, 'innovation centre': 4,
-    'technology center': 4, 'technology centre': 4,
-    'development center': 4, 'development centre': 4,
-    'delivery center': 4, 'delivery centre': 4,
-    'competency center': 4, 'competency centre': 4,
-    'r&d center': 4, 'r&d centre': 4, 'research and development center': 4,
-    # Engineering capability centres. Plurals are listed because matching is
-    # word-bounded: 'engineering centre' does not match "engineering centres".
-    'engineering centers': 4, 'engineering centres': 4,
-    'r&d centers': 4, 'r&d centres': 4,
-    'er&d center': 4, 'er&d centre': 4, 'er&d centers': 4, 'er&d centres': 4,
-    'engineering hub': 4, 'r&d hub': 4,
-    # Supporting: the operating model rather than the centre itself.
-    'shared services': 2, 'offshoring': 2, 'nearshoring': 2, 'reshoring': 2,
-    'outsourcing': 2, 'it services': 2, 'ites': 2, 'bpo': 2, 'kpo': 2,
-    'back office': 2, 'in-house center': 2, 'in-house centre': 2,
-    'managed services': 2, 'nasscom': 2, 'global mandate': 2,
-    'global roles': 2,
-    # Bare 'captive' is deliberately absent: in this corpus it is far more
-    # often a CAPTIVE INSURER ("Allianz names captive leader", "A-Cap
-    # Insurers file suit") than a captive centre, and Signal Insurance is
-    # the right home for those. 'captive center/centre/unit' above are
-    # unambiguous and stay.
-}
-
-# Each facet contributes its weight ONCE, however many of its synonyms fire,
-# so a headline cannot inflate by restating one event ("opens", "opening",
-# "to open"). Facets are the lifecycle and nature-of-work distinctions a
-# capability-centre story actually turns on.
-GCC_ACTION = {
-    'new_build': (3, (
-        'sets up', 'set up', 'setting up', 'to set up', 'establishes',
-        'established', 'establishing', 'establish', 'opens', 'opened',
-        'opening', 'to open', 'launches', 'launched', 'launching', 'launch',
-        'inaugurates', 'inaugurated', 'unveils', 'unveiled', 'stands up',
-        'stood up', 'commissions', 'greenfield', 'new center', 'new centre',
-        'first center', 'first centre', 'debuts', 'breaks ground')),
-    'expansion': (3, (
-        'expands', 'expanded', 'expanding', 'expansion', 'expand',
-        'scales up', 'scaling up', 'scale-up', 'ramps up', 'ramping up',
-        'ramp-up', 'doubles', 'doubling', 'tripling', 'adds capacity',
-        'adding capacity', 'second campus', 'new campus', 'grows headcount',
-        'widens', 'broadens', 'enlarges', 'deepens', 'upgrades',
-        'extends charter', 'expands mandate', 'expanded mandate')),
-    'coe_standup': (4, (
-        'center of excellence', 'centre of excellence', 'coe',
-        'hub for', 'center for', 'centre for')),
-    'augment_capability': (3, (
-        'augment', 'augments', 'augmenting', 'augmentation', 'absorbs',
-        'take over', 'takes over', 'taking over', 'transitions',
-        'transitioning', 'transition', 'migrates', 'migrating', 'migration',
-        'insources', 'insourcing', 'in-sourcing', 'consolidates',
-        'consolidating', 'consolidation', 'lift and shift',
-        'brings in-house', 'moves in-house')),
-    'new_development': (3, (
-        'product development', 'product engineering', 'new product',
-        'end-to-end ownership', 'full stack ownership', 'product ownership',
-        'charter expansion', 'digital transformation', 'platform build',
-        'greenfield build', 'from scratch', 'ground up', 'r&d mandate')),
-    'talent_scale': (2, (
-        'hire', 'hires', 'hiring', 'to hire', 'headcount', 'seats',
-        'workforce', 'ftes', 'professionals', 'engineers', 'recruit',
-        'recruiting', 'roles', 'jobs', 'positions')),
-}
-
-# What work a centre does, as a seventh ACTION facet: manufacturing and
-# engineering GCCs are a story in their own right ("Manufacturing, transport
-# firms overtake banks to lead India's GCC boom" went to the Manufacturing
-# tile, 2026-09-25). Two limits keep it from reopening the vendor problem:
-#   - it counts only beside a NAMED capability centre (GCC_NAMED_CENTRE), not
-#     beside supporting terms such as 'it services' or 'outsourcing', so an
-#     IT supplier's manufacturing deal is still not a GCC story;
-#   - the centre's own name is not evidence of its work: 'engineering' in
-#     "engineering centre" is the entity, and is blanked before this facet
-#     looks. "The engineering centre model, explained" still needs an action.
-GCC_SECTOR = (3, (
-    'manufacturing', 'manufacturer', 'manufacturers', 'engineering', 'er&d',
-    'industrial', 'automotive', 'automaker', 'automakers', 'aerospace',
-    'semiconductor', 'semiconductors', 'chipmaker', 'chipmakers'))
-
-# The capability centres GCC_SECTOR may stand beside: names of an in-house
-# centre. Left out: generic or vendor-side names ('delivery centre', 'global
-# delivery centre', 'coe', 'gic', 'innovation centre', ...), which suppliers,
-# universities and funds use as often as capability centres do.
-GCC_NAMED_CENTRE = (
-    'gcc', 'gccs', 'global capability center', 'global capability centre',
-    'global capability centers', 'global capability centres', 'global capability',
-    'capability center', 'capability centre', 'capability centers', 'capability centres',
-    'global in-house center', 'global in-house centre',
-    'captive center', 'captive centre', 'captive unit',
-    'shared services center', 'shared services centre',
-    'engineering center', 'engineering centre', 'engineering centers', 'engineering centres',
-    'r&d center', 'r&d centre', 'r&d centers', 'r&d centres',
-    'er&d center', 'er&d centre', 'er&d centers', 'er&d centres',
-    'research and development center', 'engineering hub', 'r&d hub',
-)
-
-# Scores nothing. Present so the exclusion is explicit and reviewable rather
-# than an absence someone re-adds in good faith next year.
-GCC_CONTEXT = {
-    'city_tier1': ('bengaluru', 'bangalore', 'hyderabad', 'chennai', 'pune',
-                   'gurugram', 'gurgaon', 'noida', 'mumbai', 'delhi',
-                   'kolkata'),
-    'city_tier2': ('coimbatore', 'kochi', 'indore', 'jaipur', 'ahmedabad',
-                   'chandigarh', 'bhubaneswar', 'visakhapatnam', 'mysuru',
-                   'nagpur', 'vadodara', 'thiruvananthapuram', 'lucknow',
-                   'madurai', 'nashik', 'trichy'),
-    'vendor': ('tcs', 'infosys', 'wipro', 'cognizant', 'capgemini',
-               'accenture', 'hcl', 'tech mahindra', 'ltimindtree', 'genpact'),
-    'nationality': ('india', 'indian'),
-}
-
-
-def _gcc_vocabulary():
-    """The flat {keyword: weight} table Signal GCC advertises.
-
-    Composed from the two axes so the vocabulary keeps exactly one home.
-    The real scoring is _score_gcc below -- this exists so anything reading
-    KEYWORDS (app/intelligence/domains.py, the tests) sees the same terms.
-    """
-    vocab = dict(GCC_ENTITY)
-    for weight, terms in (*GCC_ACTION.values(), GCC_SECTOR):
-        for term in terms:
-            vocab.setdefault(term, weight)
-    return vocab
-
-
+# The one Signal that is not a flat keyword sum: a story must name a
+# capability centre AND say what is happening to one, and "GCC" beside Gulf
+# words is the Gulf Cooperation Council. Its vocabulary, the India GCC
+# taxonomy it scores by, the Gulf rule and the scoring all live in
+# app/analysis/gcc_rubric.py. This rubric lists the same terms for anything
+# that reads KEYWORDS; score_signals() scores it with gcc_rubric.score_gcc().
 GCC = Rubric(
     headline_must_match=False,
-    # 6, not 3: at 5 an IT-vendor services deal ("HCLTech bags AI-led IT
-    # transformation deal from M Group") clears both axes and reaches the
-    # tile -- a supplier story, not a capability-centre one.
-    min_score=6,
-    keywords=_gcc_vocabulary(),
+    min_score=GCC_MIN_SCORE,
+    keywords=gcc_vocabulary(),
     ignore=(),
 )
 
@@ -1191,107 +1024,6 @@ _COMPILED = {
     for name, kws in KEYWORDS.items()
 }
 
-# "GCC" next to Gulf-region terms means Gulf Cooperation Council, not
-# Global Capability Centers — shift that evidence to Signal Global.
-_GCC_TERM = re.compile(r'\bgccs?\b')
-_GULF_CONTEXT = re.compile(
-    r'\b(gulf|saudi|saudi arabia|uae|united arab emirates|qatar|bahrain'
-    r'|kuwait|oman|dubai|abu dhabi)\b')
-_GCC_TERM_WEIGHT = KEYWORDS['Signal GCC']['gcc']
-
-_GCC_RX = {kw: re.compile(r'\b' + re.escape(kw) + r'\b')
-           for kw in list(GCC_ENTITY)
-           + [t for _, terms in GCC_ACTION.values() for t in terms]
-           + list(GCC_SECTOR[1])}
-
-# Every entity name, longest first: blanked before GCC_SECTOR looks, so a
-# centre's own name ("engineering centre") is not evidence of its work.
-_GCC_ENTITY_ANY = re.compile(
-    r'\b(?:' + '|'.join(re.escape(k) for k in sorted(GCC_ENTITY, key=len, reverse=True)) + r')\b')
-
-
-def _gcc_sector(title, summary='', gulf=False):
-    """Where GCC_SECTOR fires: 'title', 'summary', or None.
-
-    Only beside a named capability centre (GCC_NAMED_CENTRE; "GCC" beside
-    Gulf terms is not one), and only on words outside the centres' names.
-    """
-    named = [k for k in GCC_NAMED_CENTRE if not (gulf and k in ('gcc', 'gccs'))]
-    if not any(_GCC_RX[k].search(title) or (summary and _GCC_RX[k].search(summary)) for k in named):
-        return None
-    title, summary = _GCC_ENTITY_ANY.sub(' ', title), _GCC_ENTITY_ANY.sub(' ', summary or '')
-    for where, text in (('title', title), ('summary', summary)):
-        if any(_GCC_RX[t].search(text) for t in GCC_SECTOR[1]):
-            return where
-    return None
-
-
-def gcc_axes(title, summary=''):
-    """(has_entity, has_action) -- the two-axis gate, on normalised text.
-
-    Public because app/intelligence/domains.py applies the same gate; the two
-    classifiers share this one definition so they cannot disagree about what
-    counts as a GCC story.
-    """
-    blob = _normalize(title or '') + ' ' + _normalize(summary or '')
-    entity = any(_GCC_RX[k].search(blob) for k in GCC_ENTITY)
-    action = (any(_GCC_RX[t].search(blob)
-                  for _, terms in GCC_ACTION.values() for t in terms)
-              or _gcc_sector(blob, gulf=bool(_GULF_CONTEXT.search(blob))) is not None)
-    return entity, action
-
-
-def _score_gcc(title, summary):
-    """Signal GCC's score under the faceted rule; 0 when either axis is empty.
-
-    Scored apart from the flat sum in score_signals because GCC needs facet
-    semantics: every distinct ENTITY term counts, but an ACTION facet counts
-    once however many of its synonyms fire. Both arguments arrive already
-    normalised.
-    """
-    gulf = bool(_GULF_CONTEXT.search(title) or _GULF_CONTEXT.search(summary))
-
-    entity_hits = total = 0
-    for kw, weight in GCC_ENTITY.items():
-        if gulf and kw in ('gcc', 'gccs'):
-            continue          # Gulf Cooperation Council, not a capability centre
-        rx = _GCC_RX[kw]
-        if rx.search(title):
-            entity_hits += 1
-            total += weight * TITLE_MULTIPLIER
-        elif summary and rx.search(summary):
-            entity_hits += 1
-            total += weight
-
-    action_facets = 0
-    for weight, terms in GCC_ACTION.values():
-        where = None
-        for term in terms:
-            rx = _GCC_RX[term]
-            if rx.search(title):
-                where = 'title'
-                break
-            if where is None and summary and rx.search(summary):
-                where = 'summary'
-        if where:
-            action_facets += 1
-            total += weight * (TITLE_MULTIPLIER if where == 'title' else 1)
-
-    where = _gcc_sector(title, summary, gulf)
-    if where:
-        action_facets += 1
-        total += GCC_SECTOR[0] * (TITLE_MULTIPLIER if where == 'title' else 1)
-
-    if not entity_hits or not action_facets:
-        return 0
-    return total
-
-
-def _normalize(text):
-    """Lowercase and straighten curly quotes so keywords match consistently."""
-    return text.lower().replace('’', "'").replace('‘', "'")
-
-
 # Words too common in headlines to signal that two titles are the same story.
 _STOPWORDS = {
     'a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'as',
@@ -1339,19 +1071,18 @@ def score_signals(title, summary=''):
                 total += weight
         scores[name] = total if in_title or name not in TITLE_REQUIRED else 0
 
-    if _GULF_CONTEXT.search(title) or _GULF_CONTEXT.search(summary):
-        # "GCC" beside Gulf terms is the Gulf Cooperation Council. The GCC
-        # side of this is handled inside _score_gcc, which drops the term
-        # before scoring; here we only move the evidence to Signal Global.
-        if _GCC_TERM.search(title):
+    if gcc_means_gulf(f'{title} {summary}'):
+        # "GCC" here is the Gulf Cooperation Council: score_gcc drops it, and
+        # its evidence moves to Signal Global.
+        if GCC_TERM.search(title):
             scores['Signal Global'] += 2 * TITLE_MULTIPLIER
-        elif summary and _GCC_TERM.search(summary):
+        elif summary and GCC_TERM.search(summary):
             scores['Signal Global'] += 2
 
-    # Signal GCC replaces its flat sum with the faceted, gated score. The
-    # loop above cannot express "one facet counts once", nor refuse an
-    # article that has plenty of evidence of the wrong kind.
-    scores['Signal GCC'] = _score_gcc(title, summary)
+    # Signal GCC replaces its flat sum with its own two-axis score
+    # (app/analysis/gcc_rubric.py): the loop above cannot express "one facet
+    # counts once", nor refuse a story with plenty of evidence of the wrong kind.
+    scores['Signal GCC'] = score_gcc(title, summary, TITLE_MULTIPLIER)
 
     return scores
 

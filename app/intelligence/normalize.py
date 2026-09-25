@@ -75,6 +75,11 @@ def publisher_for(host: str) -> str:
     return stem.replace("-", " ").title()
 
 
+def normalize_text(text: str) -> str:
+    """Lowercase and straighten curly quotes so keywords match consistently."""
+    return text.lower().replace('’', "'").replace('‘', "'")
+
+
 def parse_date(value) -> datetime | None:
     """RFC-2822 first (the RSS standard), then ISO-8601.
 
