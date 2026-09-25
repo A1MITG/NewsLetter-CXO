@@ -407,16 +407,20 @@ a { color: inherit; }
 .tile.hidden-tile { display: none; }
 
 /* ---------- Featured Analysis ---------- */
-.featured { position: relative; border-radius: 12px; overflow: hidden; min-height: 400px; display: flex; align-items: flex-end; margin-bottom: 50px; text-decoration: none; }
-.featured img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.featured::after { content:''; position:absolute; inset:0; background: linear-gradient(0deg, rgba(11,21,36,.93) 0%, rgba(11,21,36,.4) 55%, rgba(11,21,36,.05) 100%); }
-.featured-body { position: relative; z-index: 2; padding: 32px 38px; color: #fff; max-width: 740px; }
+/* The picture keeps its own shape (publishers send 3:2, 4:3, 16:9): a wide
+   strip filled edge to edge cut off the top of every portrait. Text sits on
+   navy beside it; on a phone the picture goes on top. */
+.featured { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); background: var(--navy); border-radius: 12px; overflow: hidden; margin-bottom: 50px; text-decoration: none; }
+.featured-media { position: relative; aspect-ratio: var(--ratio, 3 / 2); max-height: 540px; background: #0b1524; }
+.featured-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.featured-body { position: relative; z-index: 2; align-self: center; padding: 32px 38px; color: #fff; }
 .featured-body h2 { font-family: var(--serif); font-size: 30px; font-weight: 400; line-height: 1.2; margin-bottom: 12px; }
 .featured-summary { font-size: 14px; color: rgba(255,255,255,.82); line-height: 1.55; margin-bottom: 10px; }
 .featured-impl { font-size: 12.5px; color: rgba(255,255,255,.65); margin-bottom: 14px; }
 .featured-impl b { color: #9fc1ff; }
 .featured-read { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
 .featured-pin { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #9fc1ff; margin-bottom: 10px; }
+@media (max-width: 860px) { .featured { grid-template-columns: 1fr; } .featured-media { order: -1; max-height: none; } .featured-body { padding: 22px 22px 26px; } .featured-body h2 { font-size: 24px; } }
 
 /* ---------- People rows: People Movers, Leaders on Record ----------
    Cards grow to fill the row when there are few, so each row spans the same
@@ -1515,14 +1519,22 @@ a { color: inherit; }
         if (!f) { slot.innerHTML = ''; return; }
         slot.innerHTML = `
         <a class="featured fade-up in" href="${esc(f.url)}" target="_blank" rel="noopener">
-            <img src="${esc(f.image)}" alt="" loading="lazy" decoding="async">
             <div class="featured-body">
                 ${f.pinned ? `<div class="featured-pin">Pinned &middot; ${esc(f.source)} &middot; ${esc(f.date)}</div>` : ''}
                 <h2>${esc(f.title)}</h2>
                 ${f.summary ? `<p class="featured-summary">${esc(f.summary)}</p>` : ''}
                 <div class="featured-read">Read Full Brief &rarr;</div>
             </div>
+            <div class="featured-media"><img src="${esc(f.image)}" alt="" loading="lazy" decoding="async"></div>
         </a>`;
+        // The frame takes the picture's own shape once it is known (between
+        // 6:5 and 2:1; outside that the picture sits whole inside the frame).
+        const img = slot.querySelector('.featured-media img');
+        const fit = () => {
+            const r = img.naturalWidth / img.naturalHeight;
+            if (r) img.parentNode.style.setProperty('--ratio', Math.min(2, Math.max(1.2, r)).toFixed(3));
+        };
+        img.complete ? fit() : img.addEventListener('load', fit);
     }
 
     function updateEngineCount() {
